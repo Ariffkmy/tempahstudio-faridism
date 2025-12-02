@@ -30,7 +30,6 @@ const Book = () => {
   });
 
   const timeSlots = useMemo(() => {
-    if (!selectedDate || !selectedLayout) return [];
     return generateTimeSlots(selectedDate, selectedLayout);
   }, [selectedDate, selectedLayout]);
 
@@ -94,13 +93,11 @@ const Book = () => {
                     }}
                   />
                   
-                  {selectedDate && (
-                    <TimeSlots
-                      slots={timeSlots}
-                      selectedTime={selectedTime}
-                      onSelectTime={setSelectedTime}
-                    />
-                  )}
+                  <TimeSlots
+                    slots={timeSlots}
+                    selectedTime={selectedTime}
+                    onSelectTime={setSelectedTime}
+                  />
                 </div>
 
                 <DurationSelector

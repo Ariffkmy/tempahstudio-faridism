@@ -28,32 +28,45 @@ export function LayoutSelector({ layouts, selectedLayout, onSelectLayout }: Layo
             )}
             onClick={() => onSelectLayout(layout.id)}
           >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-medium">{layout.name}</h4>
-                  {selectedLayout === layout.id && (
-                    <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                      <Check className="h-3 w-3 text-primary-foreground" />
-                    </div>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground mb-2">{layout.description}</p>
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs">
-                    <Users className="h-3 w-3 mr-1" />
-                    {layout.capacity}
-                  </Badge>
-                  {layout.amenities.slice(0, 2).map((amenity) => (
-                    <Badge key={amenity} variant="outline" className="text-xs">
-                      {amenity}
-                    </Badge>
-                  ))}
-                </div>
+            <div className="flex gap-4">
+              {/* Layout Image */}
+              <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+                <img 
+                  src={layout.image || '/placeholder.svg'} 
+                  alt={layout.name}
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <div className="text-right ml-4">
-                <p className="font-bold text-primary">RM {layout.pricePerHour}</p>
-                <p className="text-xs text-muted-foreground">/hour</p>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="font-medium">{layout.name}</h4>
+                      {selectedLayout === layout.id && (
+                        <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                          <Check className="h-3 w-3 text-primary-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{layout.description}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="secondary" className="text-xs">
+                        <Users className="h-3 w-3 mr-1" />
+                        {layout.capacity}
+                      </Badge>
+                      {layout.amenities.slice(0, 2).map((amenity) => (
+                        <Badge key={amenity} variant="outline" className="text-xs">
+                          {amenity}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-right ml-4">
+                    <p className="font-bold text-primary">RM {layout.pricePerHour}</p>
+                    <p className="text-xs text-muted-foreground">/hour</p>
+                  </div>
+                </div>
               </div>
             </div>
           </Card>

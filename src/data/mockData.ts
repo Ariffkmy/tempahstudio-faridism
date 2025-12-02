@@ -7,6 +7,7 @@ export const mockLayouts: StudioLayout[] = [
     description: 'A timeless setup with professional lighting and backdrop options. Perfect for portraits and product photography.',
     capacity: 6,
     pricePerHour: 150,
+    image: '/placeholder.svg',
     amenities: ['Professional lighting', 'Multiple backdrops', 'Props included', 'Changing room'],
   },
   {
@@ -15,6 +16,7 @@ export const mockLayouts: StudioLayout[] = [
     description: 'Our flagship studio with advanced equipment and spacious environment. Ideal for commercial shoots and video production.',
     capacity: 12,
     pricePerHour: 280,
+    image: '/placeholder.svg',
     amenities: ['4K video equipment', 'Green screen', 'Sound dampening', 'Client lounge', 'Makeup station'],
   },
   {
@@ -23,9 +25,23 @@ export const mockLayouts: StudioLayout[] = [
     description: 'A versatile, naturally-lit creative space. Great for lifestyle shoots, yoga sessions, and small events.',
     capacity: 20,
     pricePerHour: 200,
+    image: '/placeholder.svg',
     amenities: ['Natural lighting', 'Modular furniture', 'Sound system', 'Kitchenette access'],
   },
 ];
+
+// Admin-configurable time slots - if empty, all slots are available
+// When admin enables slot configuration, only these slots will be shown
+export const configuredTimeSlots: { [layoutId: string]: string[] } = {
+  // Example: 'classic': ['09:00', '10:00', '14:00', '15:00'],
+  // Empty means all default slots are available
+};
+
+// Default operating hours
+export const defaultOperatingHours = {
+  start: 9,
+  end: 21,
+};
 
 export const mockCompany: Company = {
   id: 'raya-kl',
@@ -111,15 +127,27 @@ export const mockBookings: Booking[] = [
   },
 ];
 
-export const generateTimeSlots = (date: Date, layoutId: string): { time: string; available: boolean }[] => {
+export const generateTimeSlots = (date: Date | undefined, layoutId: string | null): { time: string; available: boolean }[] => {
   const slots = [];
-  const bookedTimes = ['10:00', '11:00', '14:00', '15:00'];
   
-  for (let hour = 9; hour <= 20; hour++) {
+  // Check if admin has configured specific time slots for this layout
+  const adminConfiguredSlots = layoutId ? configuredTimeSlots[layoutId] : null;
+  const hasAdminConfig = adminConfiguredSlots && adminConfiguredSlots.length > 0;
+  
+  // Mock booked times (in production, this comes from database)
+  const bookedTimes = date ? ['10:00', '14:00'] : [];
+  
+  for (let hour = defaultOperatingHours.start; hour <= defaultOperatingHours.end - 1; hour++) {
     const time = `${hour.toString().padStart(2, '0')}:00`;
+    
+    // If admin configured slots, only include those
+    if (hasAdminConfig && !adminConfiguredSlots.includes(time)) {
+      continue;
+    }
+    
     slots.push({
       time,
-      available: !bookedTimes.includes(time) || Math.random() > 0.3,
+      available: !bookedTimes.includes(time),
     });
   }
   

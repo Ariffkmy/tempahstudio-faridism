@@ -11,11 +11,10 @@ import {
 import { Button } from '@/components/ui/button';
 
 const navigation = [
-  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { name: 'Bookings', href: '/admin/bookings', icon: Calendar },
-  { name: 'Customers', href: '/admin/customers', icon: Users },
-  { name: 'Reports', href: '/admin/reports', icon: FileText },
-  { name: 'Settings', href: '/admin/settings', icon: Settings },
+  { name: 'Papan Pemuka', href: '/admin', icon: LayoutDashboard },
+  { name: 'Tempahan', href: '/admin/bookings', icon: Calendar },
+  { name: 'Laporan', href: '/admin/reports', icon: FileText },
+  { name: 'Tetapan', href: '/admin/settings', icon: Settings },
 ];
 
 export function AdminSidebar() {
@@ -26,12 +25,10 @@ export function AdminSidebar() {
       {/* Logo */}
       <div className="p-6 border-b border-border">
         <Link to="/admin" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">R</span>
-          </div>
+          <img src="/studiorayalogo.png" alt="Raya Studio Logo" style={{ width: '48px', height: '28px' }} />
           <div>
             <span className="font-semibold">Raya Studio</span>
-            <p className="text-xs text-muted-foreground">Admin Portal</p>
+            <p className="text-xs text-muted-foreground">Portal Admin</p>
           </div>
         </Link>
       </div>
@@ -69,9 +66,11 @@ export function AdminSidebar() {
             <p className="text-xs text-muted-foreground truncate">admin@rayastudio.com</p>
           </div>
         </div>
-        <Button variant="ghost" className="w-full justify-start text-muted-foreground" size="sm">
-          <LogOut className="h-4 w-4 mr-2" />
-          Sign out
+        <Button variant="ghost" className="w-full justify-start text-muted-foreground" size="sm" asChild>
+          <Link to="/admin/login">
+            <LogOut className="h-4 w-4 mr-2" />
+            Log keluar
+          </Link>
         </Button>
       </div>
     </aside>

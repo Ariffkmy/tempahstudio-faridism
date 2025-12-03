@@ -41,19 +41,6 @@ export function LayoutCard({ layout, index }: LayoutCardProps) {
           {layout.description}
         </p>
 
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          {layout.amenities.slice(0, 3).map((amenity) => (
-            <Badge key={amenity} variant="outline" className="text-xs font-normal">
-              {amenity}
-            </Badge>
-          ))}
-          {layout.amenities.length > 3 && (
-            <Badge variant="outline" className="text-xs font-normal">
-              +{layout.amenities.length - 3} more
-            </Badge>
-          )}
-        </div>
-
         <Button className="w-full group-hover:bg-primary/90" asChild>
           <Link to={`/book?layout=${layout.id}`}>
             Book This Studio

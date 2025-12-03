@@ -29,7 +29,7 @@ export function StatsCard({ title, value, description, icon: Icon, trend }: Stat
                 "text-xs mt-2 font-medium",
                 trend.positive ? "text-success" : "text-destructive"
               )}>
-                {trend.positive ? '↑' : '↓'} {Math.abs(trend.value)}% from last week
+                {trend.positive ? '↑' : '↓'} {Math.abs(trend.value)}% daripada minggu lepas
               </p>
             )}
           </div>

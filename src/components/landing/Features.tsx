@@ -3,23 +3,23 @@ import { Calendar, Shield, Zap, Headphones } from 'lucide-react';
 const features = [
   {
     icon: Calendar,
-    title: 'Instant Booking',
-    description: 'See real-time availability and secure your slot in seconds. No back-and-forth emails.',
+    title: 'Tempahan Segera',
+    description: 'Lihat ketersediaan masa nyata dan jamin slot anda dalam beberapa saat. Tiada emel bolak-balik.',
   },
   {
     icon: Shield,
-    title: 'Secure Payments',
-    description: 'Industry-standard encryption protects your payment details. Multiple payment options available.',
+    title: 'Pembayaran Selamat',
+    description: 'Penyulitan standard industri melindungi butiran pembayaran anda. Pelbagai pilihan pembayaran tersedia.',
   },
   {
     icon: Zap,
-    title: 'Premium Equipment',
-    description: 'Professional-grade lighting, cameras, and accessories included with every booking.',
+    title: 'Peralatan Premium',
+    description: 'Pencahayaan, kamera dan aksesori gred profesional termasuk dengan setiap tempahan.',
   },
   {
     icon: Headphones,
-    title: 'Dedicated Support',
-    description: 'Our team is here to help before, during, and after your session. Just ask.',
+    title: 'Sokongan Berdedikasi',
+    description: 'Pasukan kami di sini untuk membantu sebelum, semasa dan selepas sesi anda. Hanya tanya.',
   },
 ];
 

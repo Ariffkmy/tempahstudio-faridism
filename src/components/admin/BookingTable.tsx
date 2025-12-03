@@ -38,11 +38,11 @@ export function BookingTable({ bookings, onViewBooking }: BookingTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Reference</TableHead>
-            <TableHead>Customer</TableHead>
-            <TableHead>Date & Time</TableHead>
+            <TableHead>Rujukan</TableHead>
+            <TableHead>Pelanggan</TableHead>
+            <TableHead>Tarikh & Masa</TableHead>
             <TableHead>Layout</TableHead>
-            <TableHead>Amount</TableHead>
+            <TableHead>Jumlah</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="w-[70px]"></TableHead>
           </TableRow>
@@ -51,7 +51,7 @@ export function BookingTable({ bookings, onViewBooking }: BookingTableProps) {
           {bookings.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                No bookings found
+                Tiada tempahan dijumpai
               </TableCell>
             </TableRow>
           ) : (
@@ -89,12 +89,12 @@ export function BookingTable({ bookings, onViewBooking }: BookingTableProps) {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => onViewBooking(booking)}>
                         <Eye className="h-4 w-4 mr-2" />
-                        View Details
+                        Lihat Butiran
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem>Confirm</DropdownMenuItem>
-                      <DropdownMenuItem>Cancel</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">Refund</DropdownMenuItem>
+                      <DropdownMenuItem>Sahkan</DropdownMenuItem>
+                      <DropdownMenuItem>Batalkan</DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive">Pulangan</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>

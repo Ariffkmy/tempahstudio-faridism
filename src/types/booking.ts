@@ -7,7 +7,7 @@ export interface StudioLayout {
   capacity: number;
   pricePerHour: number;
   image?: string;
-  amenities: string[];
+  amenities?: string[];
 }
 
 export interface TimeSlot {
@@ -36,6 +36,18 @@ export interface Booking {
   internalNotes?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Studio {
+  id: string;
+  name: string;
+  location: string;
+  description: string;
+  image?: string;
+  layouts: StudioLayout[];
+  openingHours: {
+    [day: string]: { open: string; close: string } | null;
+  };
 }
 
 export interface Company {

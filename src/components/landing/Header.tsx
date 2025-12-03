@@ -11,31 +11,29 @@ export function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">R</span>
-          </div>
-          <span className="font-semibold text-lg">Raya Studio</span>
+          <img src="/studiorayalogo.png" alt="Raya Studio Logo" style={{ width: '48px', height: '28px' }} />
+          <span className="font-semibold text-lg">Studio Raya</span>
         </Link>
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-8">
           <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            Studios
+            Studio
           </Link>
           <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            Pricing
+            Harga
           </Link>
           <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            About
+            Tentang
           </Link>
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/admin">Admin Login</Link>
+            <Link to="/admin">Log Masuk Admin</Link>
           </Button>
           <Button size="sm" asChild>
-            <Link to="/book">Book Now</Link>
+            <Link to="/book">Tempah Sekarang</Link>
           </Button>
         </div>
 
@@ -59,20 +57,20 @@ export function Header() {
       >
         <nav className="container py-4 flex flex-col gap-2">
           <Link to="/" className="px-4 py-2 text-sm font-medium hover:bg-accent rounded-lg transition-colors">
-            Studios
+            Studio
           </Link>
           <Link to="/" className="px-4 py-2 text-sm font-medium hover:bg-accent rounded-lg transition-colors">
-            Pricing
+            Harga
           </Link>
           <Link to="/" className="px-4 py-2 text-sm font-medium hover:bg-accent rounded-lg transition-colors">
-            About
+            Tentang
           </Link>
           <div className="flex gap-2 mt-2 px-4">
             <Button variant="outline" size="sm" className="flex-1" asChild>
               <Link to="/admin">Admin</Link>
             </Button>
             <Button size="sm" className="flex-1" asChild>
-              <Link to="/book">Book Now</Link>
+              <Link to="/book">Tempah Sekarang</Link>
             </Button>
           </div>
         </nav>

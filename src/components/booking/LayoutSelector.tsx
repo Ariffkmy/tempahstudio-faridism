@@ -13,7 +13,7 @@ interface LayoutSelectorProps {
 export function LayoutSelector({ layouts, selectedLayout, onSelectLayout }: LayoutSelectorProps) {
   return (
     <div className="space-y-3">
-      <h3 className="font-semibold">Select Studio Layout</h3>
+      <h3 className="font-semibold">Pilih Layout Studio</h3>
       
       <div className="grid gap-3">
         {layouts.map((layout) => (
@@ -50,21 +50,16 @@ export function LayoutSelector({ layouts, selectedLayout, onSelectLayout }: Layo
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{layout.description}</p>
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="text-xs">
                         <Users className="h-3 w-3 mr-1" />
                         {layout.capacity}
                       </Badge>
-                      {layout.amenities.slice(0, 2).map((amenity) => (
-                        <Badge key={amenity} variant="outline" className="text-xs">
-                          {amenity}
-                        </Badge>
-                      ))}
                     </div>
                   </div>
                   <div className="text-right ml-4">
                     <p className="font-bold text-primary">RM {layout.pricePerHour}</p>
-                    <p className="text-xs text-muted-foreground">/hour</p>
+                    <p className="text-xs text-muted-foreground">/jam</p>
                   </div>
                 </div>
               </div>

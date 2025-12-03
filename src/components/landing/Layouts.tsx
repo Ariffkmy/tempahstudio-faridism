@@ -6,10 +6,10 @@ export function Layouts() {
     <section className="py-20 bg-muted/30">
       <div className="container">
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <h2 className="text-3xl font-bold mb-4">Choose Your Space</h2>
+          <h2 className="text-3xl font-bold mb-4">Pilih Ruang Anda</h2>
           <p className="text-muted-foreground">
-            From intimate portrait sessions to large-scale productions, 
-            we have the perfect studio setup for your creative vision.
+            Dari sesi potret intim hingga pengeluaran berskala besar,
+            kami mempunyai persediaan studio yang sempurna untuk visi kreatif anda.
           </p>
         </div>
 

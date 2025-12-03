@@ -19,47 +19,47 @@ const AdminDashboard = () => {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-2xl font-bold">Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back! Here's what's happening today.</p>
+            <p className="text-muted-foreground">Hi admin!</p>
           </div>
 
           {/* Stats Grid */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <StatsCard
-              title="Today's Bookings"
+              title="Tempahan Hari Ini"
               value="8"
-              description="3 pending confirmation"
+              description="3 menunggu pengesahan"
               icon={Calendar}
-              trend={{ value: 12, positive: true }}
+              
             />
             <StatsCard
-              title="Revenue (This Week)"
+              title="Hasil (Minggu Ini)"
               value="RM 4,520"
-              description="From 12 bookings"
+              description="Daripada 12 tempahan"
               icon={DollarSign}
-              trend={{ value: 8, positive: true }}
+              
             />
             <StatsCard
-              title="New Customers"
+              title="Pelanggan Setakat Ini"
               value="24"
-              description="This month"
+              description="Bulan ini"
               icon={Users}
-              trend={{ value: 5, positive: true }}
+              
             />
             <StatsCard
-              title="Utilization Rate"
-              value="78%"
-              description="Across all studios"
+              title="Slot Akan Datang"
+              value="20 Slot"
+              description="4 slot esok"
               icon={TrendingUp}
-              trend={{ value: 3, positive: true }}
+              
             />
           </div>
 
           {/* Recent Bookings */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Recent Bookings</h2>
+              <h2 className="text-lg font-semibold">Tempahan Terkini</h2>
               <a href="/admin/bookings" className="text-sm text-primary hover:underline">
-                View all
+                Lihat semua
               </a>
             </div>
             <BookingTable 

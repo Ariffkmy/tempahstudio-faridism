@@ -16,14 +16,14 @@ interface ContactFormProps {
 export function ContactForm({ formData, onFormChange }: ContactFormProps) {
   return (
     <Card variant="outline" className="p-4">
-      <h3 className="font-semibold mb-4">Your Details</h3>
-      
+      <h3 className="font-semibold mb-4">Maklumat Anda</h3>
+
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="name">Full Name *</Label>
+          <Label htmlFor="name">Nama Penuh *</Label>
           <Input
             id="name"
-            placeholder="Enter your full name"
+            placeholder="Masukkan nama penuh anda"
             value={formData.name}
             onChange={(e) => onFormChange('name', e.target.value)}
             required
@@ -31,11 +31,11 @@ export function ContactForm({ formData, onFormChange }: ContactFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email">Email Address *</Label>
+          <Label htmlFor="email">Alamat Emel *</Label>
           <Input
             id="email"
             type="email"
-            placeholder="you@example.com"
+            placeholder="anda@contoh.com"
             value={formData.email}
             onChange={(e) => onFormChange('email', e.target.value)}
             required
@@ -43,7 +43,7 @@ export function ContactForm({ formData, onFormChange }: ContactFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="phone">Phone Number *</Label>
+          <Label htmlFor="phone">Nombor Telefon *</Label>
           <Input
             id="phone"
             type="tel"
@@ -55,10 +55,10 @@ export function ContactForm({ formData, onFormChange }: ContactFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="notes">Special Requests (Optional)</Label>
+          <Label htmlFor="notes">Permintaan Khas (Pilihan)</Label>
           <Textarea
             id="notes"
-            placeholder="Any special requirements or notes..."
+            placeholder="Sebarang keperluan khas atau nota..."
             value={formData.notes}
             onChange={(e) => onFormChange('notes', e.target.value)}
             rows={3}

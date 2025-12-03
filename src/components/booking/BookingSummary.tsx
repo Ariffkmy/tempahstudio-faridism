@@ -36,7 +36,7 @@ export function BookingSummary({
   return (
     <Card className="sticky top-24">
       <CardHeader>
-        <CardTitle className="text-lg">Booking Summary</CardTitle>
+        <CardTitle className="text-lg">Ringkasan Tempahan</CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-4">
@@ -44,7 +44,7 @@ export function BookingSummary({
           <>
             <div>
               <p className="font-medium">{layout.name}</p>
-              <p className="text-sm text-muted-foreground">RM {layout.pricePerHour}/hour</p>
+              <p className="text-sm text-muted-foreground">RM {layout.pricePerHour}/jam</p>
             </div>
 
             <Separator />
@@ -52,7 +52,7 @@ export function BookingSummary({
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span>{date ? format(date, 'EEEE, MMMM d, yyyy') : 'Select a date'}</span>
+                <span>{date ? format(date, 'EEEE, MMMM d, yyyy') : 'Pilih tarikh'}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="h-4 w-4 text-muted-foreground" />
@@ -60,7 +60,7 @@ export function BookingSummary({
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>Raya Studio KL</span>
+                <span>Studio Raya</span>
               </div>
             </div>
 
@@ -69,12 +69,12 @@ export function BookingSummary({
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">
-                  RM {layout.pricePerHour} × {duration} hours
+                  RM {layout.pricePerHour} × {duration} jam
                 </span>
                 <span>RM {subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Service fee (5%)</span>
+                <span className="text-muted-foreground">Yuran perkhidmatan (5%)</span>
                 <span>RM {serviceFee.toFixed(2)}</span>
               </div>
             </div>
@@ -82,25 +82,25 @@ export function BookingSummary({
             <Separator />
 
             <div className="flex justify-between font-semibold">
-              <span>Total</span>
+              <span>Jumlah</span>
               <span className="text-primary">RM {total.toFixed(2)}</span>
             </div>
           </>
         ) : (
           <p className="text-sm text-muted-foreground text-center py-4">
-            Select a studio layout to see pricing
+            Pilih layout studio untuk melihat harga
           </p>
         )}
       </CardContent>
 
       <CardFooter>
-        <Button 
-          className="w-full" 
-          size="lg" 
+        <Button
+          className="w-full"
+          size="lg"
           disabled={!isValid}
           onClick={onConfirm}
         >
-          Proceed to Payment
+          Teruskan ke Pembayaran
         </Button>
       </CardFooter>
     </Card>

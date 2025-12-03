@@ -18,28 +18,28 @@ export function Hero() {
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-sm font-medium mb-6 animate-fade-in">
             <Star className="h-3.5 w-3.5 fill-current" />
-            <span>Trusted by 500+ creators in KL</span>
+            <span>Dipegang oleh lebih 500 pencipta di KL</span>
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-balance mb-6 animate-slide-up">
-            Book your perfect
-            <span className="text-primary"> studio space</span>
+            Tempah ruang studio
+            <span className="text-primary"> sempurna anda</span>
           </h1>
 
           <p className="text-lg sm:text-xl text-muted-foreground max-w-xl mb-8 animate-slide-up stagger-1">
-            Professional photography and video studios in Kuala Lumpur. 
-            Seamless booking, premium equipment, unforgettable results.
+            Studio fotografi dan video profesional di Kuala Lumpur.
+            Tempahan lancar, peralatan premium, hasil yang tidak dapat dilupakan.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 mb-12 animate-slide-up stagger-2">
             <Button variant="hero" size="xl" asChild>
               <Link to="/book">
-                Start Booking
+                Mula Tempah
                 <ArrowRight className="h-5 w-5" />
               </Link>
             </Button>
             <Button variant="hero-outline" size="xl" asChild>
-              <Link to="/">View Studios</Link>
+              <Link to="/studios">Lihat Studio</Link>
             </Button>
           </div>
 
@@ -50,7 +50,7 @@ export function Hero() {
             </div>
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-primary" />
-              <span>9 AM – 9 PM Daily</span>
+              <span>9 AM – 9 PM Setiap Hari</span>
             </div>
           </div>
         </div>

@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { BookingTable } from '@/components/admin/BookingTable';
-import { mockBookings } from '@/data/mockData';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -22,15 +21,72 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Search, Download, CalendarDays, List, Clock, User, Plus } from 'lucide-react';
 import { Booking } from '@/types/booking';
+import { useAuth } from '@/contexts/AuthContext';
+import { getStudioBookingsWithDetails } from '@/services/bookingService';
+import type { BookingWithDetails } from '@/types/database';
 
 const AdminBookings = () => {
   const navigate = useNavigate();
+  const { studio } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedDayBookings, setSelectedDayBookings] = useState<Booking[]>([]);
+  
+  // State for real data
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  const filteredBookings = mockBookings.filter((booking) => {
+  // Fetch real bookings from database
+  useEffect(() => {
+    const fetchBookings = async () => {
+      if (!studio?.id) {
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      
+      try {
+        const bookingsData = await getStudioBookingsWithDetails(studio.id);
+        
+        // Convert database bookings to the format expected by BookingTable
+        const formattedBookings: Booking[] = bookingsData.map((b: BookingWithDetails) => ({
+          id: b.id,
+          reference: b.reference,
+          customerId: b.customer_id,
+          customerName: b.customer?.name || 'Unknown',
+          customerEmail: b.customer?.email || '',
+          customerPhone: b.customer?.phone || '',
+          companyId: b.company_id,
+          studioId: b.studio_id,
+          layoutId: b.layout_id,
+          layoutName: b.studio_layout?.name || 'Unknown',
+          date: b.date,
+          startTime: b.start_time,
+          endTime: b.end_time,
+          duration: b.duration,
+          totalPrice: Number(b.total_price),
+          status: b.status,
+          notes: b.notes || undefined,
+          internalNotes: b.internal_notes || undefined,
+          createdAt: b.created_at,
+          updatedAt: b.updated_at,
+        }));
+
+        setBookings(formattedBookings);
+      } catch (error) {
+        console.error('Error fetching bookings:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, [studio?.id]);
+
+  const filteredBookings = bookings.filter((booking) => {
     const matchesSearch =
       booking.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       booking.reference.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -45,9 +101,18 @@ const AdminBookings = () => {
     console.log('View booking:', booking);
   };
 
+  // Get current month info
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDayOfMonth = new Date(year, month, 1).getDay();
+  
+  const monthNames = ['Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 
+                      'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
+
   const handleDayClick = (dayNumber: number) => {
-    const dateStr = `2025-12-${dayNumber.toString().padStart(2, '0')}`;
-    const bookingsOnThisDay = mockBookings.filter(booking => booking.date === dateStr);
+    const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${dayNumber.toString().padStart(2, '0')}`;
+    const bookingsOnThisDay = bookings.filter(booking => booking.date === dateStr);
     setSelectedDay(dayNumber);
     setSelectedDayBookings(bookingsOnThisDay);
   };
@@ -120,18 +185,36 @@ const AdminBookings = () => {
             </TabsList>
 
             <TabsContent value="list">
-              <BookingTable 
-                bookings={filteredBookings} 
-                onViewBooking={handleViewBooking}
-              />
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : filteredBookings.length > 0 ? (
+                <BookingTable 
+                  bookings={filteredBookings} 
+                  onViewBooking={handleViewBooking}
+                />
+              ) : (
+                <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed">
+                  <CalendarDays className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">Tiada Tempahan</h3>
+                  <p className="text-muted-foreground">
+                    {searchQuery || statusFilter !== 'all' 
+                      ? 'Tiada tempahan yang sepadan dengan carian anda.'
+                      : 'Belum ada tempahan untuk studio anda.'}
+                  </p>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="calendar">
               <div className="rounded-lg border bg-card">
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-semibold">Disember 2025</h3>
-                    <div className="text-sm text-muted-foreground">Tempahan untuk bulan ini</div>
+                    <h3 className="text-lg font-semibold">{monthNames[month]} {year}</h3>
+                    <div className="text-sm text-muted-foreground">
+                      {bookings.length} tempahan
+                    </div>
                   </div>
 
                   {/* Calendar Grid */}
@@ -145,17 +228,17 @@ const AdminBookings = () => {
 
                   <div className="grid grid-cols-7 gap-1">
                     {/* Empty cells for days before the 1st */}
-                    {Array.from({ length: 5 }).map((_, i) => (
+                    {Array.from({ length: firstDayOfMonth }).map((_, i) => (
                       <div key={`empty-${i}`} className="aspect-square"></div>
                     ))}
 
                     {/* Calendar days */}
-                    {Array.from({ length: 31 }).map((_, day) => {
+                    {Array.from({ length: daysInMonth }).map((_, day) => {
                       const dayNumber = day + 1;
-                      const dateStr = `2025-12-${dayNumber.toString().padStart(2, '0')}`;
+                      const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${dayNumber.toString().padStart(2, '0')}`;
 
                       // Check if there are bookings on this date
-                      const bookingsOnThisDay = mockBookings.filter(booking => booking.date === dateStr);
+                      const bookingsOnThisDay = bookings.filter(booking => booking.date === dateStr);
                       const hasBookings = bookingsOnThisDay.length > 0;
 
                       return (
@@ -204,57 +287,63 @@ const AdminBookings = () => {
           <Dialog open={selectedDay !== null} onOpenChange={closeDayDialog}>
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Tempahan untuk {selectedDay} Disember 2025</DialogTitle>
+                <DialogTitle>Tempahan untuk {selectedDay} {monthNames[month]} {year}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                {selectedDayBookings.map((booking) => (
-                  <div key={booking.id} className="border rounded-lg p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{booking.customerName}</span>
+                {selectedDayBookings.length > 0 ? (
+                  selectedDayBookings.map((booking) => (
+                    <div key={booking.id} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{booking.customerName}</span>
+                        </div>
+                        <Badge variant={
+                          booking.status === 'confirmed' ? 'default' :
+                          booking.status === 'pending' ? 'secondary' :
+                          booking.status === 'cancelled' ? 'destructive' : 'outline'
+                        } className="capitalize">
+                          {booking.status === 'confirmed' ? 'Disahkan' :
+                           booking.status === 'pending' ? 'Menunggu' :
+                           booking.status === 'cancelled' ? 'Dibatalkan' : 'Selesai'}
+                        </Badge>
                       </div>
-                      <Badge variant={
-                        booking.status === 'confirmed' ? 'success' :
-                        booking.status === 'pending' ? 'warning' :
-                        booking.status === 'cancelled' ? 'destructive' : 'secondary'
-                      } className="capitalize">
-                        {booking.status === 'confirmed' ? 'Disahkan' :
-                         booking.status === 'pending' ? 'Menunggu' :
-                         booking.status === 'cancelled' ? 'Dibatalkan' : 'Selesai'}
-                      </Badge>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span>{booking.startTime} – {booking.endTime}</span>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span>{booking.startTime} – {booking.endTime}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                          <span>{booking.duration} jam</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                        <span>{booking.duration} jam</span>
-                      </div>
-                    </div>
 
-                    <div className="text-sm">
-                      <span className="font-medium">Layout:</span> {booking.layoutName}
-                    </div>
-
-                    <div className="text-sm">
-                      <span className="font-medium">Rujukan:</span> {booking.reference}
-                    </div>
-
-                    {booking.notes && (
                       <div className="text-sm">
-                        <span className="font-medium">Catatan:</span> {booking.notes}
+                        <span className="font-medium">Layout:</span> {booking.layoutName}
                       </div>
-                    )}
 
-                    <div className="text-sm text-muted-foreground">
-                      <span className="font-medium">Jumlah:</span> RM {booking.totalPrice.toFixed(2)}
+                      <div className="text-sm">
+                        <span className="font-medium">Rujukan:</span> {booking.reference}
+                      </div>
+
+                      {booking.notes && (
+                        <div className="text-sm">
+                          <span className="font-medium">Catatan:</span> {booking.notes}
+                        </div>
+                      )}
+
+                      <div className="text-sm text-muted-foreground">
+                        <span className="font-medium">Jumlah:</span> RM {booking.totalPrice.toFixed(2)}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-center text-muted-foreground py-4">
+                    Tiada tempahan pada tarikh ini.
+                  </p>
+                )}
               </div>
             </DialogContent>
           </Dialog>

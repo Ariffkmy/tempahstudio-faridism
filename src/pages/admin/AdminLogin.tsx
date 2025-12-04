@@ -1,36 +1,117 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { requestPasswordReset } from '@/services/adminAuth';
+import { Eye, EyeOff } from 'lucide-react';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [email, setEmail] = useState('emailanda@email.com');
-  const [password, setPassword] = useState('abcd1234');
-  const [isLoading, setIsLoading] = useState(false);
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+  
+  // Form state
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Password reset state
+  const [showResetForm, setShowResetForm] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      navigate('/admin');
+    }
+  }, [isAuthenticated, authLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    // Skip validation and navigate directly to dashboard
-    setTimeout(() => {
+    
+    if (!email.trim() || !password.trim()) {
       toast({
-        title: "Selamat kembali!",
-        description: "Mengalihkan ke papan pemuka...",
+        title: 'Ralat',
+        description: 'Sila masukkan emel dan kata laluan',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const result = await login({ email, password });
+
+    setIsSubmitting(false);
+
+    if (result.success) {
+      toast({
+        title: 'Selamat kembali!',
+        description: 'Mengalihkan ke papan pemuka...',
       });
       navigate('/admin');
-      setIsLoading(false);
-    }, 1000);
+    } else {
+      toast({
+        title: 'Log Masuk Gagal',
+        description: result.error || 'Emel atau kata laluan tidak sah',
+        variant: 'destructive',
+      });
+    }
   };
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!resetEmail.trim()) {
+      toast({
+        title: 'Ralat',
+        description: 'Sila masukkan emel anda',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsResetting(true);
+
+    const result = await requestPasswordReset(resetEmail);
+
+    setIsResetting(false);
+
+    if (result.success) {
+      toast({
+        title: 'Emel Dihantar',
+        description: 'Sila semak emel anda untuk pautan tetapan semula kata laluan',
+      });
+      setShowResetForm(false);
+      setResetEmail('');
+    } else {
+      toast({
+        title: 'Gagal',
+        description: result.error || 'Gagal menghantar emel tetapan semula',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
       <div className="w-full max-w-sm">
+        {/* Logo & Header */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
             <img src="/studiorayalogo.png" alt="Raya Studio Logo" style={{ width: '77px', height: '44px' }} />
@@ -41,50 +122,119 @@ const AdminLogin = () => {
 
         <Card>
           <CardHeader>
-          <CardTitle>Log Masuk</CardTitle>
-          <CardDescription>
-            Tekan butang log masuk untuk masuk ke portal admin
-          </CardDescription>
+            <CardTitle>{showResetForm ? 'Lupa Kata Laluan' : 'Log Masuk'}</CardTitle>
+            <CardDescription>
+              {showResetForm 
+                ? 'Masukkan emel anda untuk menerima pautan tetapan semula' 
+                : 'Masukkan emel dan kata laluan anda untuk log masuk'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Emel</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="admin@rayastudio.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+            {!showResetForm ? (
+              // Login Form
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Emel</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="admin@rayastudio.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Kata Laluan</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? 'Log masuk...' : 'Log Masuk'}
+                </Button>
+
+                <div className="mt-4 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowResetForm(true)}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Lupa kata laluan?
+                  </button>
+                </div>
+              </form>
+            ) : (
+              // Password Reset Form
+              <form onSubmit={handlePasswordReset} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="resetEmail">Emel</Label>
+                  <Input
+                    id="resetEmail"
+                    type="email"
+                    placeholder="admin@rayastudio.com"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                  />
+                </div>
+
+                <Button type="submit" className="w-full" disabled={isResetting}>
+                  {isResetting ? 'Menghantar...' : 'Hantar Pautan Tetapan Semula'}
+                </Button>
+
+                <div className="mt-4 text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowResetForm(false);
+                      setResetEmail('');
+                    }}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Kembali ke log masuk
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Registration Link */}
+            {!showResetForm && (
+              <div className="mt-6 text-center space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Belum mempunyai akaun?
+                </p>
+                <Link 
+                  to="/admin/register" 
+                  className="text-sm text-primary hover:underline font-medium"
+                >
+                  Daftar sebagai admin
+                </Link>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Kata Laluan</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Log masuk...' : 'Log Masuk'}
-              </Button>
-            </form>
-
-            <div className="mt-4 text-center">
-              <a href="#" className="text-sm text-primary hover:underline">
-                Lupa kata laluan?
-              </a>
-            </div>
+            )}
           </CardContent>
         </Card>
 
+        {/* Back to Home */}
         <p className="text-center text-sm text-muted-foreground mt-6">
           <Link to="/" className="hover:text-foreground transition-colors">
             ← Kembali ke laman utama

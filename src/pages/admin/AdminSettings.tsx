@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,49 +9,73 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy } from 'lucide-react';
-import { mockLayouts } from '@/data/mockData';
+import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2 } from 'lucide-react';
+import { loadStudioSettings, saveStudioSettings, updateStudioLayouts } from '@/services/studioSettings';
+import type { StudioLayout } from '@/types/database';
 
-interface StudioLayout {
-  id: string;
-  name: string;
-  description: string;
-  capacity: number;
-  pricePerHour: number;
-  image: string;
-  enabled: boolean;
-}
 
 const AdminSettings = () => {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [settings, setSettings] = useState({
-    studioName: 'Raya Studio KL',
-    studioLocation: 'Kuala Lumpur City Centre',
+    studioName: '',
+    studioLocation: '',
     googleMapsLink: '',
     wazeLink: '',
-    ownerName: 'Ahmad bin Abdullah',
-    ownerPhone: '+60123456789',
-    studioEmail: 'info@rayastudiokl.com',
-    bankAccountNumber: '1234567890',
-    accountOwnerName: 'Raya Studio KL Sdn Bhd',
+    ownerName: '',
+    ownerPhone: '',
+    studioEmail: '',
+    bankAccountNumber: '',
+    accountOwnerName: '',
     qrCode: '',
-    bookingLink: 'https://rayastudiokl.com/book'
+    bookingLink: ''
   });
 
-  const [layouts, setLayouts] = useState<StudioLayout[]>(
-    mockLayouts.map(layout => ({
-      ...layout,
-      image: layout.image || '/placeholder.svg',
-      enabled: true
-    }))
-  );
+  const [layouts, setLayouts] = useState<StudioLayout[]>([]);
 
   const [newLayout, setNewLayout] = useState({
     name: '',
     description: '',
     capacity: 1,
-    pricePerHour: 100
+    price_per_hour: 100
   });
+
+  // Load settings on component mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const data = await loadStudioSettings();
+        if (data) {
+          setSettings({
+            studioName: data.studioName,
+            studioLocation: data.studioLocation,
+            googleMapsLink: data.googleMapsLink,
+            wazeLink: data.wazeLink,
+            ownerName: data.ownerName,
+            ownerPhone: data.ownerPhone,
+            studioEmail: data.studioEmail,
+            bankAccountNumber: data.bankAccountNumber,
+            accountOwnerName: data.accountOwnerName,
+            qrCode: data.qrCode,
+            bookingLink: data.bookingLink
+          });
+          setLayouts(data.layouts);
+        }
+      } catch (error) {
+        console.error('Failed to load settings:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load settings. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, [toast]);
 
   const handleSettingChange = (field: string, value: string) => {
     setSettings(prev => ({
@@ -70,12 +94,17 @@ const AdminSettings = () => {
     if (newLayout.name && newLayout.description) {
       const layout: StudioLayout = {
         id: `layout-${Date.now()}`,
+        studio_id: '', // Will be set when saving
         name: newLayout.name,
         description: newLayout.description,
         capacity: newLayout.capacity,
-        pricePerHour: newLayout.pricePerHour,
+        price_per_hour: newLayout.price_per_hour,
         image: '/placeholder.svg',
-        enabled: true
+        amenities: [],
+        configured_time_slots: [],
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
 
       setLayouts(prev => [...prev, layout]);
@@ -83,7 +112,7 @@ const AdminSettings = () => {
         name: '',
         description: '',
         capacity: 1,
-        pricePerHour: 100
+        price_per_hour: 100
       });
     }
   };
@@ -92,11 +121,64 @@ const AdminSettings = () => {
     setLayouts(prev => prev.filter((_, i) => i !== index));
   };
 
-  const saveSettings = () => {
-    // In a real app, this would save to backend
-    console.log('Settings saved:', { settings, layouts });
-    // You could show a success toast here
+  const saveSettings = async () => {
+    setIsSaving(true);
+    try {
+      // Save settings
+      const settingsResult = await saveStudioSettings(settings, layouts);
+      if (!settingsResult.success) {
+        toast({
+          title: "Error",
+          description: settingsResult.error || "Failed to save settings",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Save layouts separately
+      const layoutsResult = await updateStudioLayouts(layouts);
+      if (!layoutsResult.success) {
+        toast({
+          title: "Warning",
+          description: "Settings saved but layouts update failed: " + layoutsResult.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Settings saved successfully!",
+      });
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save settings. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AdminSidebar />
+        <main className="pl-64">
+          <div className="p-8">
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span>Loading settings...</span>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -325,8 +407,8 @@ const AdminSettings = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <Switch
-                            checked={layout.enabled}
-                            onCheckedChange={(checked) => handleLayoutChange(index, 'enabled', checked)}
+                            checked={layout.is_active}
+                            onCheckedChange={(checked) => handleLayoutChange(index, 'is_active', checked)}
                           />
                           <h5 className="font-medium">{layout.name}</h5>
                         </div>
@@ -362,8 +444,8 @@ const AdminSettings = () => {
                           <Label>Harga per Jam (RM)</Label>
                           <Input
                             type="number"
-                            value={layout.pricePerHour}
-                            onChange={(e) => handleLayoutChange(index, 'pricePerHour', parseInt(e.target.value))}
+                            value={layout.price_per_hour}
+                            onChange={(e) => handleLayoutChange(index, 'price_per_hour', parseInt(e.target.value))}
                           />
                         </div>
 
@@ -422,8 +504,8 @@ const AdminSettings = () => {
                       <Label>Harga per Jam (RM)</Label>
                       <Input
                         type="number"
-                        value={newLayout.pricePerHour}
-                        onChange={(e) => setNewLayout(prev => ({ ...prev, pricePerHour: parseInt(e.target.value) }))}
+                        value={newLayout.price_per_hour}
+                        onChange={(e) => setNewLayout(prev => ({ ...prev, price_per_hour: parseInt(e.target.value) }))}
                       />
                     </div>
                   </div>
@@ -447,8 +529,15 @@ const AdminSettings = () => {
 
             {/* Save Button */}
             <div className="flex justify-end">
-              <Button onClick={saveSettings} size="lg">
-                Simpan Tetapan
+              <Button onClick={saveSettings} size="lg" disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  'Simpan Tetapan'
+                )}
               </Button>
             </div>
           </div>

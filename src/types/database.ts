@@ -46,6 +46,13 @@ export interface Studio {
   description?: string | null;
   image?: string | null;
   opening_hours: OpeningHours;
+  email?: string | null;
+  google_maps_link?: string | null;
+  waze_link?: string | null;
+  bank_account_number?: string | null;
+  account_owner_name?: string | null;
+  qr_code?: string | null;
+  booking_link?: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -58,7 +65,7 @@ export type StudioInsert = Omit<Studio, 'id' | 'created_at' | 'updated_at' | 'is
   updated_at?: string;
 };
 
-export type StudioUpdate = Partial<StudioInsert>;
+export type StudioUpdate = Partial<Omit<StudioInsert, 'company_id'>>;
 
 // Studio with related data (for frontend use)
 export interface StudioWithLayouts extends Studio {

@@ -280,6 +280,123 @@ export async function updateBookingNotes(
 }
 
 // =============================================
+// BOOKING CREATION (Public)
+// =============================================
+
+export interface CreateBookingData {
+  // Customer info
+  customerName: string;
+  customerEmail: string;
+  customerPhone?: string;
+
+  // Booking details
+  studioId: string;
+  layoutId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  totalPrice: number;
+
+  // Optional
+  notes?: string;
+  paymentMethod?: string;
+}
+
+/**
+ * Create a new booking from public booking form
+ */
+export async function createPublicBooking(bookingData: CreateBookingData): Promise<{ success: boolean; booking?: any; error?: string }> {
+  try {
+    // First, get studio and company info
+    const { data: studio, error: studioError } = await supabase
+      .from('studios')
+      .select('id, company_id, name')
+      .eq('id', bookingData.studioId)
+      .eq('is_active', true)
+      .single();
+
+    if (studioError || !studio) {
+      return { success: false, error: 'Studio tidak dijumpai' };
+    }
+
+    // Check if customer already exists
+    let customerId: string;
+    const { data: existingCustomer, error: customerLookupError } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('email', bookingData.customerEmail)
+      .single();
+
+    if (existingCustomer) {
+      customerId = existingCustomer.id;
+    } else {
+      // Create new customer
+      const { data: newCustomer, error: customerCreateError } = await supabase
+        .from('customers')
+        .insert({
+          name: bookingData.customerName,
+          email: bookingData.customerEmail,
+          phone: bookingData.customerPhone || null,
+        })
+        .select('id')
+        .single();
+
+      if (customerCreateError || !newCustomer) {
+        console.error('Error creating customer:', customerCreateError);
+        return { success: false, error: 'Gagal membuat rekod pelanggan' };
+      }
+
+      customerId = newCustomer.id;
+    }
+
+    // Generate booking reference using the database function
+    const { data: referenceData, error: referenceError } = await supabase
+      .rpc('generate_booking_reference');
+
+    if (referenceError || !referenceData) {
+      console.error('Error generating booking reference:', referenceError);
+      return { success: false, error: 'Gagal menjana rujukan tempahan' };
+    }
+
+    // Create the booking
+    const { data: booking, error: bookingError } = await supabase
+      .from('bookings')
+      .insert({
+        reference: referenceData,
+        customer_id: customerId,
+        company_id: studio.company_id,
+        studio_id: bookingData.studioId,
+        layout_id: bookingData.layoutId,
+        date: bookingData.date,
+        start_time: bookingData.startTime,
+        end_time: bookingData.endTime,
+        duration: bookingData.duration,
+        total_price: bookingData.totalPrice,
+        status: 'pending',
+        notes: bookingData.notes || null,
+      })
+      .select(`
+        *,
+        customer:customers(*),
+        studio:studios(*),
+        studio_layout:studio_layouts(*)
+      `)
+      .single();
+
+    if (bookingError || !booking) {
+      console.error('Error creating booking:', bookingError);
+      return { success: false, error: 'Gagal membuat tempahan' };
+    }
+
+    return { success: true, booking };
+  } catch (error) {
+    console.error('Error in createPublicBooking:', error);
+    return { success: false, error: 'Ralat tidak dijangka berlaku' };
+  }
+}
+
+// =============================================
 // LAYOUTS
 // =============================================
 

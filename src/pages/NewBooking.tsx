@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { LayoutSelector } from '@/components/booking/LayoutSelector';
 import { DatePicker } from '@/components/booking/DatePicker';
 import { TimeSlots } from '@/components/booking/TimeSlots';
@@ -7,12 +7,17 @@ import { ContactForm } from '@/components/booking/ContactForm';
 import { PaymentSelector } from '@/components/booking/PaymentSelector';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { mockLayouts, generateTimeSlots } from '@/data/mockData';
+import { generateTimeSlots } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, ArrowRight } from 'lucide-react';
+import { CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import type { Studio } from '@/types/database';
+import type { StudioLayout } from '@/types/booking';
+import { createPublicBooking } from '@/services/bookingService';
 
 const NewBooking = () => {
   const navigate = useNavigate();
+  const { studioId } = useParams<{ studioId: string }>();
   const { toast } = useToast();
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -30,10 +35,98 @@ const NewBooking = () => {
     proof: null as File | null,
   });
 
-  const layout = mockLayouts.find((l) => l.id === selectedLayout) || null;
+  // Studio-specific state
+  const [studio, setStudio] = useState<Studio | null>(null);
+  const [layouts, setLayouts] = useState<StudioLayout[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const layout = layouts.find((l) => l.id === selectedLayout) || null;
+
+  // Load studio data and layouts
+  useEffect(() => {
+    const loadStudioData = async () => {
+      if (!studioId) {
+        toast({
+          title: "Error",
+          description: "Studio ID tidak sah",
+          variant: "destructive",
+        });
+        navigate('/');
+        return;
+      }
+
+      try {
+        // Load studio information
+        const { data: studioData, error: studioError } = await supabase
+          .from('studios')
+          .select('*')
+          .eq('id', studioId)
+          .eq('is_active', true)
+          .single();
+
+        if (studioError || !studioData) {
+          toast({
+            title: "Error",
+            description: "Studio tidak dijumpai",
+            variant: "destructive",
+          });
+          navigate('/');
+          return;
+        }
+
+        setStudio(studioData);
+
+        // Load studio layouts
+        const { data: layoutsData, error: layoutsError } = await supabase
+          .from('studio_layouts')
+          .select('*')
+          .eq('studio_id', studioId)
+          .eq('is_active', true)
+          .order('name');
+
+        if (layoutsError) {
+          console.error('Error loading layouts:', layoutsError);
+          toast({
+            title: "Error",
+            description: "Gagal memuatkan layout studio",
+            variant: "destructive",
+          });
+        } else {
+          // Convert database format to booking format
+          const formattedLayouts = (layoutsData || []).map(layout => ({
+            id: layout.id,
+            name: layout.name,
+            description: layout.description,
+            capacity: layout.capacity,
+            pricePerHour: Number(layout.price_per_hour),
+            image: layout.image,
+            amenities: layout.amenities || [],
+          }));
+          setLayouts(formattedLayouts);
+
+          // Debug logging
+          console.log('Loaded layouts for studio', studioId, ':', formattedLayouts);
+        }
+      } catch (error) {
+        console.error('Error loading studio data:', error);
+        toast({
+          title: "Error",
+          description: "Gagal memuatkan data studio",
+          variant: "destructive",
+        });
+        navigate('/');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadStudioData();
+  }, [studioId, navigate, toast]);
 
   const isFormValid = Boolean(
     selectedLayout &&
+    selectedDate &&
+    selectedTime &&
     selectedPayment &&
     formData.name.trim() &&
     formData.email.trim() &&
@@ -51,19 +144,90 @@ const NewBooking = () => {
     setUploadedFiles((prev) => ({ ...prev, [type]: file }));
   };
 
-  const handleSubmit = () => {
-    if (!isFormValid) return;
+  const handleSubmit = async () => {
+    if (!isFormValid || !studioId || !selectedLayout || !selectedDate || !selectedTime) return;
 
-    toast({
-      title: "Tempahan Berjaya",
-      description: "Tempahan anda telah dihantar untuk pengesahan.",
-    });
+    try {
+      // For now, assume 2-hour booking (this should be configurable)
+      // In a real implementation, this would come from the time slot selection
+      const duration = 2; // hours
+      const startDateTime = new Date(`${selectedDate.toDateString()} ${selectedTime}`);
+      const endDateTime = new Date(startDateTime.getTime() + (duration * 60 * 60 * 1000));
+      const endTime = endDateTime.toTimeString().slice(0, 5);
 
-    // In production, this would create the booking
-    setTimeout(() => {
-      navigate('/booking/confirmation');
-    }, 1500);
+      // Calculate total price
+      const totalPrice = layout.pricePerHour * duration;
+
+      const bookingData = {
+        customerName: formData.name,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        studioId: studioId,
+        layoutId: selectedLayout,
+        date: selectedDate.toISOString().split('T')[0],
+        startTime: selectedTime,
+        endTime: endTime,
+        duration: duration,
+        totalPrice: totalPrice,
+        notes: formData.notes,
+        paymentMethod: selectedPayment,
+      };
+
+      const result = await createPublicBooking(bookingData);
+
+      if (result.success && result.booking) {
+        toast({
+          title: "Tempahan Berjaya",
+          description: `Tempahan anda telah dihantar untuk pengesahan. Rujukan: ${result.booking.reference}`,
+        });
+
+        // Navigate to confirmation page with booking details
+        setTimeout(() => {
+          navigate('/booking/confirmation', {
+            state: {
+              booking: result.booking,
+              reference: result.booking.reference
+            }
+          });
+        }, 1500);
+      } else {
+        toast({
+          title: "Ralat",
+          description: result.error || "Gagal membuat tempahan. Sila cuba lagi.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error submitting booking:', error);
+      toast({
+        title: "Ralat",
+        description: "Ralat tidak dijangka berlaku. Sila cuba lagi.",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-muted/20 flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Memuatkan...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!studio) {
+    return (
+      <div className="min-h-screen bg-muted/20 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-bold mb-2">Studio tidak dijumpai</h2>
+          <p className="text-muted-foreground">Studio yang anda cari tidak wujud atau tidak aktif.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/20">
@@ -71,11 +235,14 @@ const NewBooking = () => {
         <div className="container max-w-4xl mx-auto px-4">
           <div className="mb-8">
             <div className="text-center mb-6">
-              <img src="/studiorayalogo.png" alt="logo studio anda" className="mx-auto h-16 w-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Akan digantikan dengan logo studio anda</p>
-              <h2 className="text-m bold">Nama studio anda</h2>
+              <img src="/studiorayalogo.png" alt="logo studio" className="mx-auto h-16 w-auto mb-2" />
+              <p className="text-sm text-muted-foreground">Studio Fotografi Profesional</p>
+              <h2 className="text-xl font-bold">{studio.name}</h2>
+              {studio.location && (
+                <p className="text-sm text-muted-foreground">{studio.location}</p>
+              )}
             </div>
-            <h1 className="text-xl font-bold mb-2">Tempahan studio raya</h1>
+            <h1 className="text-xl font-bold mb-2">Tempahan Studio</h1>
             <p className="text-muted-foreground">
               Isi maklumat dan buat pembayaran untuk tempahan slot anda.
             </p>
@@ -83,11 +250,26 @@ const NewBooking = () => {
 
           <div className="space-y-6">
             {/* Layout Selection */}
-            <LayoutSelector
-              layouts={mockLayouts}
-              selectedLayout={selectedLayout}
-              onSelectLayout={setSelectedLayout}
-            />
+            <Card variant="outline" className="p-4">
+              <h3 className="font-semibold mb-4">Pilih Layout Studio</h3>
+              {isLoading ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Memuatkan layout studio...</p>
+                </div>
+              ) : layouts.length > 0 ? (
+                <LayoutSelector
+                  layouts={layouts}
+                  selectedLayout={selectedLayout}
+                  onSelectLayout={setSelectedLayout}
+                />
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Tiada layout studio tersedia untuk studio ini</p>
+                  <p className="text-sm mt-2">Sila hubungi pentadbir studio untuk menambah layout</p>
+                  <p className="text-xs mt-2 text-muted-foreground">Studio ID: {studioId}</p>
+                </div>
+              )}
+            </Card>
 
             {/* Contact Form */}
             <ContactForm
@@ -109,11 +291,20 @@ const NewBooking = () => {
             />
 
             {/* Time Selection */}
-            <TimeSlots
-              slots={generateTimeSlots(selectedDate, selectedLayout)}
-              selectedTime={selectedTime}
-              onSelectTime={setSelectedTime}
-            />
+            {selectedDate ? (
+              <TimeSlots
+                slots={generateTimeSlots(selectedDate, selectedLayout)}
+                selectedTime={selectedTime}
+                onSelectTime={setSelectedTime}
+              />
+            ) : (
+              <Card variant="outline" className="p-4">
+                <h3 className="font-semibold mb-4">Pilih Masa</h3>
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Sila pilih tarikh terlebih dahulu untuk melihat slot masa yang tersedia</p>
+                </div>
+              </Card>
+            )}
 
             {/* Summary Card */}
             {layout && (
@@ -141,6 +332,24 @@ const NewBooking = () => {
                     <span className="font-medium">{formData.name || '-'}</span>
                   </div>
                 </div>
+              </Card>
+            )}
+
+            {/* Form Validation Status */}
+            {!isFormValid && (
+              <Card variant="outline" className="p-4 border-yellow-200 bg-yellow-50">
+                <h4 className="font-medium text-yellow-800 mb-2">Sila lengkapkan maklumat berikut:</h4>
+                <ul className="text-sm text-yellow-700 space-y-1">
+                  {!selectedLayout && <li>• Pilih layout studio</li>}
+                  {!selectedDate && <li>• Pilih tarikh tempahan</li>}
+                  {!selectedTime && <li>• Pilih masa mula</li>}
+                  {!selectedPayment && <li>• Pilih kaedah pembayaran</li>}
+                  {!formData.name.trim() && <li>• Masukkan nama penuh</li>}
+                  {!formData.email.trim() && <li>• Masukkan alamat emel</li>}
+                  {!formData.phone.trim() && <li>• Masukkan nombor telefon</li>}
+                  {selectedPayment === 'qr' && !uploadedFiles.receipt && <li>• Muat naik resit pembayaran</li>}
+                  {selectedPayment === 'bank' && !uploadedFiles.proof && <li>• Muat naik bukti pembayaran</li>}
+                </ul>
               </Card>
             )}
 

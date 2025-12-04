@@ -19,38 +19,43 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Search, Download, CalendarDays, List, Clock, User, Plus } from 'lucide-react';
+import { Search, Download, CalendarDays, List, Clock, User, Plus, Copy, ExternalLink } from 'lucide-react';
 import { Booking } from '@/types/booking';
 import { useAuth } from '@/contexts/AuthContext';
 import { getStudioBookingsWithDetails } from '@/services/bookingService';
+import { loadStudioSettings } from '@/services/studioSettings';
 import type { BookingWithDetails } from '@/types/database';
+import { useToast } from '@/hooks/use-toast';
 
 const AdminBookings = () => {
   const navigate = useNavigate();
   const { studio } = useAuth();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedDayBookings, setSelectedDayBookings] = useState<Booking[]>([]);
-  
+
   // State for real data
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [bookingLink, setBookingLink] = useState('');
 
-  // Fetch real bookings from database
+  // Fetch real bookings and studio settings from database
   useEffect(() => {
-    const fetchBookings = async () => {
+    const fetchData = async () => {
       if (!studio?.id) {
         setIsLoading(false);
         return;
       }
 
       setIsLoading(true);
-      
+
       try {
+        // Fetch bookings
         const bookingsData = await getStudioBookingsWithDetails(studio.id);
-        
+
         // Convert database bookings to the format expected by BookingTable
         const formattedBookings: Booking[] = bookingsData.map((b: BookingWithDetails) => ({
           id: b.id,
@@ -76,14 +81,19 @@ const AdminBookings = () => {
         }));
 
         setBookings(formattedBookings);
+
+        // Generate booking link for this studio
+        const baseUrl = window.location.origin;
+        const studioBookingLink = `${baseUrl}/book/${studio.id}`;
+        setBookingLink(studioBookingLink);
       } catch (error) {
-        console.error('Error fetching bookings:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchBookings();
+    fetchData();
   }, [studio?.id]);
 
   const filteredBookings = bookings.filter((booking) => {
@@ -145,6 +155,48 @@ const AdminBookings = () => {
               </Button>
             </div>
           </div>
+
+          {/* Booking Link - Prominent Display */}
+          {bookingLink && (
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ExternalLink className="h-5 w-5 text-primary" />
+                    <h3 className="text-lg font-semibold text-primary">Pautan Tempahan Awam</h3>
+                  </div>
+                  <p className="text-muted-foreground mb-3">
+                    Kongsi pautan ini dengan pelanggan untuk membuat tempahan secara langsung
+                  </p>
+                  <div className="bg-background border rounded-md p-3">
+                    <code className="text-sm font-mono break-all">{bookingLink}</code>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 ml-6">
+                  <Button
+                    onClick={() => {
+                      navigator.clipboard.writeText(bookingLink);
+                      toast({
+                        description: "Pautan telah disalin!",
+                      });
+                    }}
+                    className="min-w-[120px]"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Salin
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => window.open(bookingLink, '_blank')}
+                    className="min-w-[120px]"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Buka
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">

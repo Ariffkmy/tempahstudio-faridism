@@ -12,61 +12,57 @@ interface LayoutSelectorProps {
 
 export function LayoutSelector({ layouts, selectedLayout, onSelectLayout }: LayoutSelectorProps) {
   return (
-    <div className="space-y-3">
-      <h3 className="font-semibold">Pilih Layout Studio</h3>
-      
-      <div className="grid gap-3">
-        {layouts.map((layout) => (
-          <Card
-            key={layout.id}
-            variant="outline"
-            className={cn(
-              "p-4 cursor-pointer transition-all",
-              selectedLayout === layout.id 
-                ? "border-primary ring-2 ring-primary/20 bg-accent/30" 
-                : "hover:border-primary/50"
-            )}
-            onClick={() => onSelectLayout(layout.id)}
-          >
-            <div className="flex gap-4">
-              {/* Layout Image */}
-              <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
-                <img 
-                  src={layout.image || '/placeholder.svg'} 
-                  alt={layout.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium">{layout.name}</h4>
-                      {selectedLayout === layout.id && (
-                        <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                          <Check className="h-3 w-3 text-primary-foreground" />
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{layout.description}</p>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-xs">
-                        <Users className="h-3 w-3 mr-1" />
-                        {layout.capacity}
-                      </Badge>
-                    </div>
+    <div className="grid gap-3">
+      {layouts.map((layout) => (
+        <Card
+          key={layout.id}
+          variant="outline"
+          className={cn(
+            "p-4 cursor-pointer transition-all",
+            selectedLayout === layout.id
+              ? "border-primary ring-2 ring-primary/20 bg-accent/30"
+              : "hover:border-primary/50"
+          )}
+          onClick={() => onSelectLayout(layout.id)}
+        >
+          <div className="flex gap-4">
+            {/* Layout Image */}
+            <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+              <img
+                src={layout.image || '/placeholder.svg'}
+                alt={layout.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="font-medium">{layout.name}</h4>
+                    {selectedLayout === layout.id && (
+                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="h-3 w-3 text-primary-foreground" />
+                      </div>
+                    )}
                   </div>
-                  <div className="text-right ml-4">
-                    <p className="font-bold text-primary">RM {layout.pricePerHour}</p>
-                    <p className="text-xs text-muted-foreground">/jam</p>
+                  <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{layout.description}</p>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">
+                      <Users className="h-3 w-3 mr-1" />
+                      {layout.capacity}
+                    </Badge>
                   </div>
+                </div>
+                <div className="text-right ml-4">
+                  <p className="font-bold text-primary">RM {layout.pricePerHour}</p>
+                  <p className="text-xs text-muted-foreground">/jam</p>
                 </div>
               </div>
             </div>
-          </Card>
-        ))}
-      </div>
+          </div>
+        </Card>
+      ))}
     </div>
   );
 }

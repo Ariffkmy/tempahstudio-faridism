@@ -1,9 +1,29 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, MapPin, Mail } from 'lucide-react';
+import type { BookingWithDetails } from '@/types/database';
 
 const BookingConfirmation = () => {
+  const location = useLocation();
+  const booking = location.state?.booking as BookingWithDetails;
+  const reference = location.state?.reference || booking?.reference || 'RAYA-2024-001';
+
+  // Format date for display
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('ms-MY', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  // Format time range
+  const formatTimeRange = (startTime: string, endTime: string) => {
+    return `${startTime} – ${endTime}`;
+  };
   return (
     <div className="min-h-screen bg-white">
       <main className="pt-8 pb-16">
@@ -23,30 +43,42 @@ const BookingConfirmation = () => {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
                   <span>Rujukan Tempahan</span>
                 </div>
-                <p className="text-2xl font-mono font-bold mb-6">RAYA-2024-004</p>
+                <p className="text-2xl font-mono font-bold mb-6">{reference}</p>
 
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <Calendar className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">Thursday, December 12, 2024</p>
-                      <p className="text-sm text-muted-foreground">Suite Perdana</p>
+                      <p className="font-medium">
+                        {booking ? formatDate(booking.date) : 'Thursday, December 12, 2024'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {booking?.studio_layout?.name || 'Suite Perdana'}
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <Clock className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">10:00 AM – 2:00 PM</p>
-                      <p className="text-sm text-muted-foreground">4 jam</p>
+                      <p className="font-medium">
+                        {booking ? formatTimeRange(booking.start_time, booking.end_time) : '10:00 AM – 2:00 PM'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {booking ? `${booking.duration} jam` : '4 jam'}
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <MapPin className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">Studio Raya</p>
-                      <p className="text-sm text-muted-foreground">Kuala Lumpur, Malaysia</p>
+                      <p className="font-medium">
+                        {booking?.studio?.name || 'Studio Raya'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {booking?.studio?.location || 'Kuala Lumpur, Malaysia'}
+                      </p>
                     </div>
                   </div>
 
@@ -54,14 +86,18 @@ const BookingConfirmation = () => {
                     <Mail className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">Pengesahan dihantar ke</p>
-                      <p className="text-sm text-muted-foreground">your@email.com</p>
+                      <p className="text-sm text-muted-foreground">
+                        {booking?.customer?.email || 'your@email.com'}
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-6 pt-6 border-t border-border flex justify-between items-center">
                   <span className="text-muted-foreground">Jumlah Dibayar</span>
-                  <span className="text-xl font-bold text-primary">RM 1,176.00</span>
+                  <span className="text-xl font-bold text-primary">
+                    RM {booking ? Number(booking.total_price).toFixed(2) : '1,176.00'}
+                  </span>
                 </div>
               </CardContent>
             </Card>

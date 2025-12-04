@@ -54,54 +54,6 @@ export async function registerAdmin(data: AdminRegistrationData): Promise<{
       };
     }
 
-    // Step 1.5: Create default layouts for the new studio
-    const defaultLayouts = [
-      {
-        studio_id: newStudio.id,
-        name: 'Studio Klasik',
-        description: 'Persediaan klasik dengan pencahayaan profesional dan pilihan latar belakang. Sempurna untuk potret dan fotografi produk.',
-        capacity: 6,
-        price_per_hour: 150.00,
-        image: '/placeholder.svg',
-        amenities: [],
-        is_active: true,
-      },
-      {
-        studio_id: newStudio.id,
-        name: 'Studio Minimalist',
-        description: 'Studio bendera kami dengan peralatan canggih dan persekitaran luas. Ideal untuk penggambaran komersial dan pengeluaran video.',
-        capacity: 12,
-        price_per_hour: 280.00,
-        image: '/placeholder.svg',
-        amenities: [],
-        is_active: true,
-      },
-      {
-        studio_id: newStudio.id,
-        name: 'Studio Moden',
-        description: 'Ruang kreatif serba boleh dengan cahaya semula jadi. Bagus untuk penggambaran gaya hidup, sesi yoga, dan acara kecil.',
-        capacity: 20,
-        price_per_hour: 200.00,
-        image: '/placeholder.svg',
-        amenities: [],
-        is_active: true,
-      },
-    ];
-
-    const { error: layoutsError } = await supabase
-      .from('studio_layouts')
-      .insert(defaultLayouts);
-
-    if (layoutsError) {
-      // Rollback: Delete the created studio
-      await supabase.from('studios').delete().eq('id', newStudio.id);
-      console.error('Failed to create default layouts:', layoutsError);
-      return {
-        success: false,
-        error: 'Gagal membuat layout studio. Sila cuba lagi.',
-      };
-    }
-
     // Step 2: Create auth user in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
@@ -115,9 +67,8 @@ export async function registerAdmin(data: AdminRegistrationData): Promise<{
     });
 
     if (authError) {
-      // Rollback: Delete the created studio and layouts
+      // Rollback: Delete the created studio
       await supabase.from('studios').delete().eq('id', newStudio.id);
-      await supabase.from('studio_layouts').delete().eq('studio_id', newStudio.id);
       
       // Handle specific errors
       if (authError.message.includes('already registered')) {
@@ -133,9 +84,8 @@ export async function registerAdmin(data: AdminRegistrationData): Promise<{
     }
 
     if (!authData.user) {
-      // Rollback: Delete the created studio and layouts
+      // Rollback: Delete the created studio
       await supabase.from('studios').delete().eq('id', newStudio.id);
-      await supabase.from('studio_layouts').delete().eq('studio_id', newStudio.id);
       return {
         success: false,
         error: 'Gagal membuat akaun pengguna',
@@ -159,15 +109,16 @@ export async function registerAdmin(data: AdminRegistrationData): Promise<{
       .single();
 
     if (adminError) {
-      // Rollback: Delete the created studio and layouts (auth user cannot be easily deleted from client)
+      // Rollback: Delete the created studio (auth user cannot be easily deleted from client)
       await supabase.from('studios').delete().eq('id', newStudio.id);
-      await supabase.from('studio_layouts').delete().eq('studio_id', newStudio.id);
       console.error('Failed to create admin user record:', adminError);
       return {
         success: false,
         error: 'Gagal menyimpan maklumat admin. Sila cuba lagi.',
       };
     }
+
+
 
     return {
       success: true,

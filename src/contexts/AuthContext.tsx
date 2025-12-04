@@ -7,6 +7,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { AdminUserWithStudio, Studio, AuthState } from '@/types/database';
+import { supabase } from '@/lib/supabase';
 import {
   getCurrentAdmin,
   loginAdmin,
@@ -102,21 +103,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // AUTH STATE LISTENER
   // =============================================
   useEffect(() => {
-    // Initial load - just check if there's a session without making expensive calls
+    // Initial load - check for existing session
     const initializeAuth = async () => {
       if (initialLoadDone.current) return;
       initialLoadDone.current = true;
-      
+
       console.log('AuthContext: Initializing...');
-      
-      // Set loading to false initially - user will see login page
-      // Only fetch user data when they actually try to login
-      setAuthState({
-        user: null,
-        studio: null,
-        isLoading: false,
-        isAuthenticated: false,
-      });
+
+      // Check if there's an existing session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // There's a session, fetch user data
+        await fetchCurrentUser();
+      } else {
+        // No session, show login page
+        setAuthState({
+          user: null,
+          studio: null,
+          isLoading: false,
+          isAuthenticated: false,
+        });
+      }
     };
     
     initializeAuth();
@@ -124,12 +131,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Subscribe to auth state changes
     const { data: { subscription } } = onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session ? 'has session' : 'no session');
-      
+
       // Only handle explicit auth events, not INITIAL_SESSION
-      if (event === 'SIGNED_IN' && session) {
-        // User just signed in, fetch their data
-        await fetchCurrentUser();
-      } else if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT') {
         setAuthState({
           user: null,
           studio: null,

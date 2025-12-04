@@ -28,14 +28,7 @@ export function Header() {
           </Link>
         </nav>
 
-        <div className="hidden md:flex items-center gap-3">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/admin">Log Masuk Admin</Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link to="/book">Tempah Sekarang</Link>
-          </Button>
-        </div>
+
 
         {/* Mobile Menu Button */}
         <Button
@@ -66,12 +59,6 @@ export function Header() {
             Tentang
           </Link>
           <div className="flex gap-2 mt-2 px-4">
-            <Button variant="outline" size="sm" className="flex-1" asChild>
-              <Link to="/admin">Admin</Link>
-            </Button>
-            <Button size="sm" className="flex-1" asChild>
-              <Link to="/book">Tempah Sekarang</Link>
-            </Button>
           </div>
         </nav>
       </div>

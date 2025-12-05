@@ -389,10 +389,74 @@ export async function createPublicBooking(bookingData: CreateBookingData): Promi
       return { success: false, error: 'Gagal membuat tempahan' };
     }
 
+    // Try to create calendar event if Google Calendar is enabled
+    try {
+      if (booking.studio?.google_calendar_enabled) {
+        await createCalendarEvent(booking);
+      }
+    } catch (calendarError) {
+      console.error('Failed to create calendar event:', calendarError);
+      // Don't fail the booking if calendar integration fails
+      // This is logged but doesn't prevent the booking from succeeding
+    }
+
     return { success: true, booking };
   } catch (error) {
     console.error('Error in createPublicBooking:', error);
     return { success: false, error: 'Ralat tidak dijangka berlaku' };
+  }
+}
+
+// =============================================
+// GOOGLE CALENDAR INTEGRATION
+// =============================================
+
+/**
+ * Create a Google Calendar event for a booking
+ */
+async function createCalendarEvent(booking: BookingWithDetails): Promise<void> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      throw new Error('No authenticated user');
+    }
+
+    // Get the layout details for the event title
+    const layout = booking.studio_layout;
+    if (!layout) {
+      throw new Error('Layout information missing');
+    }
+
+    const eventData = {
+      studioId: booking.studio_id,
+      bookingDate: booking.date,
+      startTime: booking.start_time,
+      endTime: booking.end_time,
+      customerName: booking.customer.name,
+      customerEmail: booking.customer.email,
+      customerPhone: booking.customer.phone || '',
+      layoutName: layout.name,
+      notes: booking.notes,
+      bookingReference: booking.reference,
+      calendarSecretKey: 'waOOzgPpFwaySuO4xTwLBx74QgJ9P9jT'
+    };
+
+    const { data, error } = await supabase.functions.invoke('create-calendar-event', {
+      body: eventData
+    });
+
+    if (error) {
+      throw new Error(`Calendar integration failed: ${error.message}`);
+    }
+
+    if (!data.success) {
+      throw new Error(data.error || 'Unknown calendar error');
+    }
+
+    console.log('Calendar event created successfully:', data.calendarEvent);
+  } catch (error) {
+    console.error('Error in createCalendarEvent:', error);
+    throw error;
   }
 }
 

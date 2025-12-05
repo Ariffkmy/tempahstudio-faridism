@@ -25,6 +25,14 @@ export interface StudioSettings {
 
   // Booking link
   bookingLink: string;
+
+  // Google Calendar integration
+  googleCalendarEnabled: boolean;
+  googleCalendarId: string;
+  googleClientId: string;
+  googleClientSecret: string;
+  googleClientIdConfigured: boolean;
+  googleRefreshTokenConfigured: boolean;
 }
 
 export interface StudioSettingsWithLayouts extends StudioSettings {
@@ -85,6 +93,12 @@ export async function loadStudioSettings(): Promise<StudioSettingsWithLayouts | 
       accountOwnerName: studio.account_owner_name || '',
       qrCode: studio.qr_code || '',
       bookingLink: studio.booking_link || '',
+      googleCalendarEnabled: studio.google_calendar_enabled || false,
+      googleCalendarId: studio.google_calendar_id || 'primary',
+      googleClientId: studio.google_client_id || '',
+      googleClientSecret: studio.google_client_secret || '',
+      googleClientIdConfigured: !!(studio.google_client_id),
+      googleRefreshTokenConfigured: !!(studio.google_refresh_token),
       layouts: layouts || []
     };
 
@@ -133,6 +147,8 @@ export async function saveStudioSettings(settings: StudioSettings, layouts: Stud
         account_owner_name: settings.accountOwnerName,
         qr_code: settings.qrCode,
         booking_link: settings.bookingLink,
+        google_calendar_enabled: settings.googleCalendarEnabled,
+        google_calendar_id: settings.googleCalendarId,
         updated_at: new Date().toISOString()
       })
       .eq('id', studioId);
@@ -233,5 +249,166 @@ export async function updateStudioLayouts(layouts: StudioLayout[]): Promise<{ su
   } catch (error) {
     console.error('Error updating studio layouts:', error);
     return { success: false, error: 'Unexpected error occurred' };
+  }
+}
+
+// =============================================
+// GOOGLE CALENDAR OAUTH
+// =============================================
+
+/**
+ * Save Google OAuth credentials for a studio
+ */
+export async function saveGoogleCredentials(
+  clientId: string,
+  clientSecret: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      return { success: false, error: 'No authenticated user' };
+    }
+
+    const { data: adminUser, error: adminError } = await supabase
+      .from('admin_users')
+      .select('studio_id')
+      .eq('auth_user_id', session.user.id)
+      .eq('is_active', true)
+      .single();
+
+    if (adminError || !adminUser) {
+      return { success: false, error: 'Failed to find admin studio' };
+    }
+
+    const { error } = await supabase
+      .from('studios')
+      .update({
+        google_client_id: clientId,
+        google_client_secret: clientSecret,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', adminUser.studio_id);
+
+    if (error) {
+      console.error('Failed to save Google credentials:', error);
+      return { success: false, error: 'Failed to save credentials' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving Google credentials:', error);
+    return { success: false, error: 'Unexpected error occurred' };
+  }
+}
+
+/**
+ * Initiate Google OAuth authorization flow
+ */
+export async function initiateGoogleAuth(clientId: string): Promise<{ authUrl: string; state: string }> {
+  const redirectUri = `${window.location.origin}/admin/settings`;
+  const state = crypto.randomUUID();
+
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'https://www.googleapis.com/auth/calendar.events',
+    access_type: 'offline',
+    prompt: 'consent',
+    state: state
+  });
+
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+
+  return { authUrl, state };
+}
+
+/**
+ * Exchange authorization code for tokens and save them
+ */
+export async function exchangeGoogleCode(
+  code: string,
+  clientId: string,
+  clientSecret: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      return { success: false, error: 'No authenticated user' };
+    }
+
+    // Exchange code for tokens directly (since Edge Functions aren't deployed)
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        code: code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: 'authorization_code',
+        redirect_uri: `${window.location.origin}/admin/settings`,
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error('OAuth token exchange failed:', errorText);
+      return { success: false, error: `OAuth token exchange failed: ${tokenResponse.status} - ${errorText}` };
+    }
+
+    const tokens = await tokenResponse.json();
+    const { access_token, refresh_token } = tokens;
+
+    if (!access_token || !refresh_token) {
+      return { success: false, error: 'Missing access_token or refresh_token in OAuth response' };
+    }
+
+    // Calculate token expiration (tokens are typically valid for 1 hour)
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+
+    // Get admin user to find their studio
+    const { data: adminUser, error: adminError } = await supabase
+      .from('admin_users')
+      .select('studio_id')
+      .eq('auth_user_id', session.user.id)
+      .eq('is_active', true)
+      .single();
+
+    if (adminError || !adminUser) {
+      return { success: false, error: 'Failed to find admin studio' };
+    }
+
+    // Try to update the studio with the tokens
+    // Note: This will only work if RLS allows it or if we use service role
+    // For now, we'll use a direct approach but in production this should be server-side
+    const { error: updateError } = await supabase
+      .from('studios')
+      .update({
+        google_refresh_token: refresh_token,
+        google_access_token: access_token,
+        google_token_expires_at: expiresAt.toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', adminUser.studio_id);
+
+    if (updateError) {
+      console.error('Failed to save tokens to database:', updateError);
+      // Save tokens to localStorage as fallback for development
+      localStorage.setItem('temp_google_refresh_token', refresh_token);
+      localStorage.setItem('temp_google_access_token', access_token);
+      localStorage.setItem('temp_google_token_expires_at', expiresAt.toISOString());
+      return {
+        success: false,
+        error: `Failed to save tokens to database: ${updateError.message}. Tokens saved to localStorage for manual import.`
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error exchanging Google code:', error);
+    return { success: false, error: 'Network error occurred' };
   }
 }

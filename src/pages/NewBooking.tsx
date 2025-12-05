@@ -39,6 +39,7 @@ const NewBooking = () => {
   const [studio, setStudio] = useState<Studio | null>(null);
   const [layouts, setLayouts] = useState<StudioLayout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const layout = layouts.find((l) => l.id === selectedLayout) || null;
 
@@ -147,6 +148,8 @@ const NewBooking = () => {
   const handleSubmit = async () => {
     if (!isFormValid || !studioId || !selectedLayout || !selectedDate || !selectedTime) return;
 
+    setIsSubmitting(true);
+
     try {
       // For now, assume 2-hour booking (this should be configurable)
       // In a real implementation, this would come from the time slot selection
@@ -204,6 +207,8 @@ const NewBooking = () => {
         description: "Ralat tidak dijangka berlaku. Sila cuba lagi.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -357,17 +362,42 @@ const NewBooking = () => {
             <div className="flex justify-end">
               <Button
                 onClick={handleSubmit}
-                disabled={!isFormValid}
+                disabled={!isFormValid || isSubmitting}
                 size="lg"
                 className="min-w-[200px]"
               >
-                Hantar Tempahan
-                <ArrowRight className="ml-2 h-4 w-4" />
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sila tunggu, tempahan anda sedang dibuat
+                  </>
+                ) : (
+                  <>
+                    Hantar Tempahan
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </div>
           </div>
         </div>
       </main>
+
+      {/* Full-screen loading overlay */}
+      {isSubmitting && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-8 shadow-2xl flex flex-col items-center space-y-4 max-w-sm mx-4">
+            <img
+              src="/loader.gif"
+              alt="Loading"
+              className="w-16 h-16"
+            />
+            <p className="text-lg font-medium text-gray-800 text-center">
+              Sila tunggu, tempahan anda sedang dibuat
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

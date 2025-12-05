@@ -2,12 +2,18 @@ import { Link, useLocation } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, MapPin, Mail } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import type { BookingWithDetails } from '@/types/database';
 
 const BookingConfirmation = () => {
   const location = useLocation();
+  const { isAuthenticated } = useAuth();
   const booking = location.state?.booking as BookingWithDetails;
   const reference = location.state?.reference || booking?.reference || 'RAYA-2024-001';
+
+  // Determine navigation paths based on user type
+  const bookAnotherSessionPath = isAuthenticated ? '/admin' : '/book';
+  const backToHomePath = isAuthenticated ? '/admin' : '/';
 
   // Format date for display
   const formatDate = (dateStr: string) => {
@@ -104,10 +110,10 @@ const BookingConfirmation = () => {
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center animate-slide-up stagger-3">
               <Button variant="outline" asChild>
-                <Link to="/">Kembali ke Halaman Utama</Link>
+                <Link to={backToHomePath}>Kembali ke Halaman Utama</Link>
               </Button>
               <Button asChild>
-                <Link to="/book">Tempah Sesi Lain</Link>
+                <Link to={bookAnotherSessionPath}>Tempah Sesi Lain</Link>
               </Button>
             </div>
           </div>

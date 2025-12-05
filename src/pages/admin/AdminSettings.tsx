@@ -10,7 +10,8 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2 } from 'lucide-react';
-import { loadStudioSettings, saveStudioSettings, updateStudioLayouts } from '@/services/studioSettings';
+import { loadStudioSettings, saveStudioSettings, updateStudioLayouts, saveGoogleCredentials, initiateGoogleAuth, exchangeGoogleCode } from '@/services/studioSettings';
+import { supabase } from '@/lib/supabase';
 import type { StudioLayout } from '@/types/database';
 
 
@@ -29,7 +30,13 @@ const AdminSettings = () => {
     bankAccountNumber: '',
     accountOwnerName: '',
     qrCode: '',
-    bookingLink: ''
+    bookingLink: '',
+    googleCalendarEnabled: false,
+    googleCalendarId: 'primary',
+    googleClientId: '',
+    googleClientSecret: '',
+    googleClientIdConfigured: false,
+    googleRefreshTokenConfigured: false
   });
 
   const [layouts, setLayouts] = useState<StudioLayout[]>([]);
@@ -58,7 +65,13 @@ const AdminSettings = () => {
             bankAccountNumber: data.bankAccountNumber,
             accountOwnerName: data.accountOwnerName,
             qrCode: data.qrCode,
-            bookingLink: data.bookingLink
+            bookingLink: data.bookingLink,
+            googleCalendarEnabled: data.googleCalendarEnabled,
+            googleCalendarId: data.googleCalendarId,
+            googleClientId: data.googleClientId,
+            googleClientSecret: data.googleClientSecret,
+            googleClientIdConfigured: data.googleClientIdConfigured,
+            googleRefreshTokenConfigured: data.googleRefreshTokenConfigured
           });
           setLayouts(data.layouts);
         }
@@ -77,7 +90,82 @@ const AdminSettings = () => {
     loadSettings();
   }, [toast]);
 
-  const handleSettingChange = (field: string, value: string) => {
+  // Handle OAuth callback on component mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state');
+
+    if (code && state) {
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+
+      const handleOAuthCallback = async () => {
+        try {
+          // Get client credentials
+          const clientId = settings.googleClientId || sessionStorage.getItem('googleClientId');
+          const clientSecret = settings.googleClientSecret || sessionStorage.getItem('googleClientSecret');
+
+          if (!clientId || !clientSecret) {
+            toast({
+              title: "Configuration Error",
+              description: "Client credentials not found. Please refresh and try again.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          // Exchange code for tokens
+          toast({
+            title: "Processing...",
+            description: "Exchanging authorization code for tokens...",
+          });
+
+          const result = await exchangeGoogleCode(code, clientId, clientSecret);
+
+          if (result.success) {
+            toast({
+              title: "Success!",
+              description: "Google Calendar authorization completed. Integration is now active.",
+            });
+
+            // Clear session storage
+            sessionStorage.removeItem('googleClientId');
+            sessionStorage.removeItem('googleClientSecret');
+
+            // Reload settings to reflect new state
+            const data = await loadStudioSettings();
+            if (data) {
+              setSettings(prev => ({
+                ...prev,
+                googleClientId: data.googleClientId,
+                googleClientSecret: data.googleClientSecret,
+                googleClientIdConfigured: data.googleClientIdConfigured,
+                googleRefreshTokenConfigured: data.googleRefreshTokenConfigured
+              }));
+            }
+          } else {
+            toast({
+              title: "Authorization Failed",
+              description: result.error || "Unknown error occurred",
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          console.error('OAuth callback error:', error);
+          toast({
+            title: "OAuth Error",
+            description: "Failed to complete Google Calendar authorization",
+            variant: "destructive",
+          });
+        }
+      };
+
+      handleOAuthCallback();
+    }
+  }, [settings.googleClientId, settings.googleClientSecret, toast]);
+
+  const handleSettingChange = (field: string, value: string | boolean) => {
     setSettings(prev => ({
       ...prev,
       [field]: value
@@ -352,6 +440,326 @@ const AdminSettings = () => {
                     }}
                   />
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* OAuth Credentials */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Google OAuth Credentials</CardTitle>
+                <CardDescription>API credentials from Google Cloud Console</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="googleClientId">Client ID</Label>
+                  <Input
+                    id="googleClientId"
+                    type="password"
+                    value={settings.googleClientId}
+                    onChange={(e) => handleSettingChange('googleClientId', e.target.value)}
+                    placeholder="Your Google OAuth Client ID"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="googleClientSecret">Client Secret</Label>
+                  <Input
+                    id="googleClientSecret"
+                    type="password"
+                    value={settings.googleClientSecret}
+                    onChange={(e) => handleSettingChange('googleClientSecret', e.target.value)}
+                    placeholder="Your Google OAuth Client Secret"
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={async () => {
+                      if (!settings.googleClientId || !settings.googleClientSecret) {
+                        toast({
+                          title: "Error",
+                          description: "Please enter both Client ID and Client Secret first",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+
+                      try {
+                        const result = await saveGoogleCredentials(settings.googleClientId, settings.googleClientSecret);
+                        if (result.success) {
+                          toast({
+                            title: "Success",
+                            description: "OAuth credentials saved successfully",
+                          });
+                          // Reload settings to update configured status
+                          const data = await loadStudioSettings();
+                          if (data) {
+                            setSettings(prev => ({
+                              ...prev,
+                              googleClientIdConfigured: true
+                            }));
+                          }
+                        } else {
+                          toast({
+                            title: "Error",
+                            description: result.error || "Failed to save credentials",
+                            variant: "destructive",
+                          });
+                        }
+                      } catch (error) {
+                        toast({
+                          title: "Error",
+                          description: "Failed to save credentials",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    disabled={!settings.googleClientId || !settings.googleClientSecret}
+                  >
+                    Save Credentials
+                  </Button>
+                </div>
+
+                {settings.googleClientIdConfigured && (
+                  <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm text-green-800">Credentials configured</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Google Calendar Integration */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Integrasi Google Calendar</CardTitle>
+                <CardDescription>Automatik tambah tempahan ke kalendar Google</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="text-base">Google Calendar Integration</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Apabila dihidupkan, tempahan baru akan automatik ditambah ke kalendar Google anda
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.googleCalendarEnabled}
+                    onCheckedChange={(checked) => handleSettingChange('googleCalendarEnabled', checked)}
+                  />
+                </div>
+
+                {settings.googleCalendarEnabled && (
+                  <div className="space-y-4">
+                    {!settings.googleClientIdConfigured && (
+                      <div className="rounded-md bg-yellow-50 p-4 border border-yellow-200">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="text-sm font-medium text-yellow-800">Setup Required</h3>
+                            <div className="mt-2 text-sm text-yellow-700">
+                              <p>Please enter your Google OAuth credentials above first.</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {settings.googleClientIdConfigured && !settings.googleRefreshTokenConfigured && (
+                      <div className="rounded-md bg-blue-50 p-4 border border-blue-200">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="text-sm font-medium text-blue-800">Authorization Required</h3>
+                            <div className="mt-2 text-sm text-blue-700">
+                              <p>Click the button below to authorize access to your Google Calendar.</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-4">
+                          <Button
+                            onClick={async () => {
+                              try {
+                                // First, save all settings to ensure Google Calendar settings are persisted
+                                const settingsResult = await saveStudioSettings(settings, []);
+                                if (!settingsResult.success) {
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to save settings before authorization",
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+
+                                toast({
+                                  title: "Settings saved",
+                                  description: "Redirecting to Google for authorization...",
+                                });
+
+                                // Now initiate OAuth flow
+                                const { authUrl } = await initiateGoogleAuth(settings.googleClientId);
+                                // Store both client ID and secret in session storage for the callback
+                                sessionStorage.setItem('googleClientId', settings.googleClientId);
+                                sessionStorage.setItem('googleClientSecret', settings.googleClientSecret);
+                                window.location.href = authUrl; // Redirect to Google OAuth
+                              } catch (error) {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to initiate authorization",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                          >
+                            Authorize Google Calendar
+                          </Button>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            This will save your settings and redirect you to Google for authorization
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Check for tokens in localStorage that need to be imported */}
+                    {!settings.googleRefreshTokenConfigured && localStorage.getItem('temp_google_refresh_token') && (
+                      <div className="rounded-md bg-orange-50 p-4 border border-orange-200">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-orange-400" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="ml-3 flex-1">
+                            <h3 className="text-sm font-medium text-orange-800">Tokens Ready for Import</h3>
+                            <div className="mt-2 text-sm text-orange-700">
+                              <p>OAuth tokens were obtained but couldn't be saved to database. Click below to import them.</p>
+                            </div>
+                            <div className="mt-3">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={async () => {
+                                  try {
+                                    const refreshToken = localStorage.getItem('temp_google_refresh_token');
+                                    const accessToken = localStorage.getItem('temp_google_access_token');
+                                    const expiresAt = localStorage.getItem('temp_google_token_expires_at');
+
+                                    if (!refreshToken || !accessToken || !expiresAt) {
+                                      toast({
+                                        title: "Error",
+                                        description: "Token data is incomplete",
+                                        variant: "destructive",
+                                      });
+                                      return;
+                                    }
+
+                                    // Import tokens to database
+                                    const { data: { session } } = await supabase.auth.getSession();
+                                    if (!session?.user) {
+                                      throw new Error('No authenticated user');
+                                    }
+
+                                    const { data: adminUser, error: adminError } = await supabase
+                                      .from('admin_users')
+                                      .select('studio_id')
+                                      .eq('auth_user_id', session.user.id)
+                                      .eq('is_active', true)
+                                      .single();
+
+                                    if (adminError || !adminUser) {
+                                      throw new Error('Failed to find admin studio');
+                                    }
+
+                                    const { error: updateError } = await supabase
+                                      .from('studios')
+                                      .update({
+                                        google_refresh_token: refreshToken,
+                                        google_access_token: accessToken,
+                                        google_token_expires_at: expiresAt,
+                                        updated_at: new Date().toISOString()
+                                      })
+                                      .eq('id', adminUser.studio_id);
+
+                                    if (updateError) {
+                                      throw updateError;
+                                    }
+
+                                    // Clear localStorage
+                                    localStorage.removeItem('temp_google_refresh_token');
+                                    localStorage.removeItem('temp_google_access_token');
+                                    localStorage.removeItem('temp_google_token_expires_at');
+
+                                    toast({
+                                      title: "Success",
+                                      description: "Tokens imported successfully! Google Calendar is now connected.",
+                                    });
+
+                                    // Reload settings
+                                    const data = await loadStudioSettings();
+                                    if (data) {
+                                      setSettings(prev => ({
+                                        ...prev,
+                                        googleRefreshTokenConfigured: true
+                                      }));
+                                    }
+                                  } catch (error) {
+                                    console.error('Error importing tokens:', error);
+                                    toast({
+                                      title: "Import Failed",
+                                      description: "Failed to import tokens to database",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
+                              >
+                                Import Tokens
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {settings.googleRefreshTokenConfigured && (
+                      <div className="rounded-md bg-green-50 p-4 border border-green-200">
+                        <div className="flex">
+                          <div className="flex-shrink-0">
+                            <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <div className="ml-3">
+                            <h3 className="text-sm font-medium text-green-800">Google Calendar Connected</h3>
+                            <div className="mt-1 text-sm text-green-700">
+                              <p>Calendar events will be automatically created for new bookings.</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="googleCalendarId">ID Kalendar Google</Label>
+                      <Input
+                        id="googleCalendarId"
+                        value={settings.googleCalendarId}
+                        onChange={(e) => handleSettingChange('googleCalendarId', e.target.value)}
+                        placeholder="primary atau calendar-id@group.calendar.google.com"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Gunakan 'primary' untuk kalendar utama atau dapatkan ID dari tetapan kalendar Google anda
+                      </p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

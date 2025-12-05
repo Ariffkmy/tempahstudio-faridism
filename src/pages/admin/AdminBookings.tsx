@@ -145,7 +145,7 @@ const AdminBookings = () => {
               <p className="text-muted-foreground">Urus dan lihat semua tempahan studio</p>
             </div>
             <div className="flex gap-2">
-              <Button onClick={() => navigate('/new-booking')}>
+              <Button onClick={() => navigate(`/book/${studio?.id}`)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Tambah Tempahan
               </Button>

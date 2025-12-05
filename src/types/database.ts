@@ -53,6 +53,14 @@ export interface Studio {
   account_owner_name?: string | null;
   qr_code?: string | null;
   booking_link?: string | null;
+  // Google Calendar integration
+  google_calendar_enabled?: boolean | null;
+  google_calendar_id?: string | null;
+  google_client_id?: string | null;
+  google_client_secret?: string | null;
+  google_refresh_token?: string | null;
+  google_access_token?: string | null;
+  google_token_expires_at?: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

@@ -2,35 +2,17 @@ import { Link } from 'react-router-dom';
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-muted/20">
+    <footer className="border-t border-border" style={{ background: "linear-gradient(to bottom right, rgba(0,126,110,0.3), rgba(115,175,111,0.2), rgba(215,192,151,0.1), rgba(203,243,187,0.3))" }}>
       <div className="container py-12">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid sm:grid-cols-1 lg:grid-cols-2 gap-8">
           <div>
             <Link to="/" className="flex items-center gap-2 mb-4">
               <img src="/studiorayalogo.png" alt="Raya Studio Logo" style={{ width: '48px', height: '28px' }} />
               <span className="font-semibold">Studio Raya</span>
             </Link>
             <p className="text-sm text-muted-foreground">
-              Studio fotografi profesional di Kuala Lumpur. Tempah ruang kreatif anda hari ini.
+              Platform terbaik untuk mengurus tempahan studio raya anda. Mudah, cepat, dan boleh dipercayai.
             </p>
-          </div>
-
-          <div>
-            <h4 className="font-semibold mb-4">Studio</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/" className="hover:text-foreground transition-colors">Studio Klasik</Link></li>
-              <li><Link to="/" className="hover:text-foreground transition-colors">Studio Minimalist</Link></li>
-              <li><Link to="/" className="hover:text-foreground transition-colors">Studio Moden</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-semibold mb-4">Syarikat</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link to="/" className="hover:text-foreground transition-colors">Tentang Kami</Link></li>
-              <li><Link to="/" className="hover:text-foreground transition-colors">Hubungi</Link></li>
-              <li><Link to="/" className="hover:text-foreground transition-colors">Kerjaya</Link></li>
-            </ul>
           </div>
 
           <div>

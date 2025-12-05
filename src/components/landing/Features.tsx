@@ -1,25 +1,25 @@
-import { Calendar, Shield, Zap, Headphones } from 'lucide-react';
+import { Calendar, Shield, Mail, Headphones } from 'lucide-react';
 
 const features = [
   {
     icon: Calendar,
-    title: 'Tempahan Segera',
-    description: 'Lihat ketersediaan masa nyata dan jamin slot anda dalam beberapa saat. Tiada emel bolak-balik.',
+    title: 'Pengurusan Tempahan',
+    description: 'Kami mengurus semua tempahan pelanggan anda dalam satu platform yang mudah digunakan',
   },
   {
     icon: Shield,
     title: 'Pembayaran Selamat',
-    description: 'Penyulitan standard industri melindungi butiran pembayaran anda. Pelbagai pilihan pembayaran tersedia.',
+    description: 'Pelanggan anda boleh membuat pembayaran terus ke akaun bank anda melalui platform kami',
   },
   {
-    icon: Zap,
-    title: 'Peralatan Premium',
-    description: 'Pencahayaan, kamera dan aksesori gred profesional termasuk dengan setiap tempahan.',
+    icon: Calendar,
+    title: 'Tempahan terus ke Google Calendar anda',
+    description: 'Jangan risau dengan urusan tempahan pelanggan. Kami bantu untuk isi di Google Calendar anda secara automatik',
   },
   {
-    icon: Headphones,
-    title: 'Sokongan Berdedikasi',
-    description: 'Pasukan kami di sini untuk membantu sebelum, semasa dan selepas sesi anda. Hanya tanya.',
+    icon: Mail,
+    title: 'Notifikasi Email',
+    description: 'Semua tempahan akan dimaklumkan kepada anda dan pelanggan anda melalui notifikasi email',
   },
 ];
 

@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { motion } from "framer-motion";
+import { HeroHighlight, Highlight } from "@/components/ui/hero-highlight";
 
 export function Hero() {
   const [email, setEmail] = useState('');
@@ -35,7 +37,7 @@ export function Hero() {
   return (
     <section className="relative min-h-[90vh] flex items-center pt-16">
       {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-accent/50 via-background to-background -z-10" />
+      <div className="absolute inset-0 -z-10" style={{ background: "linear-gradient(to bottom right, rgba(0,126,110,0.3), rgba(115,175,111,0.2), rgba(215,192,151,0.1), rgba(203,243,187,0.3))" }} />
       
       {/* Subtle pattern */}
       <div className="absolute inset-0 opacity-[0.015] -z-10" style={{
@@ -47,19 +49,33 @@ export function Hero() {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left side - Hero text */}
           <div className="max-w-3xl">
+            {/*
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-sm font-medium mb-6 animate-fade-in">
               <Star className="h-3.5 w-3.5 fill-current" />
               <span>Dipegang oleh lebih 500 pencipta di KL</span>
             </div>
+            */}
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-balance mb-6 animate-slide-up">
-              Tempah ruang studio
-              <span className="text-primary"> sempurna anda</span>
-            </h1>
+            <motion.h1
+              initial={{
+                opacity: 0,
+                y: 20,
+              }}
+              animate={{
+                opacity: 1,
+                y: [20, -5, 0],
+              }}
+              transition={{
+                duration: 0.5,
+                ease: [0.4, 0.0, 0.2, 1],
+              }}
+              className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-balance mb-6"
+            >
+              Platform mengurus tempahan <Highlight>studio raya anda</Highlight>
+            </motion.h1>
 
             <p className="text-lg sm:text-xl text-muted-foreground max-w-xl mb-8 animate-slide-up stagger-1">
-              Studio fotografi dan video profesional di Kuala Lumpur.
-              Tempahan lancar, peralatan premium, hasil yang tidak dapat dilupakan.
+              Sistem tempahan studio raya yang cepat dan mudah untuk pelanggan anda. Urus slot, pakej, pembayaran dan banyak lagi dalam satu platform.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 mb-12 animate-slide-up stagger-2">
@@ -74,21 +90,11 @@ export function Hero() {
               </Button>
             </div>
 
-            <div className="flex flex-wrap gap-6 text-sm text-muted-foreground animate-fade-in stagger-3">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary" />
-                <span>Kuala Lumpur, Malaysia</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" />
-                <span>9 AM – 9 PM Setiap Hari</span>
-              </div>
-            </div>
           </div>
 
           {/* Right side - Login/Signup form */}
           <div className="w-full max-w-md mx-auto">
-            <Card className="shadow-xl border-0 bg-background/95 backdrop-blur-sm">
+            <Card className="border-0 bg-background/95 backdrop-blur-sm" style={{ boxShadow: "rgba(0, 0, 0, 0.16) 0px 10px 36px 0px, rgba(0, 0, 0, 0.06) 0px 0px 0px 1px" }}>
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl font-bold">Selamat Datang</CardTitle>
                 <CardDescription>

@@ -15,18 +15,6 @@ export function Header() {
           <span className="font-semibold text-lg">Studio Raya</span>
         </Link>
 
-        {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-8">
-          <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            Studio
-          </Link>
-          <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            Harga
-          </Link>
-          <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            Tentang
-          </Link>
-        </nav>
 
 
 
@@ -49,15 +37,6 @@ export function Header() {
         )}
       >
         <nav className="container py-4 flex flex-col gap-2">
-          <Link to="/" className="px-4 py-2 text-sm font-medium hover:bg-accent rounded-lg transition-colors">
-            Studio
-          </Link>
-          <Link to="/" className="px-4 py-2 text-sm font-medium hover:bg-accent rounded-lg transition-colors">
-            Harga
-          </Link>
-          <Link to="/" className="px-4 py-2 text-sm font-medium hover:bg-accent rounded-lg transition-colors">
-            Tentang
-          </Link>
           <div className="flex gap-2 mt-2 px-4">
           </div>
         </nav>

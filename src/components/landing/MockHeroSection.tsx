@@ -11,11 +11,12 @@ export function MockHeroSection() {
           viewport={{ once: true }}
           className="text-center"
         >
-          <div className="max-w-6xl mx-auto">
+          <div className="relative max-w-6xl mx-auto">
+            <div className="absolute inset-0 bg-gradient-to-r from-pink-400 via-purple-500 to-cyan-400 blur-3xl opacity-20 scale-110 -z-10"></div>
             <img
               src="/mockhero.png"
               alt="RAYA Studio Hero"
-              className="w-full h-auto"
+              className="relative w-full h-auto"
             />
           </div>
         </motion.div>

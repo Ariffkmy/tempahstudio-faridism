@@ -101,7 +101,7 @@ export function Hero() {
           </div>
 
           {/* Right side - Login/Signup form */}
-          <div className="w-full max-w-md mx-auto relative">
+          <div className="w-full max-w-md mx-auto relative mb-12 lg:mb-0">
             <Card className="border-0 bg-background/95 backdrop-blur-sm" style={{ boxShadow: "rgba(0, 0, 0, 0.16) 0px 10px 36px 0px, rgba(0, 0, 0, 0.06) 0px 0px 0px 1px" }}>
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl font-bold">Selamat Datang</CardTitle>

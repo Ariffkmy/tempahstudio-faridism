@@ -31,7 +31,7 @@ export const Highlight = ({ children, className, ...props }: HTMLMotionProps<"sp
         repeatType: "mirror",
       }}
       className={cn(
-        "relative inline-block rounded-md bg-gradient-to-r from-[#0F977C] via-[#16A085] to-[#1ABC9C] bg-[length:200%_auto] px-2 py-1 text-white",
+        "relative inline-block bg-gradient-to-r from-[#0F977C] via-[#16A085] to-[#1ABC9C] bg-[length:200%_auto] px-2 py-1 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_2px_4px_rgba(0,0,0,0.3),0_4px_8px_rgba(0,0,0,0.1)]",
         className
       )}
       {...props}

@@ -35,9 +35,18 @@ export function Hero() {
   };
 
   return (
-    <section className="relative min-h-[90vh] flex items-center pt-16">
-      {/* Background gradient */}
-      <div className="absolute inset-0 -z-10" style={{ background: "linear-gradient(to bottom right, rgba(0,126,110,0.3), rgba(115,175,111,0.2), rgba(215,192,151,0.1), rgba(203,243,187,0.3))" }} />
+    <section
+      className="relative min-h-screen flex items-center pt-16"
+      style={{
+        backgroundImage: 'url(/rayahero.png)',
+        backgroundSize: 'auto calc(100vh - 4rem)',
+        backgroundPosition: 'right bottom',
+        backgroundRepeat: 'no-repeat',
+        marginTop: '4rem',
+      }}
+    >
+      {/* Overlay gradient */}
+      <div className="absolute inset-0 -z-10" style={{ background: "linear-gradient(to bottom right, rgba(0,126,110,0.4), rgba(115,175,111,0.3), rgba(215,192,151,0.2), rgba(203,243,187,0.4))" }} />
       
       {/* Subtle pattern */}
       <div className="absolute inset-0 opacity-[0.015] -z-10" style={{
@@ -71,7 +80,7 @@ export function Hero() {
               }}
               className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-balance mb-6"
             >
-              Platform mengurus tempahan <Highlight>studio raya anda</Highlight>
+              Platform mengurus tempahan <Highlight className="mt-2">studio raya anda</Highlight>
             </motion.h1>
 
             <p className="text-lg sm:text-xl text-muted-foreground max-w-xl mb-8 animate-slide-up stagger-1">
@@ -93,7 +102,7 @@ export function Hero() {
           </div>
 
           {/* Right side - Login/Signup form */}
-          <div className="w-full max-w-md mx-auto">
+          <div className="w-full max-w-md mx-auto relative">
             <Card className="border-0 bg-background/95 backdrop-blur-sm" style={{ boxShadow: "rgba(0, 0, 0, 0.16) 0px 10px 36px 0px, rgba(0, 0, 0, 0.06) 0px 0px 0px 1px" }}>
               <CardHeader className="text-center">
                 <CardTitle className="text-2xl font-bold">Selamat Datang</CardTitle>
@@ -148,7 +157,7 @@ export function Hero() {
                     <p className="text-sm text-muted-foreground mb-2">
                       Belum mempunyai akaun?
                     </p>
-                    <Button variant="outline" size="sm" asChild>
+                    <Button variant="hero-outline" size="lg" asChild>
                       <Link to="/admin/register">
                         Daftar Sekarang
                       </Link>

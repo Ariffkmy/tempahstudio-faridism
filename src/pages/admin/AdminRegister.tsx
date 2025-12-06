@@ -7,11 +7,13 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, Building2 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const AdminRegister = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { register, isAuthenticated, isLoading: authLoading } = useAuth();
+  const isMobile = useIsMobile();
   
   // Form state
   const [fullName, setFullName] = useState('');
@@ -112,12 +114,16 @@ const AdminRegister = () => {
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-8">
       <div className="w-full max-w-md">
         {/* Logo & Header */}
-        <div className="text-center mb-8">
+        <div className={`text-center ${isMobile ? 'mb-6' : 'mb-8'}`}>
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <img src="/studiorayalogo.png" alt="Raya Studio Logo" style={{ width: '77px', height: '44px' }} />
+            <img
+              src="/studiorayalogo.png"
+              alt="Raya Studio Logo"
+              style={{ width: isMobile ? '65px' : '77px', height: isMobile ? '37px' : '44px' }}
+            />
           </Link>
-          <h1 className="text-2xl font-bold">Daftar Akaun Admin</h1>
-          <p className="text-muted-foreground">Daftar untuk mengurus studio anda</p>
+          <h1 className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>Daftar Akaun Admin</h1>
+          <p className="text-muted-foreground text-sm">Daftar untuk mengurus studio anda</p>
         </div>
 
         <Card>

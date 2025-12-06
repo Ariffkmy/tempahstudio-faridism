@@ -8,11 +8,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { requestPasswordReset } from '@/services/adminAuth';
 import { Eye, EyeOff } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+  const isMobile = useIsMobile();
   
   // Form state
   const [email, setEmail] = useState('');
@@ -112,12 +114,16 @@ const AdminLogin = () => {
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
       <div className="w-full max-w-sm">
         {/* Logo & Header */}
-        <div className="text-center mb-8">
+        <div className={`text-center ${isMobile ? 'mb-6' : 'mb-8'}`}>
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
-            <img src="/studiorayalogo.png" alt="Raya Studio Logo" style={{ width: '77px', height: '44px' }} />
+            <img
+              src="/studiorayalogo.png"
+              alt="Raya Studio Logo"
+              style={{ width: isMobile ? '65px' : '77px', height: isMobile ? '37px' : '44px' }}
+            />
           </Link>
-          <h1 className="text-2xl font-bold">Selamat Datang</h1>
-          <p className="text-muted-foreground">Log masuk untuk mengurus studio raya anda</p>
+          <h1 className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>Selamat Datang</h1>
+          <p className="text-muted-foreground text-sm">Log masuk untuk mengurus studio raya anda</p>
         </div>
 
         <Card>

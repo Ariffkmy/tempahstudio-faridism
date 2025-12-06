@@ -8,12 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from "framer-motion";
 import { HeroHighlight, Highlight } from "@/components/ui/hero-highlight";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export function Hero() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const isMobile = useIsMobile();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,10 +40,10 @@ export function Hero() {
     <section
       className="relative min-h-screen flex items-center pt-16"
       style={{
-        backgroundImage: 'url(/rayahero.png)',
-        backgroundSize: 'auto calc(100vh - 4rem)',
-        backgroundPosition: 'right bottom',
-        backgroundRepeat: 'no-repeat',
+        backgroundImage: isMobile ? 'none' : 'url(/rayahero.png)',
+        backgroundSize: isMobile ? 'none' : 'auto calc(100vh - 4rem)',
+        backgroundPosition: isMobile ? 'none' : 'right bottom',
+        backgroundRepeat: isMobile ? 'none' : 'no-repeat',
         marginTop: '4rem',
       }}
     >
@@ -93,9 +95,6 @@ export function Hero() {
                   Mula Tempah
                   <ArrowRight className="h-5 w-5" />
                 </Link>
-              </Button>
-              <Button variant="hero-outline" size="xl" asChild>
-                <Link to="/studios">Lihat Studio</Link>
               </Button>
             </div>
 

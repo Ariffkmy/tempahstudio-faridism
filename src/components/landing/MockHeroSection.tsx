@@ -13,7 +13,7 @@ export function MockHeroSection() {
         >
           <div className="relative max-w-6xl mx-auto">
              <div>
-              <h2 className="text-4xl font-bold mb-4 text-primary">Kami automasikan semua <span className="pencil-underline">kerja manual anda</span></h2>
+              <h2 className="text-5xl font-bold mb-4 text-primary">Kami automasikan semua <span className="pencil-underline">kerja manual anda</span></h2>
              </div>
             <img
               src="/mockhero.png"

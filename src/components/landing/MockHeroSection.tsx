@@ -15,7 +15,7 @@ export function MockHeroSection() {
             <img
               src="/mockhero.png"
               alt="RAYA Studio Hero"
-              className="w-full h-auto rounded-lg shadow-2xl"
+              className="w-full h-auto"
             />
           </div>
         </motion.div>

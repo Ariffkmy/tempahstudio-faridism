@@ -11,7 +11,7 @@ export function MockHeroSection() {
           viewport={{ once: true }}
           className="text-center"
         >
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             <img
               src="/mockhero.png"
               alt="RAYA Studio Hero"

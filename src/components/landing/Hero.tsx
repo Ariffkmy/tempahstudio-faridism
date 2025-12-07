@@ -59,7 +59,7 @@ export function Hero() {
       <div className="container">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left side - Hero text */}
-          <div className="max-w-3xl">
+          <div className="max-w-3xl md:mt-0 mt-40">
             {/*
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-sm font-medium mb-6 animate-fade-in">
               <Star className="h-3.5 w-3.5 fill-current" />
@@ -80,12 +80,12 @@ export function Hero() {
                 duration: 0.5,
                 ease: [0.4, 0.0, 0.2, 1],
               }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-balance mb-6"
+              className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-balance text-center lg:text-left mb-6"
             >
-              Platform mengurus tempahan <Highlight className="mt-2">studio raya anda</Highlight>
+              Platform mengurus tempahan <Highlight className="mt-2">studio raya anda </Highlight> 📸
             </motion.h1>
 
-            <p className="text-lg sm:text-xl text-muted-foreground max-w-xl mb-8 animate-slide-up stagger-1">
+            <p className="text-s sm:text-s max-w-xl mb-8 text-center lg:text-left animate-slide-up stagger-1">
               Sistem tempahan studio raya yang cepat dan mudah untuk pelanggan anda. Urus slot, pakej, pembayaran dan banyak lagi dalam satu platform.
             </p>
 

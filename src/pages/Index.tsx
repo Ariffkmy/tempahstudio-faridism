@@ -109,6 +109,15 @@ const Index = () => {
                   <p className="text-xs text-muted-foreground">Setiap tempahan, pembayaran dan perubahan akan segera dihantar ke email</p>
                 </div>
               </div>
+
+              {/* Phone Mockup - Mobile: After last feature, Desktop: Hidden */}
+              <div className="flex justify-center lg:hidden">
+                <img
+                  src="/phonemockup.png"
+                  alt="Raya Studio Mobile App"
+                  className="w-full max-w-sm h-auto object-contain drop-shadow-xl"
+                />
+              </div>
             </div>
           </div>
         </section>

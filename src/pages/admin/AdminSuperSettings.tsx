@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Settings, Menu, Home, Users, CalendarDays, BarChart3, Cog, LogOut, Key, Shield, Mail } from 'lucide-react';
+import { Settings, Menu, Home, Users, CalendarDays, BarChart3, Cog, LogOut, Key, Shield, Mail, Plus, X, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
@@ -33,6 +33,8 @@ const AdminSuperSettings = () => {
     googleClientSecret: '',
     sendgridApiKey: '',
   });
+  const [sendgridTemplates, setSendgridTemplates] = useState<Array<{id: string, name: string, templateId: string}>>([]);
+  const [newTemplate, setNewTemplate] = useState({ name: '', templateId: '' });
   const [isLoading, setIsLoading] = useState(false);
 
   // Load super admin settings
@@ -43,6 +45,12 @@ const AdminSuperSettings = () => {
         const savedSettings = localStorage.getItem('superAdminSettings');
         if (savedSettings) {
           setSettings(JSON.parse(savedSettings));
+        }
+
+        // Load SendGrid templates
+        const savedTemplates = localStorage.getItem('sendgridTemplates');
+        if (savedTemplates) {
+          setSendgridTemplates(JSON.parse(savedTemplates));
         }
       } catch (error) {
         console.error('Error loading super admin settings:', error);
@@ -68,15 +76,48 @@ const AdminSuperSettings = () => {
     }));
   };
 
+  // Template management functions
+  const addTemplate = () => {
+    if (newTemplate.name && newTemplate.templateId) {
+      const template = {
+        id: `template-${Date.now()}`,
+        name: newTemplate.name,
+        templateId: newTemplate.templateId
+      };
+
+      const updatedTemplates = [...sendgridTemplates, template];
+      setSendgridTemplates(updatedTemplates);
+      localStorage.setItem('sendgridTemplates', JSON.stringify(updatedTemplates));
+      setNewTemplate({ name: '', templateId: '' });
+
+      toast({
+        title: 'Berjaya!',
+        description: 'Template telah ditambah',
+      });
+    }
+  };
+
+  const removeTemplate = (id: string) => {
+    const updatedTemplates = sendgridTemplates.filter(template => template.id !== id);
+    setSendgridTemplates(updatedTemplates);
+    localStorage.setItem('sendgridTemplates', JSON.stringify(updatedTemplates));
+
+    toast({
+      title: 'Template dibuang',
+      description: 'Template telah berjaya dibuang',
+    });
+  };
+
   const saveSettings = async () => {
     setIsLoading(true);
     try {
       // Save to localStorage for now (in production, save to backend)
       localStorage.setItem('superAdminSettings', JSON.stringify(settings));
+      localStorage.setItem('sendgridTemplates', JSON.stringify(sendgridTemplates));
 
       toast({
         title: 'Berjaya!',
-        description: 'Tetapan super admin telah disimpan',
+        description: 'Tetapan super admin dan templat telah disimpan',
       });
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -292,6 +333,94 @@ const AdminSuperSettings = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* SendGrid Templates */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  SendGrid Templates
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  Urus templat email untuk automasi email
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Existing Templates */}
+                {sendgridTemplates.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="font-medium text-sm">Templat Semasa</h4>
+                    <div className="space-y-2">
+                      {sendgridTemplates.map((template) => (
+                        <div key={template.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <p className="font-medium text-sm">{template.name}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{template.templateId}</p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeTemplate(template.id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Add New Template */}
+                <div className="space-y-4 border-t pt-4">
+                  <h4 className="font-medium text-sm">Tambah Templat Baru</h4>
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="templateName" className="text-sm">Nama Templat</Label>
+                      <Input
+                        id="templateName"
+                        value={newTemplate.name}
+                        onChange={(e) => setNewTemplate(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="cth: Booking Confirmation"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="templateId" className="text-sm">Template ID</Label>
+                      <Input
+                        id="templateId"
+                        value={newTemplate.templateId}
+                        onChange={(e) => setNewTemplate(prev => ({ ...prev, templateId: e.target.value }))}
+                        placeholder="cth: d-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        className="font-mono text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Dapat dari SendGrid Dashboard → Marketing → Templates
+                      </p>
+                    </div>
+                    <Button
+                      onClick={addTemplate}
+                      disabled={!newTemplate.name || !newTemplate.templateId}
+                      className="w-full"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Tambah Templat
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <div className="pt-4 border-t">
+                  <Button
+                    onClick={saveSettings}
+                    disabled={isLoading}
+                    className="w-full"
+                  >
+                    {isLoading ? 'Menyimpan...' : 'Simpan Templat'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </main>
       </div>
@@ -401,6 +530,91 @@ const AdminSuperSettings = () => {
                       size="lg"
                     >
                       {isLoading ? 'Menyimpan...' : 'Simpan Tetapan'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* SendGrid Templates */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    SendGrid Templates
+                  </CardTitle>
+                  <CardDescription>
+                    Urus templat email untuk automasi email di seluruh sistem
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Existing Templates */}
+                  {sendgridTemplates.length > 0 && (
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Templat Semasa</h4>
+                      <div className="space-y-3">
+                        {sendgridTemplates.map((template) => (
+                          <div key={template.id} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div>
+                              <p className="font-medium">{template.name}</p>
+                              <p className="text-sm text-muted-foreground font-mono">{template.templateId}</p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeTemplate(template.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Add New Template */}
+                  <div className="space-y-4 border-t pt-6">
+                    <h4 className="font-medium">Tambah Templat Baru</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Nama Templat</Label>
+                        <Input
+                          value={newTemplate.name}
+                          onChange={(e) => setNewTemplate(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="cth: Booking Confirmation"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Template ID</Label>
+                        <Input
+                          value={newTemplate.templateId}
+                          onChange={(e) => setNewTemplate(prev => ({ ...prev, templateId: e.target.value }))}
+                          placeholder="cth: d-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                          className="font-mono"
+                        />
+                        <p className="text-sm text-muted-foreground col-span-1 md:col-span-2">
+                          Dapat dari SendGrid Dashboard → Marketing → Templates
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={addTemplate}
+                      disabled={!newTemplate.name || !newTemplate.templateId}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Tambah Templat
+                    </Button>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex justify-end pt-6 border-t">
+                    <Button
+                      onClick={saveSettings}
+                      disabled={isLoading}
+                      size="lg"
+                    >
+                      {isLoading ? 'Menyimpan...' : 'Simpan Templat'}
                     </Button>
                   </div>
                 </CardContent>

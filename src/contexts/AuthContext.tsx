@@ -31,6 +31,7 @@ interface AuthContextType extends AuthState {
 const defaultAuthState: AuthState = {
   user: null,
   studio: null,
+  isSuperAdmin: false,
   isLoading: true,
   isAuthenticated: false,
 };
@@ -63,18 +64,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('fetchCurrentUser: Already processing, skipping...');
       return;
     }
-    
+
     isProcessing.current = true;
-    
+
     try {
       console.log('fetchCurrentUser: Starting...');
       const adminUser = await getCurrentAdmin();
       console.log('fetchCurrentUser: Result:', adminUser?.email || 'null');
-      
+
       if (adminUser) {
         setAuthState({
           user: adminUser,
           studio: adminUser.studio as Studio,
+          isSuperAdmin: adminUser.role === 'super_admin',
           isLoading: false,
           isAuthenticated: true,
         });
@@ -82,6 +84,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setAuthState({
           user: null,
           studio: null,
+          isSuperAdmin: false,
           isLoading: false,
           isAuthenticated: false,
         });
@@ -91,6 +94,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setAuthState({
         user: null,
         studio: null,
+        isSuperAdmin: false,
         isLoading: false,
         isAuthenticated: false,
       });
@@ -116,16 +120,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // There's a session, fetch user data
         await fetchCurrentUser();
       } else {
-        // No session, show login page
+      // No session, show login page
         setAuthState({
           user: null,
           studio: null,
+          isSuperAdmin: false,
           isLoading: false,
           isAuthenticated: false,
         });
       }
     };
-    
+
     initializeAuth();
 
     // Subscribe to auth state changes
@@ -137,6 +142,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setAuthState({
           user: null,
           studio: null,
+          isSuperAdmin: false,
           isLoading: false,
           isAuthenticated: false,
         });
@@ -164,6 +170,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setAuthState({
         user: result.user,
         studio: result.user.studio as Studio,
+        isSuperAdmin: result.user.role === 'super_admin',
         isLoading: false,
         isAuthenticated: true,
       });
@@ -179,12 +186,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // =============================================
   const logout = async (): Promise<void> => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
-    
+
     await logoutAdmin();
-    
+
     setAuthState({
       user: null,
       studio: null,
+      isSuperAdmin: false,
       isLoading: false,
       isAuthenticated: false,
     });
@@ -239,11 +247,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
-  
+
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-  
+
   return context;
 }
 
@@ -294,15 +302,16 @@ interface RequireStudioAccessProps {
 }
 
 export function RequireStudioAccess({ children, studioId }: RequireStudioAccessProps) {
-  const { studio, isLoading } = useAuth();
+  const { studio, isLoading, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && studio && studio.id !== studioId) {
+    if (!isLoading && !isSuperAdmin && studio && studio.id !== studioId) {
       // Admin trying to access another studio's data - redirect to their own dashboard
+      // Super admins can access any studio
       navigate('/admin', { replace: true });
     }
-  }, [studio, studioId, isLoading, navigate]);
+  }, [studio, studioId, isLoading, isSuperAdmin, navigate]);
 
   if (isLoading) {
     return (
@@ -312,10 +321,10 @@ export function RequireStudioAccess({ children, studioId }: RequireStudioAccessP
     );
   }
 
-  // Only render if admin has access to this studio
-  if (studio?.id !== studioId) {
-    return null;
+  // Super admins or admins with correct studio access can view
+  if (isSuperAdmin || studio?.id === studioId) {
+    return <>{children}</>;
   }
 
-  return <>{children}</>;
+  return null;
 }

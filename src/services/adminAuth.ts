@@ -5,13 +5,14 @@
 // Key: 1 admin belongs to 1 studio, but 1 studio can have multiple admins
 
 import { supabase } from '@/lib/supabase';
-import type { 
-  AdminUser, 
-  AdminUserInsert, 
-  AdminRegistrationData, 
+import type {
+  AdminUser,
+  AdminUserInsert,
+  AdminRegistrationData,
   AdminLoginData,
   Studio,
-  AdminUserWithStudio
+  AdminUserWithStudio,
+  AdminRole
 } from '@/types/database';
 
 // Default company ID (Raya Studio KL)
@@ -173,13 +174,10 @@ export async function loginAdmin(data: AdminLoginData): Promise<{
       };
     }
 
-    // Step 2: Get admin_users record with studio info
+    // Step 2: Get admin_users record
     const { data: adminUser, error: adminError } = await supabase
       .from('admin_users')
-      .select(`
-        *,
-        studio:studios(*)
-      `)
+      .select('*')
       .eq('auth_user_id', authData.user.id)
       .eq('is_active', true)
       .single();
@@ -199,9 +197,39 @@ export async function loginAdmin(data: AdminLoginData): Promise<{
       .update({ last_login_at: new Date().toISOString() })
       .eq('id', adminUser.id);
 
+    // Step 4: Handle studio info based on role
+    let userWithStudio: AdminUserWithStudio;
+
+    if (adminUser.role === 'super_admin') {
+      userWithStudio = {
+        ...adminUser,
+        studio: null
+      } as AdminUserWithStudio;
+    } else {
+      // For regular admins, fetch studio info
+      const { data: studio, error: studioError } = await supabase
+        .from('studios')
+        .select('*')
+        .eq('id', adminUser.studio_id)
+        .single();
+
+      if (studioError || !studio) {
+        await supabase.auth.signOut();
+        return {
+          success: false,
+          error: 'Studio tidak dijumpai',
+        };
+      }
+
+      userWithStudio = {
+        ...adminUser,
+        studio
+      } as AdminUserWithStudio;
+    }
+
     return {
       success: true,
-      user: adminUser as AdminUserWithStudio,
+      user: userWithStudio,
     };
   } catch (error) {
     console.error('Login error:', error);
@@ -244,18 +272,19 @@ export async function logoutAdmin(): Promise<{ success: boolean; error?: string 
 
 /**
  * Get current authenticated admin user with studio info
+ * Note: Super admins don't have a studio, so studio will be null for super admins
  */
 export async function getCurrentAdmin(): Promise<AdminUserWithStudio | null> {
   try {
     console.log('getCurrentAdmin: Getting session...');
     // Get current auth session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
+
     if (sessionError) {
       console.error('getCurrentAdmin: Session error:', sessionError);
       return null;
     }
-    
+
     if (!session?.user) {
       console.log('getCurrentAdmin: No session or user found');
       return null;
@@ -263,14 +292,11 @@ export async function getCurrentAdmin(): Promise<AdminUserWithStudio | null> {
 
     console.log('getCurrentAdmin: Session found for user:', session.user.id);
 
-    // Get admin_users record with studio info
+    // Get admin_users record
     console.log('getCurrentAdmin: Fetching admin_users record...');
     const { data: adminUser, error } = await supabase
       .from('admin_users')
-      .select(`
-        *,
-        studio:studios(*)
-      `)
+      .select('*')
       .eq('auth_user_id', session.user.id)
       .eq('is_active', true)
       .single();
@@ -279,14 +305,39 @@ export async function getCurrentAdmin(): Promise<AdminUserWithStudio | null> {
       console.error('getCurrentAdmin: Error fetching admin user:', error);
       return null;
     }
-    
+
     if (!adminUser) {
       console.log('getCurrentAdmin: No admin user found for auth_user_id:', session.user.id);
       return null;
     }
 
-    console.log('getCurrentAdmin: Admin user found:', adminUser.email);
-    return adminUser as AdminUserWithStudio;
+    console.log('getCurrentAdmin: Admin user found:', adminUser.email, 'Role:', adminUser.role);
+
+    // If super admin, return without studio info
+    if (adminUser.role === 'super_admin') {
+      return {
+        ...adminUser,
+        studio: null
+      } as AdminUserWithStudio;
+    }
+
+    // For regular admins, fetch studio info
+    const { data: studio, error: studioError } = await supabase
+      .from('studios')
+      .select('*')
+      .eq('id', adminUser.studio_id)
+      .single();
+
+    if (studioError) {
+      console.error('getCurrentAdmin: Error fetching studio:', studioError);
+      return null;
+    }
+
+    console.log('getCurrentAdmin: Studio found:', studio.name);
+    return {
+      ...adminUser,
+      studio
+    } as AdminUserWithStudio;
   } catch (error) {
     console.error('getCurrentAdmin: Unexpected error:', error);
     return null;
@@ -462,6 +513,188 @@ export async function updateAdminProfile(
     return {
       success: false,
       error: 'Gagal mengemaskini profil',
+    };
+  }
+}
+
+// =============================================
+// SUPER ADMIN OPERATIONS
+// =============================================
+
+/**
+ * Create a super admin user (only callable by existing super admins)
+ */
+export async function createSuperAdmin(data: {
+  email: string;
+  password: string;
+  full_name: string;
+  phone?: string;
+}): Promise<{
+  success: boolean;
+  user?: AdminUser;
+  error?: string;
+}> {
+  try {
+    // Check if current user is a super admin
+    const currentAdmin = await getCurrentAdmin();
+    if (!currentAdmin || currentAdmin.role !== 'super_admin') {
+      return {
+        success: false,
+        error: 'Only super admins can create other super admins',
+      };
+    }
+
+    // Create auth user in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          full_name: data.full_name,
+        },
+      },
+    });
+
+    if (authError) {
+      // Handle specific errors
+      if (authError.message.includes('already registered')) {
+        return {
+          success: false,
+          error: 'Email already registered',
+        };
+      }
+      return {
+        success: false,
+        error: authError.message,
+      };
+    }
+
+    if (!authData.user) {
+      return {
+        success: false,
+        error: 'Failed to create user account',
+      };
+    }
+
+    // Create super admin record
+    const superAdminData: AdminUserInsert = {
+      auth_user_id: authData.user.id,
+      studio_id: null, // Super admins don't belong to a studio
+      email: data.email,
+      full_name: data.full_name,
+      phone: data.phone || null,
+      role: 'super_admin',
+    };
+
+    const { data: superAdmin, error: adminError } = await supabase
+      .from('admin_users')
+      .insert(superAdminData)
+      .select()
+      .single();
+
+    if (adminError) {
+      console.error('Failed to create super admin record:', adminError);
+      return {
+        success: false,
+        error: 'Failed to save super admin information',
+      };
+    }
+
+    return {
+      success: true,
+      user: superAdmin,
+    };
+  } catch (error) {
+    console.error('Create super admin error:', error);
+    return {
+      success: false,
+      error: 'Unexpected error occurred',
+    };
+  }
+}
+
+/**
+ * Get all admin users (only for super admins)
+ */
+export async function getAllAdmins(): Promise<AdminUserWithStudio[]> {
+  try {
+    // Check if current user is a super admin
+    const currentAdmin = await getCurrentAdmin();
+    if (!currentAdmin || currentAdmin.role !== 'super_admin') {
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('admin_users')
+      .select(`
+        *,
+        studio:studios(*)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching admins:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching admins:', error);
+    return [];
+  }
+}
+
+/**
+ * Update admin user role (only for super admins)
+ */
+export async function updateAdminRole(
+  adminId: string,
+  newRole: AdminRole,
+  studioId?: string
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    // Check if current user is a super admin
+    const currentAdmin = await getCurrentAdmin();
+    if (!currentAdmin || currentAdmin.role !== 'super_admin') {
+      return {
+        success: false,
+        error: 'Only super admins can update admin roles',
+      };
+    }
+
+    const updateData: Partial<AdminUserInsert> = {
+      role: newRole,
+    };
+
+    // If changing to super_admin, studio_id must be null
+    // If changing from super_admin to regular role, studio_id must be provided
+    if (newRole === 'super_admin') {
+      updateData.studio_id = null;
+    } else if (studioId) {
+      updateData.studio_id = studioId;
+    }
+
+    const { error } = await supabase
+      .from('admin_users')
+      .update(updateData)
+      .eq('id', adminId);
+
+    if (error) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Update admin role error:', error);
+    return {
+      success: false,
+      error: 'Unexpected error occurred',
     };
   }
 }

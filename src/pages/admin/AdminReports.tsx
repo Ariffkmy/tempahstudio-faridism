@@ -1,14 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import { StudioSelector } from '@/components/admin/StudioSelector';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Calendar, DollarSign, Users, Clock, BarChart3, Menu, Home, CalendarDays, Cog, LogOut, Building2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffectiveStudioId } from '@/contexts/StudioContext';
+import { getDashboardStats, getStudioBookingsWithDetails } from '@/services/bookingService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import type { BookingWithDetails } from '@/types/database';
 
 const navigation = [
   { name: 'Papan Pemuka', href: '/admin', icon: Home },
@@ -18,9 +22,23 @@ const navigation = [
 ];
 
 const AdminReports = () => {
-  const { user, studio, logout } = useAuth();
+  const { user, studio, logout, isSuperAdmin } = useAuth();
+  const effectiveStudioId = useEffectiveStudioId();
   const location = useLocation();
   const isMobile = useIsMobile();
+
+  // State for real data
+  const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
+  const [stats, setStats] = useState({
+    todayBookings: 0,
+    pendingBookings: 0,
+    weeklyRevenue: 0,
+    weeklyBookingsCount: 0,
+    monthlyCustomers: 0,
+    upcomingSlots: 0,
+    tomorrowSlots: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
   // Helper functions
   const getInitials = (name: string | undefined) => {
@@ -37,48 +55,105 @@ const AdminReports = () => {
     // You might want to add navigation to login page here
   };
 
-  // Dummy data based on mock bookings
+  // Fetch real data from database
+  useEffect(() => {
+    const fetchReportsData = async () => {
+      if (!effectiveStudioId) {
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+
+      try {
+        // Fetch bookings and stats in parallel
+        const [statsData, bookingsData] = await Promise.all([
+          getDashboardStats(effectiveStudioId),
+          getStudioBookingsWithDetails(effectiveStudioId),
+        ]);
+
+        setStats(statsData);
+        setBookings(bookingsData);
+      } catch (error) {
+        console.error('Error fetching reports data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchReportsData();
+  }, [effectiveStudioId]);
+
+  // Compute status data from real bookings
   const statusData = [
-    { status: 'confirmed', count: 5, color: 'text-green-600', label: 'Disahkan' },
-    { status: 'pending', count: 3, color: 'text-yellow-600', label: 'Menunggu' },
-    { status: 'cancelled', count: 0, color: 'text-red-600', label: 'Dibatalkan' },
-    { status: 'completed', count: 0, color: 'text-blue-600', label: 'Selesai' },
+    { status: 'confirmed', count: bookings.filter(b => b.status === 'confirmed').length, color: 'text-green-600', label: 'Disahkan' },
+    { status: 'pending', count: bookings.filter(b => b.status === 'pending').length, color: 'text-yellow-600', label: 'Menunggu' },
+    { status: 'cancelled', count: bookings.filter(b => b.status === 'cancelled').length, color: 'text-red-600', label: 'Dibatalkan' },
+    { status: 'completed', count: bookings.filter(b => b.status === 'completed').length, color: 'text-blue-600', label: 'Selesai' },
     { status: 'no-show', count: 0, color: 'text-gray-600', label: 'Tidak Hadir' },
   ];
 
-  const layoutData = [
-    { layout: 'Studio Minimalist', count: 3, revenue: 3360 },
-    { layout: 'Studio Klasik', count: 3, revenue: 1200 },
-    { layout: 'Studio Moden', count: 2, revenue: 1200 },
-  ];
+  // Compute layout data from real bookings
+  const layoutGroup = bookings.reduce((acc, booking) => {
+    const layoutName = booking.studio_layout?.name || 'Unknown';
+    if (!acc[layoutName]) {
+      acc[layoutName] = { count: 0, revenue: 0 };
+    }
+    acc[layoutName].count++;
+    acc[layoutName].revenue += Number(booking.total_price) || 0;
+    return acc;
+  }, {} as Record<string, { count: number; revenue: number }>);
 
-  const timeSlotData = [
-    { time: '10:00', count: 3, popularity: 'Tinggi' },
-    { time: '14:00', count: 2, popularity: 'Sederhana' },
-    { time: '13:00', count: 1, popularity: 'Rendah' },
-    { time: '09:00', count: 1, popularity: 'Rendah' },
-  ];
+  const layoutData = Object.entries(layoutGroup)
+    .map(([layout, data]) => ({ layout, ...data }))
+    .sort((a, b) => b.count - a.count);
 
-  const durationData = [
-    { duration: 4, count: 3, label: '4 jam' },
-    { duration: 3, count: 3, label: '3 jam' },
-    { duration: 5, count: 2, label: '5 jam' },
-  ];
+  // Compute time slot data
+  const timeSlotGroup = bookings.reduce((acc, booking) => {
+    const time = booking.start_time.substring(0, 5); // Get HH:MM
+    if (!acc[time]) {
+      acc[time] = 0;
+    }
+    acc[time]++;
+    return acc;
+  }, {} as Record<string, number>);
 
-  const revenueByLayout = [
-    { layout: 'Studio Minimalist', revenue: 3360, percentage: 56 },
-    { layout: 'Studio Klasik', revenue: 1300, percentage: 21.7 },
-    { layout: 'Studio Moden', revenue: 1280, percentage: 21.3 },
-  ];
+  const timeSlotData = Object.entries(timeSlotGroup)
+    .map(([time, count]) => ({
+      time,
+      count,
+      popularity: count >= 3 ? 'Tinggi' : count >= 2 ? 'Sederhana' : 'Rendah'
+    }))
+    .sort((a, b) => b.count - a.count);
 
-  const monthlyData = [
-    { month: 'Nov 2024', bookings: 8, revenue: 4740 },
-    { month: 'Dec 2024', bookings: 0, revenue: 0 },
-  ];
+  // Compute duration data
+  const durationGroup = bookings.reduce((acc, booking) => {
+    const duration = booking.duration;
+    if (!acc[duration]) {
+      acc[duration] = 0;
+    }
+    acc[duration]++;
+    return acc;
+  }, {} as Record<number, number>);
 
-  const totalRevenue = 4740;
-  const totalBookings = 8;
-  const averageBookingValue = Math.round(totalRevenue / totalBookings);
+  const durationData = Object.entries(durationGroup)
+    .map(([duration, count]) => ({
+      duration: parseInt(duration),
+      count,
+      label: `${duration} jam`
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  // Compute revenue by layout with percentages
+  const totalRevenue = layoutData.reduce((sum, item) => sum + item.revenue, 0);
+  const revenueByLayout = layoutData.map(item => ({
+    layout: item.layout,
+    revenue: item.revenue,
+    percentage: totalRevenue > 0 ? Math.round((item.revenue / totalRevenue) * 100 * 10) / 10 : 0
+  }));
+
+  const totalBookings = bookings.length;
+  const averageBookingValue = totalBookings > 0 ? Math.round(totalRevenue / totalBookings) : 0;
 
   if (isMobile) {
     return (
@@ -179,11 +254,19 @@ const AdminReports = () => {
         </header>
 
         <main className="p-4">
+        
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-xl font-bold">Laporan</h1>
+            <h1 className="text-xl font-bold">Laporan test</h1>
             <p className="text-muted-foreground text-sm">Analisis perniagaan dan prestasi studio</p>
           </div>
+
+          {/* Super Admin Studio Selector */}
+          {isSuperAdmin && (
+            <div className="mb-4">
+              <StudioSelector />
+            </div>
+          )}
 
           {/* Summary Cards */}
           <div className="grid grid-cols-2 gap-3 mb-6">
@@ -374,11 +457,20 @@ const AdminReports = () => {
 
         <main className="pl-64">
           <div className="p-8">
+          
+
             {/* Header */}
             <div className="mb-8">
               <h1 className="text-2xl font-bold">Laporan</h1>
               <p className="text-muted-foreground">Analisis perniagaan dan prestasi studio</p>
             </div>
+
+              {/* Super Admin Studio Selector */}
+            {isSuperAdmin && (
+              <div className="mb-6">
+                <StudioSelector />
+              </div>
+            )}
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">

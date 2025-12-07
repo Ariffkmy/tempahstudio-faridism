@@ -40,39 +40,81 @@ export interface StudioSettingsWithLayouts extends StudioSettings {
 }
 
 /**
- * Load studio settings for the current admin's studio
+ * Load studio settings for the provided studio ID, or current admin's studio if no ID provided
  */
-export async function loadStudioSettings(): Promise<StudioSettingsWithLayouts | null> {
+export async function loadStudioSettings(studioId?: string): Promise<StudioSettingsWithLayouts | null> {
   try {
-    // Get current admin to find their studio
+    // Get current admin to find their studio (and validate permissions)
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
       return null;
     }
 
-    // Get admin user with studio info
-    const { data: adminUser, error: adminError } = await supabase
-      .from('admin_users')
-      .select(`
-        *,
-        studio:studios(*)
-      `)
-      .eq('auth_user_id', session.user.id)
-      .eq('is_active', true)
-      .single();
+    let targetStudioId = studioId;
+    let studio: Studio;
+    let ownerName = '';
+    let ownerPhone = '';
 
-    if (adminError || !adminUser) {
-      console.error('Failed to load admin user:', adminError);
-      return null;
+    if (studioId) {
+      // Load specific studio by ID (for super admins)
+      const { data: studioData, error: studioError } = await supabase
+        .from('studios')
+        .select('*')
+        .eq('id', studioId)
+        .single();
+
+      if (studioError || !studioData) {
+        console.error('Failed to load studio:', studioError);
+        return null;
+      }
+
+      studio = studioData;
+
+      // For super admin access, we can get owner info from admin_users table
+      // Get first admin user for this studio
+      const { data: adminUser, error: adminError } = await supabase
+        .from('admin_users')
+        .select('*')
+        .eq('studio_id', studioId)
+        .eq('is_active', true)
+        .limit(1)
+        .single();
+
+      if (adminError) {
+        console.warn('Failed to load admin user for studio, using default values:', adminError);
+        ownerName = studio.name || '';
+      } else {
+        ownerName = adminUser.full_name || adminUser.email || '';
+        ownerPhone = adminUser.phone || '';
+      }
+    } else {
+      // Load current admin's studio (original behavior)
+      const { data: adminUser, error: adminError } = await supabase
+        .from('admin_users')
+        .select(`
+          *,
+          studio:studios(*)
+        `)
+        .eq('auth_user_id', session.user.id)
+        .eq('is_active', true)
+        .single();
+
+      if (adminError || !adminUser) {
+        console.error('Failed to load admin user:', adminError);
+        return null;
+      }
+
+      studio = adminUser.studio as Studio;
+      targetStudioId = studio.id;
+      ownerName = adminUser.full_name || '';
+      ownerPhone = adminUser.phone || '';
     }
-
-    const studio = adminUser.studio as Studio;
 
     // Get studio layouts
     const { data: layouts, error: layoutsError } = await supabase
       .from('studio_layouts')
       .select('*')
-      .eq('studio_id', studio.id)
+      .eq('studio_id', targetStudioId)
       .order('name');
 
     if (layoutsError) {
@@ -87,8 +129,8 @@ export async function loadStudioSettings(): Promise<StudioSettingsWithLayouts | 
       studioEmail: studio.email || '',
       googleMapsLink: studio.google_maps_link || '',
       wazeLink: studio.waze_link || '',
-      ownerName: adminUser.full_name || '',
-      ownerPhone: adminUser.phone || '',
+      ownerName: ownerName,
+      ownerPhone: ownerPhone,
       bankAccountNumber: studio.bank_account_number || '',
       accountOwnerName: studio.account_owner_name || '',
       qrCode: studio.qr_code || '',

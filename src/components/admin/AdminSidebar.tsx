@@ -7,6 +7,8 @@ import {
   FileText,
   LogOut,
   Building2,
+  Shield,
+  Key,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,7 +25,7 @@ export function AdminSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, studio, logout } = useAuth();
+  const { user, studio, logout, isSuperAdmin } = useAuth();
 
   // Get user initials for avatar
   const getInitials = (name: string | undefined) => {
@@ -90,6 +92,38 @@ export function AdminSidebar() {
             </Link>
           );
         })}
+
+        {/* Super Admin Only: Admin Management */}
+        {isSuperAdmin && (
+          <Link
+            to="/admin/management"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+              location.pathname === '/admin/management'
+                ? "bg-accent text-accent-foreground"
+                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+            )}
+          >
+            <Shield className="h-5 w-5" />
+            Pengurusan Admin
+          </Link>
+        )}
+
+        {/* Super Admin Only: Super Admin Settings */}
+        {isSuperAdmin && (
+          <Link
+            to="/admin/super-settings"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+              location.pathname === '/admin/super-settings'
+                ? "bg-accent text-accent-foreground"
+                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+            )}
+          >
+            <Key className="h-5 w-5" />
+            Tetapan Super Admin
+          </Link>
+        )}
       </nav>
 
       {/* Footer - User Info & Logout */}

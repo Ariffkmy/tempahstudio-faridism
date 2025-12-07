@@ -115,7 +115,7 @@ export type StudioLayoutUpdate = Partial<StudioLayoutInsert>;
 export interface AdminUser {
   id: string;
   auth_user_id: string;
-  studio_id: string;
+  studio_id: string | null; // Super admins can have null studio_id
   email: string;
   full_name: string;
   phone?: string | null;
@@ -219,6 +219,7 @@ export interface AdminLoginData {
 export interface AuthState {
   user: AdminUser | null;
   studio: Studio | null;
+  isSuperAdmin: boolean;
   isLoading: boolean;
   isAuthenticated: boolean;
 }

@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import { StudioSelector } from '@/components/admin/StudioSelector';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useEffectiveStudioId } from '@/contexts/StudioContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +17,6 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2 } from 'lucide-react';
 import { loadStudioSettings, saveStudioSettings, updateStudioLayouts, saveGoogleCredentials, initiateGoogleAuth, exchangeGoogleCode } from '@/services/studioSettings';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import type { StudioLayout } from '@/types/database';
@@ -28,7 +30,8 @@ const navigation = [
 ];
 
 const AdminSettings = () => {
-  const { user, studio } = useAuth();
+  const { user, studio, isSuperAdmin } = useAuth();
+  const effectiveStudioId = useEffectiveStudioId();
   const { toast } = useToast();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -81,7 +84,7 @@ const AdminSettings = () => {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const data = await loadStudioSettings();
+        const data = await loadStudioSettings(effectiveStudioId);
         if (data) {
           setSettings({
             studioName: data.studioName,
@@ -117,7 +120,7 @@ const AdminSettings = () => {
     };
 
     loadSettings();
-  }, [toast]);
+  }, [toast, effectiveStudioId]);
 
   // Handle OAuth callback on component mount
   useEffect(() => {
@@ -400,6 +403,8 @@ const AdminSettings = () => {
           <div className="mb-6">
             <h1 className="text-xl font-bold">Tetapan</h1>
             <p className="text-muted-foreground text-sm">Konfigurasi studio dan maklumat perniagaan</p>
+            {/* Studio Selector for Super Admins */}
+            {isSuperAdmin && <StudioSelector />}
           </div>
 
           {/* Settings Form */}
@@ -917,6 +922,8 @@ const AdminSettings = () => {
             <div className="mb-8">
               <h1 className="text-2xl font-bold">Tetapan</h1>
               <p className="text-muted-foreground">Konfigurasi studio dan maklumat perniagaan</p>
+              {/* Studio Selector for Super Admins */}
+              {isSuperAdmin && <StudioSelector />}
             </div>
 
             {/* Settings Form */}

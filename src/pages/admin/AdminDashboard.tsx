@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import { StudioSelector } from '@/components/admin/StudioSelector';
 import { StatsCard } from '@/components/admin/StatsCard';
 import { BookingTable } from '@/components/admin/BookingTable';
 import { Calendar, DollarSign, Users, TrendingUp, Menu, Home, BarChart3, BookOpen, Cog, LogOut, Building2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffectiveStudioId } from '@/contexts/StudioContext';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -23,7 +25,8 @@ const navigation = [
 ];
 
 const AdminDashboard = () => {
-  const { user, studio, logout } = useAuth();
+  const { user, studio, logout, isSuperAdmin } = useAuth();
+  const effectiveStudioId = useEffectiveStudioId();
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -45,22 +48,22 @@ const AdminDashboard = () => {
   // Fetch real data from database
   useEffect(() => {
     const fetchDashboardData = async () => {
-      if (!studio?.id) {
+      if (!effectiveStudioId) {
         setIsLoading(false);
         return;
       }
 
       setIsLoading(true);
-      
+
       try {
         // Fetch stats and bookings in parallel
         const [statsData, bookingsData] = await Promise.all([
-          getDashboardStats(studio.id),
-          getStudioBookingsWithDetails(studio.id),
+          getDashboardStats(effectiveStudioId),
+          getStudioBookingsWithDetails(effectiveStudioId),
         ]);
 
         setStats(statsData);
-        
+
         // Convert database bookings to the format expected by BookingTable
         const formattedBookings: Booking[] = bookingsData.slice(0, 10).map((b: BookingWithDetails) => ({
           id: b.id,
@@ -94,7 +97,7 @@ const AdminDashboard = () => {
     };
 
     fetchDashboardData();
-  }, [studio?.id]);
+  }, [effectiveStudioId]);
 
   const handleViewBooking = (booking: Booking) => {
     console.log('View booking:', booking);
@@ -344,19 +347,20 @@ const AdminDashboard = () => {
                     Selamat datang, {user?.full_name || 'Admin'}!
                   </p>
                 </div>
-                {studio && (
-                  <div className="text-right">
-                    <Badge variant="outline" className="mb-1">
-                      {user?.role === 'super_admin' ? 'Super Admin' : user?.role === 'staff' ? 'Staff' : 'Admin'}
-                    </Badge>
-                    <p className="text-sm font-medium">{studio.name}</p>
-                    {studio.location && (
-                      <p className="text-xs text-muted-foreground">{studio.location}</p>
-                    )}
-                  </div>
-                )}
+                <div className="text-right">
+                  <Badge variant="outline" className="mb-1">
+                    {user?.role === 'super_admin' ? 'Super Admin' : user?.role === 'staff' ? 'Staff' : 'Admin'}
+                  </Badge>
+                </div>
               </div>
             </div>
+
+            {/* Super Admin Studio Selector */}
+            {isSuperAdmin && (
+              <div className="mb-6">
+                <StudioSelector />
+              </div>
+            )}
 
             {/* Stats Grid */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

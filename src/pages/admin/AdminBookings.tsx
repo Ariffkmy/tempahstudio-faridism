@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import { StudioSelector } from '@/components/admin/StudioSelector';
 import { BookingTable } from '@/components/admin/BookingTable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Search, Download, CalendarDays, List, Clock, User, Plus, Copy, ExternalLink, Menu, Home, BarChart3, Cog, LogOut, Building2 } from 'lucide-react';
 import { Booking } from '@/types/booking';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffectiveStudioId } from '@/contexts/StudioContext';
 import { getStudioBookingsWithDetails } from '@/services/bookingService';
 import { loadStudioSettings } from '@/services/studioSettings';
 import type { BookingWithDetails } from '@/types/database';
@@ -41,7 +43,8 @@ const navigation = [
 
 const AdminBookings = () => {
   const navigate = useNavigate();
-  const { studio, user, logout } = useAuth();
+  const { studio, user, logout, isSuperAdmin } = useAuth();
+  const effectiveStudioId = useEffectiveStudioId();
   const location = useLocation();
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -78,7 +81,7 @@ const AdminBookings = () => {
   // Fetch real bookings and studio settings from database
   useEffect(() => {
     const fetchData = async () => {
-      if (!studio?.id) {
+      if (!effectiveStudioId) {
         setIsLoading(false);
         return;
       }
@@ -87,7 +90,7 @@ const AdminBookings = () => {
 
       try {
         // Fetch bookings
-        const bookingsData = await getStudioBookingsWithDetails(studio.id);
+        const bookingsData = await getStudioBookingsWithDetails(effectiveStudioId);
 
         // Convert database bookings to the format expected by BookingTable
         const formattedBookings: Booking[] = bookingsData.map((b: BookingWithDetails) => ({
@@ -117,7 +120,7 @@ const AdminBookings = () => {
 
         // Generate booking link for this studio
         const baseUrl = window.location.origin;
-        const studioBookingLink = `${baseUrl}/book/${studio.id}`;
+        const studioBookingLink = `${baseUrl}/book/${effectiveStudioId}`;
         setBookingLink(studioBookingLink);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -127,7 +130,7 @@ const AdminBookings = () => {
     };
 
     fetchData();
-  }, [studio?.id]);
+  }, [effectiveStudioId]);
 
   const filteredBookings = bookings.filter((booking) => {
     const matchesSearch =
@@ -269,7 +272,7 @@ const AdminBookings = () => {
             <h1 className="text-xl font-bold">Tempahan</h1>
             <p className="text-muted-foreground text-sm">Urus dan lihat semua tempahan studio</p>
             <div className="flex flex-col gap-2 mt-4">
-              <Button onClick={() => navigate(`/book/${studio?.id}`)}>
+              <Button onClick={() => navigate(`/book/${effectiveStudioId}`)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Tambah Tempahan
               </Button>
@@ -537,7 +540,7 @@ const AdminBookings = () => {
                 <p className="text-muted-foreground">Urus dan lihat semua tempahan studio</p>
               </div>
               <div className="flex gap-2">
-                <Button onClick={() => navigate(`/book/${studio?.id}`)}>
+                <Button onClick={() => navigate(`/book/${effectiveStudioId}`)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Tambah Tempahan
                 </Button>
@@ -547,6 +550,13 @@ const AdminBookings = () => {
                 </Button>
               </div>
             </div>
+
+            {/* Super Admin Studio Selector */}
+            {isSuperAdmin && (
+              <div className="mb-6">
+                <StudioSelector />
+              </div>
+            )}
 
             {/* Booking Link - Prominent Display */}
             {bookingLink && (

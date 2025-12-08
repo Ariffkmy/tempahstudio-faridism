@@ -82,7 +82,7 @@ export function Hero() {
               }}
               className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-balance text-center lg:text-left mb-6"
             >
-              Platform mengurus tempahan <Highlight className="mt-2">studio raya anda </Highlight> 📸
+              Platform mengurus tempahan <Highlight className="mt-2">studio raya anda </Highlight> 📆
             </motion.h1>
 
             <p className="text-s sm:text-s max-w-xl mb-8 text-center lg:text-left animate-slide-up stagger-1">

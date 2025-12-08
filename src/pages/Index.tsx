@@ -125,7 +125,7 @@ const Index = () => {
         {/* Phone Mockup Showcase - Desktop Only */}
         <section className="hidden lg:block py-1 bg-background">
           <div className="max-w-7xl mx-auto px-1 sm:px-6 lg:px-8">
-            
+
             <div className="flex justify-center">
               <img
                 src="/phonemockup.png"
@@ -134,7 +134,164 @@ const Index = () => {
               />
             </div>
 
-            
+
+          </div>
+        </section>
+
+        {/* Pricing Section */}
+        <section className="py-20 bg-gradient-to-br from-primary/5 via-background to-primary/5">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-foreground mb-4">
+                Pilih Pakej Sesuai Studio Anda
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Mulai dari studio kecil hingga rantai studio besar, kami ada penyelesaian untuk semua saiz perniagaan anda
+              </p>
+            </div>
+
+            {/* Pricing Cards - 3 columns on desktop, 1 column on mobile */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-6 max-w-5xl mx-auto">
+              {/* Starter Package */}
+              <div className="bg-card border border-border rounded-xl p-6 relative shadow-lg hover:shadow-xl transition-shadow">
+                <div className="text-center">
+                  <h3 className="text-2xl font-bold text-foreground mb-2">Silver</h3>
+                  <div className="text-4xl font-bold text-primary mb-1">RM 300</div>
+                  <p className="text-sm text-muted-foreground mb-6">/tahun</p>
+
+                  <div className="space-y-3 mb-8 text-left">
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-500">✨</span>
+                      <span className="text-sm">Tempahan atas talian (domain tempahstudio.com)</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-500">📱</span>
+                      <span className="text-sm">Responsive untuk semua peranti</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-500">💳</span>
+                      <span className="text-sm">Integrasi Google Calendar</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-500">🔔</span>
+                      <span className="text-sm">Notifikasi ke emel anda & pelanggan anda</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-500">📧</span>
+                      <span className="text-sm">Data analitik tentang tempahan, pengguna, dan banyak lagi</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-500">🧾</span>
+                      <span className="text-sm">Resit elektronik untuk pelanggan anda</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-500">🧾</span>
+                      <span className="text-sm">1 akaun admin user</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-500">🎨</span>
+                      <span className="text-sm">Disenaraikan dalam website caristudioraya.com</span>
+                    </div>
+                    
+                  </div>
+
+                  <Link
+                    to="/admin/register"
+                    className="w-full bg-primary text-primary-foreground py-3 px-6 rounded-lg font-medium hover:bg-primary/90 transition-colors inline-block"
+                  >
+                    Pilih Silver
+                  </Link>
+                </div>
+              </div>
+
+              {/* Professional Package - Most Popular */}
+              <div className="bg-card border-2 border-primary rounded-xl p-6 relative shadow-lg hover:shadow-xl transition-shadow scale-105">
+                {/* Popular Badge */}
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium">
+                  Paling Popular
+                </div>
+
+                <div className="text-center">
+                  <h3 className="text-2xl font-bold text-foreground mb-2">Gold</h3>
+                  <div className="text-4xl font-bold text-primary mb-1">RM 599</div>
+                  <p className="text-sm text-muted-foreground mb-6">/tahun</p>
+
+                  <div className="space-y-3 mb-8 text-left">
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-500">🎯</span>
+                      <span className="text-sm">Semua dalam Silver</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-500">📊</span>
+                      <span className="text-sm">Whatsapp blast untuk menghantar link gambar / maklumat order</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-500">🗓️</span>
+                      <span className="text-sm">Tambahan admin user (2 akaun/studio)</span>
+                    </div>
+                    
+
+                  </div>
+
+                  <Link
+                    to="/admin/register"
+                    className="w-full bg-primary text-primary-foreground py-3 px-6 rounded-lg font-medium hover:bg-primary/90 transition-colors inline-block"
+                  >
+                    Pilih Gold
+                  </Link>
+                </div>
+              </div>
+
+              {/* Enterprise Package */}
+              <div className="bg-card border border-border rounded-xl p-6 relative shadow-lg hover:shadow-xl transition-shadow">
+                <div className="text-center">
+                  <h3 className="text-2xl font-bold text-foreground mb-2">Platinum</h3>
+                  <div className="text-4xl font-bold text-primary mb-1">RM 1199</div>
+                  <p className="text-sm text-muted-foreground mb-6">/tahun</p>
+
+                  <div className="space-y-3 mb-8 text-left">
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-500">🏢</span>
+                      <span className="text-sm">Semua dalam Gold</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-500">📈</span>
+                      <span className="text-sm">Custom domain (nama studio anda di link booking)</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-500">⚡</span>
+                      <span className="text-sm">Payment Gateway</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-500">👑</span>
+                      <span className="text-sm">Tambahan admin user (4 akaun/studio)</span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-500">🚀</span>
+                      <span className="text-sm">Pembangunan ciri khas</span>
+                    </div>
+                  </div>
+
+                  <Link
+                    to="/admin/register"
+                    className="w-full bg-primary text-primary-foreground py-3 px-6 rounded-lg font-medium hover:bg-primary/90 transition-colors inline-block"
+                  >
+                    Pilih Platinum
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom CTA */}
+            <div className="text-center mt-12">
+              <p className="text-muted-foreground mb-4">
+                Semua pakej termasuk setup percuma dan sokongan 24 jam
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Tiada kontrak. Batal bila-bila masa. Bayar hanya untuk tempahan yang berjaya.
+              </p>
+            </div>
           </div>
         </section>
 

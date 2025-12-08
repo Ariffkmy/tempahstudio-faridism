@@ -3,6 +3,7 @@ export function Footer() {
     <footer className="py-6 text-center text-sm" style={{ backgroundColor: "#0F977C", color: "#ffffff" }}>
       <div className="container">
         <p>© 2025 Raya Studio. Hak cipta terpelihara.</p>
+        <p>SSM: 003795517-T</p>
       </div>
     </footer>
   );

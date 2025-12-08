@@ -153,7 +153,7 @@ const Index = () => {
             {/* Pricing Cards - 3 columns on desktop, 1 column on mobile */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-6 max-w-5xl mx-auto">
               {/* Starter Package */}
-              <div className="bg-card border border-border rounded-xl p-6 relative shadow-lg hover:shadow-xl transition-shadow">
+              <div className="bg-card border border-border rounded-xl p-6 relative shadow-lg hover:shadow-xl transition-shadow flex flex-col h-full">
                 <div className="text-center">
                   <h3 className="text-2xl font-bold text-foreground mb-2">Silver</h3>
                   <div className="text-4xl font-bold text-primary mb-1">RM 300</div>
@@ -190,11 +190,13 @@ const Index = () => {
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-green-500">🎨</span>
-                      <span className="text-sm">Disenaraikan dalam website caristudioraya.com</span>
+                      <span className="text-sm">Disenaraikan dalam website <a href="https://caristudioraya.vercel.app" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">caristudioraya.vercel.app</a></span>
                     </div>
-                    
-                  </div>
 
+                  </div>
+                </div>
+
+                <div className="mt-auto text-center">
                   <Link
                     to="/admin/register"
                     className="w-full bg-primary text-primary-foreground py-3 px-6 rounded-lg font-medium hover:bg-primary/90 transition-colors inline-block"
@@ -205,10 +207,10 @@ const Index = () => {
               </div>
 
               {/* Professional Package - Most Popular */}
-              <div className="bg-card border-2 border-primary rounded-xl p-6 relative shadow-lg hover:shadow-xl transition-shadow scale-105">
+              <div className="bg-card border-2 border-primary rounded-xl p-6 relative shadow-lg hover:shadow-xl transition-shadow scale-105 flex flex-col h-full">
                 {/* Popular Badge */}
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium">
-                  Paling Popular
+                  Pilihan Berbaloi
                 </div>
 
                 <div className="text-center">
@@ -229,10 +231,16 @@ const Index = () => {
                       <span className="text-green-500">🗓️</span>
                       <span className="text-sm">Tambahan admin user (2 akaun/studio)</span>
                     </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-500">🗓️</span>
+                      <span className="text-sm">Customize Booking Form</span>
+                    </div>
                     
 
                   </div>
+                </div>
 
+                <div className="mt-auto text-center">
                   <Link
                     to="/admin/register"
                     className="w-full bg-primary text-primary-foreground py-3 px-6 rounded-lg font-medium hover:bg-primary/90 transition-colors inline-block"
@@ -243,7 +251,7 @@ const Index = () => {
               </div>
 
               {/* Enterprise Package */}
-              <div className="bg-card border border-border rounded-xl p-6 relative shadow-lg hover:shadow-xl transition-shadow">
+              <div className="bg-card border border-border rounded-xl p-6 relative shadow-lg hover:shadow-xl transition-shadow flex flex-col h-full">
                 <div className="text-center">
                   <h3 className="text-2xl font-bold text-foreground mb-2">Platinum</h3>
                   <div className="text-4xl font-bold text-primary mb-1">RM 1199</div>
@@ -272,7 +280,9 @@ const Index = () => {
                       <span className="text-sm">Pembangunan ciri khas</span>
                     </div>
                   </div>
+                </div>
 
+                <div className="mt-auto text-center">
                   <Link
                     to="/admin/register"
                     className="w-full bg-primary text-primary-foreground py-3 px-6 rounded-lg font-medium hover:bg-primary/90 transition-colors inline-block"

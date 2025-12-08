@@ -239,6 +239,17 @@ export async function updateBookingStatus(
   status: Booking['status']
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Get booking details before update for email notification
+    const { data: bookingBefore } = await supabase
+      .from('bookings')
+      .select(`
+        *,
+        customer:customers(*),
+        studio:studios(*)
+      `)
+      .eq('id', bookingId)
+      .single();
+
     const { error } = await supabase
       .from('bookings')
       .update({ status })
@@ -246,6 +257,25 @@ export async function updateBookingStatus(
 
     if (error) {
       return { success: false, error: error.message };
+    }
+
+    // Send status update email notification
+    if (bookingBefore) {
+      try {
+        const { sendBookingStatusEmail } = await import('@/services/emailService');
+
+        await sendBookingStatusEmail(bookingBefore.customer.email, {
+          reference: bookingBefore.reference,
+          customer_name: bookingBefore.customer.name,
+          studio_name: bookingBefore.studio?.name || 'Studio Raya',
+          old_status: bookingBefore.status,
+          new_status: status,
+        });
+      } catch (emailError) {
+        console.error('Failed to send booking status update email:', emailError);
+        // Don't fail status update if email fails
+        // This is logged but doesn't prevent the status update from succeeding
+      }
     }
 
     return { success: true };
@@ -397,6 +427,58 @@ export async function createPublicBooking(bookingData: CreateBookingData): Promi
     } catch (calendarError) {
       console.error('Failed to create calendar event:', calendarError);
       // Don't fail the booking if calendar integration fails
+      // This is logged but doesn't prevent the booking from succeeding
+    }
+
+    // Send booking confirmation email
+    try {
+      const { sendBookingConfirmationEmail, sendAdminBookingAlert } = await import('@/services/emailService');
+
+      // Send customer confirmation email
+      await sendBookingConfirmationEmail(booking.customer.email, {
+        reference: booking.reference,
+        customer_name: booking.customer.name,
+        date: booking.date,
+        start_time: booking.start_time,
+        end_time: booking.end_time,
+        studio_name: booking.studio.name,
+        layout_name: booking.studio_layout.name,
+        total_price: booking.total_price,
+        duration: booking.duration,
+      });
+
+      // Send admin alert email (if enabled, will be checked by the service)
+      try {
+        // Get studio admin emails for alerts
+        const studioId = booking.studio_id;
+        const { data: studioAdmins } = await supabase
+          .from('admin_users')
+          .select('email, full_name')
+          .eq('studio_id', studioId)
+          .eq('is_active', true);
+
+        if (studioAdmins && studioAdmins.length > 0) {
+          // Send alert to first admin (can be enhanced to send to all or use preferences)
+          const admin = studioAdmins[0];
+          await sendAdminBookingAlert(admin.email, {
+            reference: booking.reference,
+            customer_name: booking.customer.name,
+            customer_email: booking.customer.email,
+            date: booking.date,
+            start_time: booking.start_time,
+            end_time: booking.end_time,
+            studio_name: booking.studio.name,
+            total_price: booking.total_price,
+            duration: booking.duration,
+          });
+        }
+      } catch (adminEmailError) {
+        console.error('Failed to send admin booking alert:', adminEmailError);
+        // Don't fail booking if admin email fails
+      }
+    } catch (emailError) {
+      console.error('Failed to send booking confirmation email:', emailError);
+      // Don't fail booking if email fails
       // This is logged but doesn't prevent the booking from succeeding
     }
 

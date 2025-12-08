@@ -121,6 +121,27 @@ export async function registerAdmin(data: AdminRegistrationData): Promise<{
 
 
 
+    // Send welcome email notification
+    try {
+      // Import email service dynamically to avoid circular imports
+      const { sendAdminWelcomeEmail } = await import('@/services/emailService');
+
+      // Get studio details for email
+      const { data: studioDetails } = await supabase
+        .from('studios')
+        .select('name')
+        .eq('id', newStudio.id)
+        .single();
+
+      await sendAdminWelcomeEmail(data.email, {
+        full_name: data.full_name,
+        studio_name: studioDetails?.name || newStudio.name,
+      });
+    } catch (emailError) {
+      // Log email error but don't fail registration
+      console.error('Failed to send admin welcome email:', emailError);
+    }
+
     return {
       success: true,
       user: adminUser,

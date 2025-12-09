@@ -1,3 +1,8 @@
+// =============================================
+// BRAND BOOKING PAGE
+// =============================================
+// Production booking page with full customizations enabled
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { LayoutSelector } from '@/components/booking/LayoutSelector';
@@ -5,6 +10,9 @@ import { DatePicker } from '@/components/booking/DatePicker';
 import { TimeSlots } from '@/components/booking/TimeSlots';
 import { ContactForm } from '@/components/booking/ContactForm';
 import { PaymentSelector } from '@/components/booking/PaymentSelector';
+import CustomBookingHeader from '@/components/booking/CustomBookingHeader';
+import CustomBookingFooter from '@/components/booking/CustomBookingFooter';
+import FloatingWhatsAppButton from '@/components/booking/FloatingWhatsAppButton';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { generateTimeSlots } from '@/data/mockData';
@@ -15,7 +23,7 @@ import type { Studio } from '@/types/database';
 import type { StudioLayout } from '@/types/booking';
 import { createPublicBooking } from '@/services/bookingService';
 
-const NewBooking = () => {
+const BrandBooking = () => {
   const navigate = useNavigate();
   const { studioId } = useParams<{ studioId: string }>();
   const { toast } = useToast();
@@ -41,11 +49,31 @@ const NewBooking = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-
+  // Customization state
+  const [customization, setCustomization] = useState({
+    enableCustomHeader: false,
+    enableCustomFooter: false,
+    enableWhatsappButton: false,
+    headerLogo: '',
+    headerHomeEnabled: false,
+    headerHomeUrl: '',
+    headerAboutEnabled: false,
+    headerAboutUrl: '',
+    headerPortfolioEnabled: false,
+    headerPortfolioUrl: '',
+    headerContactEnabled: false,
+    headerContactUrl: '',
+    footerWhatsappLink: '',
+    footerFacebookLink: '',
+    footerInstagramLink: '',
+    whatsappMessage: 'Hubungi kami',
+    brandColorPrimary: '#000000',
+    brandColorSecondary: '#ffffff'
+  });
 
   const layout = layouts.find((l) => l.id === selectedLayout) || null;
 
-  // Load studio data and layouts
+  // Load studio data, layouts and customizations
   useEffect(() => {
     const loadStudioData = async () => {
       if (!studioId) {
@@ -77,7 +105,40 @@ const NewBooking = () => {
           return;
         }
 
+        // Check if customizations are enabled
+        const hasCustomizationsEnabled = studioData.enable_custom_header ||
+                                       studioData.enable_custom_footer ||
+                                       studioData.enable_whatsapp_button;
+
+        if (!hasCustomizationsEnabled) {
+          // Redirect to default booking if no customizations are enabled
+          navigate(`/book/${studioId}`, { replace: true });
+          return;
+        }
+
         setStudio(studioData);
+
+        // Load studio customizations
+        setCustomization({
+          enableCustomHeader: studioData.enable_custom_header || false,
+          enableCustomFooter: studioData.enable_custom_footer || false,
+          enableWhatsappButton: studioData.enable_whatsapp_button || false,
+          headerLogo: studioData.header_logo || '',
+          headerHomeEnabled: studioData.header_home_enabled || false,
+          headerHomeUrl: studioData.header_home_url || '',
+          headerAboutEnabled: studioData.header_about_enabled || false,
+          headerAboutUrl: studioData.header_about_url || '',
+          headerPortfolioEnabled: studioData.header_portfolio_enabled || false,
+          headerPortfolioUrl: studioData.header_portfolio_url || '',
+          headerContactEnabled: studioData.header_contact_enabled || false,
+          headerContactUrl: studioData.header_contact_url || '',
+          footerWhatsappLink: studioData.footer_whatsapp_link || '',
+          footerFacebookLink: studioData.footer_facebook_link || '',
+          footerInstagramLink: studioData.footer_instagram_link || '',
+          whatsappMessage: studioData.whatsapp_message || 'Hubungi kami',
+          brandColorPrimary: studioData.brand_color_primary || '#000000',
+          brandColorSecondary: studioData.brand_color_secondary || '#ffffff'
+        });
 
         // Load studio layouts
         const { data: layoutsData, error: layoutsError } = await supabase
@@ -106,9 +167,6 @@ const NewBooking = () => {
             amenities: layout.amenities || [],
           }));
           setLayouts(formattedLayouts);
-
-          // Debug logging
-          console.log('Loaded layouts for studio', studioId, ':', formattedLayouts);
         }
       } catch (error) {
         console.error('Error loading studio data:', error);
@@ -154,7 +212,6 @@ const NewBooking = () => {
 
     try {
       // For now, assume 2-hour booking (this should be configurable)
-      // In a real implementation, this would come from the time slot selection
       const duration = 2; // hours
       const startDateTime = new Date(`${selectedDate.toDateString()} ${selectedTime}`);
       const endDateTime = new Date(startDateTime.getTime() + (duration * 60 * 60 * 1000));
@@ -237,18 +294,57 @@ const NewBooking = () => {
   }
 
   return (
-    <div className="min-h-screen bg-muted/20">
+    <div
+      className="min-h-screen bg-muted/20"
+      style={customization.enableCustomHeader ? {
+        backgroundColor: customization.brandColorPrimary ? `${customization.brandColorPrimary}03` : '#00000003'
+      } : {}}
+    >
+      {/* Custom Header */}
+      {customization.enableCustomHeader && (
+        <CustomBookingHeader
+          logo={customization.headerLogo}
+          homeEnabled={customization.headerHomeEnabled}
+          homeUrl={customization.headerHomeUrl}
+          aboutEnabled={customization.headerAboutEnabled}
+          aboutUrl={customization.headerAboutUrl}
+          portfolioEnabled={customization.headerPortfolioEnabled}
+          portfolioUrl={customization.headerPortfolioUrl}
+          contactEnabled={customization.headerContactEnabled}
+          contactUrl={customization.headerContactUrl}
+          brandColorPrimary={customization.brandColorPrimary}
+          brandColorSecondary={customization.brandColorSecondary}
+        />
+      )}
+
       <main className="pt-8 pb-16">
         <div className="container max-w-4xl mx-auto px-4">
           <div className="mb-8">
+            {/* Logo and brand info - hide default logo if custom header is enabled */}
+            {!customization.enableCustomHeader && (
+              <div className="text-center mb-6">
+                <img src="/studiorayalogo.png" alt="logo studio" className="mx-auto h-16 w-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Studio Fotografi Profesional</p>
+              </div>
+            )}
+
             <div className="text-center mb-6">
-              <img src="/studiorayalogo.png" alt="logo studio" className="mx-auto h-16 w-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Studio Fotografi Profesional</p>
+              {customization.headerLogo && customization.enableCustomHeader && (
+                <img
+                  src={customization.headerLogo}
+                  alt="Studio Logo"
+                  className="mx-auto h-16 w-auto object-contain mb-2"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              )}
               <h2 className="text-xl font-bold">{studio.name}</h2>
               {studio.location && (
                 <p className="text-sm text-muted-foreground">{studio.location}</p>
               )}
             </div>
+
             <h1 className="text-xl font-bold mb-2">Tempahan Studio</h1>
             <p className="text-muted-foreground">
               Isi maklumat dan buat pembayaran untuk tempahan slot anda.
@@ -385,6 +481,26 @@ const NewBooking = () => {
         </div>
       </main>
 
+      {/* Custom Footer */}
+      {customization.enableCustomFooter && (
+        <CustomBookingFooter
+          whatsappLink={customization.footerWhatsappLink}
+          facebookLink={customization.footerFacebookLink}
+          instagramLink={customization.footerInstagramLink}
+          brandColorPrimary={customization.brandColorPrimary}
+          brandColorSecondary={customization.brandColorSecondary}
+        />
+      )}
+
+      {/* Floating WhatsApp Button */}
+      {customization.enableWhatsappButton && (
+        <FloatingWhatsAppButton
+          message={customization.whatsappMessage}
+          phoneNumber={customization.footerWhatsappLink}
+          brandColorPrimary={customization.brandColorPrimary}
+        />
+      )}
+
       {/* Full-screen loading overlay */}
       {isSubmitting && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -404,4 +520,4 @@ const NewBooking = () => {
   );
 };
 
-export default NewBooking;
+export default BrandBooking;

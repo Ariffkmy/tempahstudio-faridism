@@ -40,6 +40,27 @@ export interface StudioSettings {
   termsConditionsPdf: string;
   timeSlotGap: number;
   studioLogo: string;
+
+  // Booking form customization
+  enableCustomHeader: boolean;
+  enableCustomFooter: boolean;
+  enableWhatsappButton: boolean;
+  headerLogo: string;
+  headerHomeEnabled: boolean;
+  headerHomeUrl: string;
+  headerAboutEnabled: boolean;
+  headerAboutUrl: string;
+  headerPortfolioEnabled: boolean;
+  headerPortfolioUrl: string;
+  headerContactEnabled: boolean;
+  headerContactUrl: string;
+  footerWhatsappLink: string;
+  footerFacebookLink: string;
+  footerInstagramLink: string;
+  footerTrademark: string;
+  whatsappMessage: string;
+  brandColorPrimary: string;
+  brandColorSecondary: string;
 }
 
 export interface StudioSettingsWithLayouts extends StudioSettings {
@@ -153,6 +174,26 @@ export async function loadStudioSettings(studioId?: string): Promise<StudioSetti
       termsConditionsPdf: (studio as any).terms_conditions_pdf || '',
       timeSlotGap: (studio as any).time_slot_gap || 30,
       studioLogo: (studio as any).studio_logo || '',
+      // Booking form customization
+      enableCustomHeader: studio.enable_custom_header || false,
+      enableCustomFooter: studio.enable_custom_footer || false,
+      enableWhatsappButton: studio.enable_whatsapp_button || false,
+      headerLogo: studio.header_logo || '',
+      headerHomeEnabled: studio.header_home_enabled || false,
+      headerHomeUrl: studio.header_home_url || '',
+      headerAboutEnabled: studio.header_about_enabled || false,
+      headerAboutUrl: studio.header_about_url || '',
+      headerPortfolioEnabled: studio.header_portfolio_enabled || false,
+      headerPortfolioUrl: studio.header_portfolio_url || '',
+      headerContactEnabled: studio.header_contact_enabled || false,
+      headerContactUrl: studio.header_contact_url || '',
+      footerWhatsappLink: studio.footer_whatsapp_link || '',
+      footerFacebookLink: studio.footer_facebook_link || '',
+      footerInstagramLink: studio.footer_instagram_link || '',
+      footerTrademark: studio.footer_trademark || '© 2025 {{BrandName}}. All rights reserved.',
+      whatsappMessage: studio.whatsapp_message || 'Hubungi kami',
+      brandColorPrimary: studio.brand_color_primary || '#000000',
+      brandColorSecondary: studio.brand_color_secondary || '#ffffff',
       layouts: layouts || []
     };
 
@@ -203,6 +244,26 @@ export async function saveStudioSettings(settings: StudioSettings, layouts: Stud
         booking_link: settings.bookingLink,
         google_calendar_enabled: settings.googleCalendarEnabled,
         google_calendar_id: settings.googleCalendarId,
+        // Booking form customization
+        enable_custom_header: settings.enableCustomHeader,
+        enable_custom_footer: settings.enableCustomFooter,
+        enable_whatsapp_button: settings.enableWhatsappButton,
+        header_logo: settings.headerLogo,
+        header_home_enabled: settings.headerHomeEnabled,
+        header_home_url: settings.headerHomeUrl,
+        header_about_enabled: settings.headerAboutEnabled,
+        header_about_url: settings.headerAboutUrl,
+        header_portfolio_enabled: settings.headerPortfolioEnabled,
+        header_portfolio_url: settings.headerPortfolioUrl,
+        header_contact_enabled: settings.headerContactEnabled,
+        header_contact_url: settings.headerContactUrl,
+        footer_whatsapp_link: settings.footerWhatsappLink,
+        footer_facebook_link: settings.footerFacebookLink,
+        footer_instagram_link: settings.footerInstagramLink,
+        footer_trademark: settings.footerTrademark,
+        whatsapp_message: settings.whatsappMessage,
+        brand_color_primary: settings.brandColorPrimary,
+        brand_color_secondary: settings.brandColorSecondary,
         updated_at: new Date().toISOString()
       })
       .eq('id', studioId);

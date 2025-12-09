@@ -61,6 +61,26 @@ export interface Studio {
   google_refresh_token?: string | null;
   google_access_token?: string | null;
   google_token_expires_at?: string | null;
+  // Booking form customization
+  enable_custom_header?: boolean | null;
+  enable_custom_footer?: boolean | null;
+  enable_whatsapp_button?: boolean | null;
+  header_logo?: string | null;
+  header_home_enabled?: boolean | null;
+  header_home_url?: string | null;
+  header_about_enabled?: boolean | null;
+  header_about_url?: string | null;
+  header_portfolio_enabled?: boolean | null;
+  header_portfolio_url?: string | null;
+  header_contact_enabled?: boolean | null;
+  header_contact_url?: string | null;
+  footer_whatsapp_link?: string | null;
+  footer_facebook_link?: string | null;
+  footer_instagram_link?: string | null;
+  footer_trademark?: string | null;
+  whatsapp_message?: string | null;
+  brand_color_primary?: string | null;
+  brand_color_secondary?: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

@@ -10,6 +10,7 @@ import Studios from "./pages/Studios";
 import StudioSlots from "./pages/StudioSlots";
 import Book from "./pages/Book";
 import NewBooking from "./pages/NewBooking";
+import BrandBooking from "./pages/BrandBooking";
 import BookingConfirmation from "./pages/BookingConfirmation";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminRegister from "./pages/admin/AdminRegister";
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/studios/:studioId/slots" element={<StudioSlots />} />
               <Route path="/book" element={<Book />} />
               <Route path="/book/:studioId" element={<NewBooking />} />
+              <Route path="/brand/:studioId" element={<BrandBooking />} />
               <Route path="/booking/confirmation" element={<BookingConfirmation />} />
 
               {/* Admin Auth Routes (Public) */}

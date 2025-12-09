@@ -22,8 +22,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink } from 'lucide-react';
+import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink, Palette, Image as ImageIcon } from 'lucide-react';
 import { loadStudioSettings, saveStudioSettings, updateStudioLayouts, saveGoogleCredentials, initiateGoogleAuth, exchangeGoogleCode } from '@/services/studioSettings';
+import { uploadLogo } from '@/services/fileUploadService';
+import BookingFormPreview, { PreviewSettings } from '@/components/booking/preview/BookingFormPreview';
 import { supabase } from '@/lib/supabase';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -67,7 +69,27 @@ const AdminSettings = () => {
     termsConditionsText: '',
     termsConditionsPdf: '',
     timeSlotGap: 30,
-    studioLogo: ''
+    studioLogo: '',
+    // Booking form customization
+    enableCustomHeader: false,
+    enableCustomFooter: false,
+    enableWhatsappButton: false,
+    headerLogo: '',
+    headerHomeEnabled: false,
+    headerHomeUrl: '',
+    headerAboutEnabled: false,
+    headerAboutUrl: '',
+    headerPortfolioEnabled: false,
+    headerPortfolioUrl: '',
+    headerContactEnabled: false,
+    headerContactUrl: '',
+    footerWhatsappLink: '',
+    footerFacebookLink: '',
+    footerInstagramLink: '',
+    footerTrademark: '',
+    whatsappMessage: 'Hubungi kami',
+    brandColorPrimary: '#000000',
+    brandColorSecondary: '#ffffff'
   });
 
   const [layouts, setLayouts] = useState<StudioLayout[]>([]);
@@ -122,7 +144,27 @@ const AdminSettings = () => {
             termsConditionsText: data.termsConditionsText || '',
             termsConditionsPdf: data.termsConditionsPdf || '',
             timeSlotGap: data.timeSlotGap || 30,
-            studioLogo: data.studioLogo || ''
+            studioLogo: data.studioLogo || '',
+            // Booking form customization
+            enableCustomHeader: data.enableCustomHeader || false,
+            enableCustomFooter: data.enableCustomFooter || false,
+            enableWhatsappButton: data.enableWhatsappButton || false,
+            headerLogo: data.headerLogo || '',
+            headerHomeEnabled: data.headerHomeEnabled || false,
+            headerHomeUrl: data.headerHomeUrl || '',
+            headerAboutEnabled: data.headerAboutEnabled || false,
+            headerAboutUrl: data.headerAboutUrl || '',
+            headerPortfolioEnabled: data.headerPortfolioEnabled || false,
+            headerPortfolioUrl: data.headerPortfolioUrl || '',
+            headerContactEnabled: data.headerContactEnabled || false,
+            headerContactUrl: data.headerContactUrl || '',
+            footerWhatsappLink: data.footerWhatsappLink || '',
+            footerFacebookLink: data.footerFacebookLink || '',
+            footerInstagramLink: data.footerInstagramLink || '',
+            footerTrademark: data.footerTrademark || '',
+            whatsappMessage: data.whatsappMessage || 'Hubungi kami',
+            brandColorPrimary: data.brandColorPrimary || '#000000',
+            brandColorSecondary: data.brandColorSecondary || '#ffffff'
           });
           setLayouts(data.layouts);
         }
@@ -799,9 +841,73 @@ const AdminSettings = () => {
                   </div>
                 </div>
 
-                <Separator />
+                    <Separator />
 
-                
+                    {/* Branded Booking Link */}
+                    {settings.enableCustomHeader && settings.enableCustomFooter && settings.enableWhatsappButton ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-semibold text-emerald-600">✓ Branding Enabled</span>
+                          <Badge variant="outline" className="text-xs">Premium</Badge>
+                        </div>
+                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Palette className="h-4 w-4 text-purple-500" />
+                            <h4 className="text-sm font-semibold text-purple-700">Branded Booking Link</h4>
+                            <Badge variant="secondary" className="text-xs">Enhanced</Badge>
+                          </div>
+                          <p className="text-muted-foreground mb-3 text-sm">
+                            Premium branded experience with custom header, navigation, footer, and WhatsApp button
+                          </p>
+                          <div className="bg-background border rounded-md p-3 mb-3">
+                            <code className="text-sm font-mono break-all text-purple-700">
+                              {window.location.origin}/brand/{effectiveStudioId}
+                            </code>
+                          </div>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                              onClick={() => {
+                                navigator.clipboard.writeText(`${window.location.origin}/brand/${effectiveStudioId}`);
+                                toast({
+                                  description: "Branded booking link copied!",
+                                  className: "bg-purple-50 border-purple-200"
+                                });
+                              }}
+                            >
+                              <Copy className="h-4 w-4 mr-2" />
+                              Copy Branded Link
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                              onClick={() => {
+                                window.open(`${window.location.origin}/brand/${effectiveStudioId}`, '_blank');
+                              }}
+                            >
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Open Branded Form
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : settings.enableCustomHeader || settings.enableCustomFooter || settings.enableWhatsappButton ? (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <svg className="h-4 w-4 text-yellow-600" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-sm font-semibold text-yellow-800">Branded Link Ready</span>
+                        </div>
+                        <p className="text-yellow-700 text-sm">
+                          Enable additional customizations (header/footer/WhatsApp) to unlock the premium branded booking link.
+                        </p>
+                      </div>
+                    ) : null}
+
               </CardContent>
             </Card>
 
@@ -1767,6 +1873,324 @@ const AdminSettings = () => {
                           Jika tiada logo dimuat naik, logo lalai akan digunakan.
                         </p>
                       )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Form Customization */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Palette className="h-5 w-5" />
+                      Penyesuaian Borang Tempahan
+                    </CardTitle>
+                    <CardDescription>Sesuaikan penampilan dan fungsi borang tempahan anda</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Header Customization */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label className="text-base">Enable Custom Header</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Tambah header dengan logo dan navigasi di borang tempahan
+                          </p>
+                        </div>
+                        <Switch
+                          checked={settings.enableCustomHeader}
+                          onCheckedChange={(checked) => handleSettingChange('enableCustomHeader', checked)}
+                        />
+                      </div>
+
+                      {settings.enableCustomHeader && (
+                        <div className="pl-4 border-l-2 border-primary/20 space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="headerLogo">Logo Header</Label>
+                            <Input
+                              id="headerLogo"
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  handleSettingChange('headerLogo', file.name);
+                                }
+                              }}
+                            />
+                            {settings.headerLogo && (
+                              <p className="text-xs text-muted-foreground">Logo: {settings.headerLogo}</p>
+                            )}
+                          </div>
+
+                          <Separator />
+                          <Label className="text-sm font-semibold">Navigasi Header</Label>
+
+                          {/* Home Navigation */}
+                          <div className="flex items-start gap-4">
+                            <Switch
+                              checked={settings.headerHomeEnabled}
+                              onCheckedChange={(checked) => handleSettingChange('headerHomeEnabled', checked)}
+                            />
+                            <div className="flex-1 space-y-2">
+                              <Label className="text-sm">Home</Label>
+                              {settings.headerHomeEnabled && (
+                                <Input
+                                  placeholder="https://yourwebsite.com"
+                                  value={settings.headerHomeUrl}
+                                  onChange={(e) => handleSettingChange('headerHomeUrl', e.target.value)}
+                                />
+                              )}
+                            </div>
+                          </div>
+
+                          {/* About Navigation */}
+                          <div className="flex items-start gap-4">
+                            <Switch
+                              checked={settings.headerAboutEnabled}
+                              onCheckedChange={(checked) => handleSettingChange('headerAboutEnabled', checked)}
+                            />
+                            <div className="flex-1 space-y-2">
+                              <Label className="text-sm">About</Label>
+                              {settings.headerAboutEnabled && (
+                                <Input
+                                  placeholder="https://yourwebsite.com/about"
+                                  value={settings.headerAboutUrl}
+                                  onChange={(e) => handleSettingChange('headerAboutUrl', e.target.value)}
+                                />
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Portfolio Navigation */}
+                          <div className="flex items-start gap-4">
+                            <Switch
+                              checked={settings.headerPortfolioEnabled}
+                              onCheckedChange={(checked) => handleSettingChange('headerPortfolioEnabled', checked)}
+                            />
+                            <div className="flex-1 space-y-2">
+                              <Label className="text-sm">Portfolio</Label>
+                              {settings.headerPortfolioEnabled && (
+                                <Input
+                                  placeholder="https://yourwebsite.com/portfolio"
+                                  value={settings.headerPortfolioUrl}
+                                  onChange={(e) => handleSettingChange('headerPortfolioUrl', e.target.value)}
+                                />
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Contact Navigation */}
+                          <div className="flex items-start gap-4">
+                            <Switch
+                              checked={settings.headerContactEnabled}
+                              onCheckedChange={(checked) => handleSettingChange('headerContactEnabled', checked)}
+                            />
+                            <div className="flex-1 space-y-2">
+                              <Label className="text-sm">Contact</Label>
+                              {settings.headerContactEnabled && (
+                                <Input
+                                  placeholder="https://yourwebsite.com/contact"
+                                  value={settings.headerContactUrl}
+                                  onChange={(e) => handleSettingChange('headerContactUrl', e.target.value)}
+                                />
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <Separator />
+
+                    {/* Footer Customization */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label className="text-base">Enable Custom Footer</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Tambah footer dengan ikon media sosial
+                          </p>
+                        </div>
+                        <Switch
+                          checked={settings.enableCustomFooter}
+                          onCheckedChange={(checked) => handleSettingChange('enableCustomFooter', checked)}
+                        />
+                      </div>
+
+                      {settings.enableCustomFooter && (
+                        <div className="pl-4 border-l-2 border-primary/20 space-y-4">
+                          <Label className="text-sm font-semibold">Pautan Media Sosial</Label>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="footerWhatsapp" className="text-sm">WhatsApp</Label>
+                            <Input
+                              id="footerWhatsapp"
+                              placeholder="https://wa.me/60123456789"
+                              value={settings.footerWhatsappLink}
+                              onChange={(e) => handleSettingChange('footerWhatsappLink', e.target.value)}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="footerFacebook" className="text-sm">Facebook</Label>
+                            <Input
+                              id="footerFacebook"
+                              placeholder="https://facebook.com/yourstudio"
+                              value={settings.footerFacebookLink}
+                              onChange={(e) => handleSettingChange('footerFacebookLink', e.target.value)}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="footerInstagram" className="text-sm">Instagram</Label>
+                            <Input
+                              id="footerInstagram"
+                              placeholder="https://instagram.com/yourstudio"
+                              value={settings.footerInstagramLink}
+                              onChange={(e) => handleSettingChange('footerInstagramLink', e.target.value)}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="footerTrademark" className="text-sm">Trademark</Label>
+                            <Input
+                              id="footerTrademark"
+                              placeholder="© 2025 {{BrandName}}. All rights reserved."
+                              value={settings.footerTrademark}
+                              onChange={(e) => handleSettingChange('footerTrademark', e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">Enter your custom trademark text</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <Separator />
+
+                    {/* WhatsApp Float Button */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label className="text-base">Enable WhatsApp Button</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Butang WhatsApp terapung di borang tempahan
+                          </p>
+                        </div>
+                        <Switch
+                          checked={settings.enableWhatsappButton}
+                          onCheckedChange={(checked) => handleSettingChange('enableWhatsappButton', checked)}
+                        />
+                      </div>
+
+                      {settings.enableWhatsappButton && (
+                        <div className="pl-4 border-l-2 border-primary/20 space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="whatsappMessage" className="text-sm">Teks Butang</Label>
+                            <Input
+                              id="whatsappMessage"
+                              placeholder="Hubungi kami"
+                              value={settings.whatsappMessage}
+                              onChange={(e) => handleSettingChange('whatsappMessage', e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="whatsappNumber" className="text-sm">Nombor WhatsApp</Label>
+                            <Input
+                              id="whatsappNumber"
+                              placeholder="+60123456789"
+                              value={settings.ownerPhone}
+                              onChange={(e) => handleSettingChange('ownerPhone', e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Menggunakan nombor telefon dari tetapan pemilik
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <Separator />
+
+                    {/* Brand Colors */}
+                    <div className="space-y-4">
+                      <Label className="text-base">Warna Jenama</Label>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Pilih warna untuk header, footer, dan butang
+                      </p>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="brandColorPrimary" className="text-sm">Warna Utama</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="brandColorPrimary"
+                              type="color"
+                              value={settings.brandColorPrimary}
+                              onChange={(e) => handleSettingChange('brandColorPrimary', e.target.value)}
+                              className="w-20 h-10"
+                            />
+                            <Input
+                              type="text"
+                              value={settings.brandColorPrimary}
+                              onChange={(e) => handleSettingChange('brandColorPrimary', e.target.value)}
+                              placeholder="#000000"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="brandColorSecondary" className="text-sm">Warna Teks</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="brandColorSecondary"
+                              type="color"
+                              value={settings.brandColorSecondary}
+                              onChange={(e) => handleSettingChange('brandColorSecondary', e.target.value)}
+                              className="w-20 h-10"
+                            />
+                            <Input
+                              type="text"
+                              value={settings.brandColorSecondary}
+                              onChange={(e) => handleSettingChange('brandColorSecondary', e.target.value)}
+                              placeholder="#ffffff"
+                              className="flex-1"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Preview Section */}
+                    <Separator />
+                    <div className="space-y-4">
+                      <Label className="text-base">Pratonton</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Lihat pratonton borang tempahan dengan tetapan semasa
+                      </p>
+                      <BookingFormPreview
+                        settings={{
+                          enableCustomHeader: settings.enableCustomHeader,
+                          enableCustomFooter: settings.enableCustomFooter,
+                          enableWhatsappButton: settings.enableWhatsappButton,
+                          headerLogo: settings.headerLogo,
+                          headerHomeEnabled: settings.headerHomeEnabled,
+                          headerHomeUrl: settings.headerHomeUrl,
+                          headerAboutEnabled: settings.headerAboutEnabled,
+                          headerAboutUrl: settings.headerAboutUrl,
+                          headerPortfolioEnabled: settings.headerPortfolioEnabled,
+                          headerPortfolioUrl: settings.headerPortfolioUrl,
+                          headerContactEnabled: settings.headerContactEnabled,
+                          headerContactUrl: settings.headerContactUrl,
+                          footerWhatsappLink: settings.footerWhatsappLink,
+                          footerFacebookLink: settings.footerFacebookLink,
+                          footerInstagramLink: settings.footerInstagramLink,
+                          whatsappMessage: settings.whatsappMessage,
+                          whatsappPhoneNumber: settings.ownerPhone,
+                          brandColorPrimary: settings.brandColorPrimary,
+                          brandColorSecondary: settings.brandColorSecondary
+                        }}
+                      />
                     </div>
                   </CardContent>
                 </Card>

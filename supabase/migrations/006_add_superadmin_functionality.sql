@@ -205,7 +205,7 @@ INSERT INTO admin_users (
   NULL, -- No studio for super admin
   'superadmin@rayastudio.com',
   'Super Administrator',
-  '+60123456789',
+  '+601129947089',
   'super_admin',
   true
 ) ON CONFLICT (email) DO NOTHING;

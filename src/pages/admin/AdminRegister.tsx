@@ -167,7 +167,7 @@ const AdminRegister = () => {
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="+60123456789"
+                  placeholder="+601129947089"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                 />

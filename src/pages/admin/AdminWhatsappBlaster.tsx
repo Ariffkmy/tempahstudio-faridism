@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Send, Calendar, Clock, User, Phone, Mail, ChevronDown, ChevronUp } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Link } from 'react-router-dom';
@@ -16,7 +18,7 @@ const dummyBookings = {
       id: '1',
       reference: 'RAYA-001',
       customerName: 'Ahmad Abdullah',
-      customerPhone: '+60123456789',
+      customerPhone: '+601129947089',
       customerEmail: 'ahmad@email.com',
       date: '2025-12-15',
       startTime: '10:00',
@@ -75,8 +77,8 @@ const dummyBookings = {
     {
       id: '5',
       reference: 'RAYA-005',
-      customerName: 'Sarah Wong',
-      customerPhone: '+60167890123',
+      customerName: 'Ariff Hakimi',
+      customerPhone: '+601129947089',
       customerEmail: 'sarah@email.com',
       date: '2025-12-08',
       startTime: '09:00',
@@ -85,13 +87,14 @@ const dummyBookings = {
       package: 'Wedding Photography',
       photographer: 'Lin Chen',
       editor: 'Maya Sari',
-      status: 'ready'
+      status: 'ready',
+      link: 'https://example.com/wedding-album'
     },
     {
       id: '6',
       reference: 'RAYA-006',
-      customerName: 'David Tan',
-      customerPhone: '+60178901234',
+      customerName: 'Atiqah Baiduri',
+      customerPhone: '+60189797496',
       customerEmail: 'david@email.com',
       date: '2025-12-11',
       startTime: '13:00',
@@ -100,13 +103,14 @@ const dummyBookings = {
       package: 'Graduation Shoot',
       photographer: 'Aminah Fauzi',
       editor: 'Rizal Hashim',
-      status: 'ready'
+      status: 'ready',
+      link: ''
     },
     {
       id: '7',
       reference: 'RAYA-007',
-      customerName: 'Puteri Azizan',
-      customerPhone: '+60189012345',
+      customerName: 'Atiqah Baiduri',
+      customerPhone: '+60189797496',
       customerEmail: 'puteri@email.com',
       date: '2025-12-14',
       startTime: '15:00',
@@ -115,7 +119,8 @@ const dummyBookings = {
       package: 'Maternity Shoot',
       photographer: 'Farah Nadia',
       editor: 'Wan Ahmad',
-      status: 'ready'
+      status: 'ready',
+      link: 'https://drive.google.com/albums'
     }
   ]
 };
@@ -126,6 +131,17 @@ const AdminWhatsappBlaster = () => {
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [bookingsData, setBookingsData] = useState(dummyBookings);
   const [draggedBooking, setDraggedBooking] = useState<any>(null);
+
+  // Initialize booking links with data from dummyBookings
+  const initialLinks: Record<string, string> = {};
+  dummyBookings['ready-for-delivery'].forEach(b => initialLinks[b.id] = b.link || '');
+  const [bookingLinks, setBookingLinks] = useState<Record<string, string>>(initialLinks);
+
+  const [isBlastDialogOpen, setIsBlastDialogOpen] = useState(false);
+  const defaultMessage = "Assalammualaikum {{name}} , ini adalah link gambar raya ye. Terima kasih kerana memilih Raya Studio. Selamat Hari Raya, Maaf Zahir Batin";
+  const [blastMessage, setBlastMessage] = useState(defaultMessage);
+
+  const readyWithLinks = dummyBookings['ready-for-delivery'].filter(b => bookingLinks[b.id]);
 
   const toggleCardExpansion = (bookingId: string) => {
     setExpandedCards(prev => {
@@ -166,7 +182,75 @@ const AdminWhatsappBlaster = () => {
   };
 
   const handleWhatsAppBlast = () => {
-    console.log('Send WhatsApp message to all ready for delivery bookings');
+    setIsBlastDialogOpen(true);
+  };
+
+  const handleSend = async () => {
+    try {
+      const { sendWhatsAppMessage } = await import('@/services/twilioService');
+
+      for (const b of readyWithLinks) {
+        const personalizedMessage = blastMessage.replace('{{name}}', b.customerName).replace('{{studioname}}', 'Raya Studio');
+        const result = await sendWhatsAppMessage(b.customerPhone, personalizedMessage);
+
+        if (!result.success) {
+          console.error(`Failed to send WhatsApp to ${b.customerName}: ${result.error}`);
+          // Continue with other recipients even if one fails
+        } else {
+          console.log(`WhatsApp sent to ${b.customerName}, SID: ${result.sid}`);
+        }
+      }
+
+      setBlastMessage(defaultMessage);
+      setIsBlastDialogOpen(false);
+    } catch (error) {
+      console.error('Error sending WhatsApp messages:', error);
+      // Still close the dialog and reset
+      setBlastMessage(defaultMessage);
+      setIsBlastDialogOpen(false);
+    }
+  };
+
+  // Test function for hardcoded WhatsApp numbers
+  const handleTestSend = async () => {
+    try {
+      const { sendWhatsAppMessage } = await import('@/services/twilioService');
+
+      // Hardcoded test numbers (use format: whatsapp:+1234567890)
+      const testNumbers = [
+        'whatsapp:+601129947089', // John's number from dummy data
+        'whatsapp:+60189797496', // Puteri's number from dummy data
+        // Add more test numbers here if needed
+      ];
+
+      const testMessage = "Hello! This is a test WhatsApp message from Raya Studio Twilio integration. If you received this, the integration is working! 🎉";
+
+      console.log('Starting WhatsApp API test with hardcoded numbers...');
+
+      for (const number of testNumbers) {
+        console.log(`Sending test message to ${number}...`);
+        const result = await sendWhatsAppMessage(number, testMessage);
+
+        if (!result.success) {
+          console.error(`❌ Failed to send to ${number}: ${result.error}`);
+        } else {
+          console.log(`✅ Successfully sent to ${number}, SID: ${result.sid}`);
+        }
+
+        // Small delay between messages
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+
+      console.log('WhatsApp test completed!');
+      alert('Test completed! Check console for results.');
+    } catch (error) {
+      console.error('Error testing WhatsApp API:', error);
+      alert('Test failed! Check console for details.');
+    }
+  };
+
+  const updateBookingLink = (bookingId: string, link: string) => {
+    setBookingLinks(prev => ({ ...prev, [bookingId]: link }));
   };
 
   if (isMobile) {
@@ -185,8 +269,20 @@ const AdminWhatsappBlaster = () => {
         <main className="p-4">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-xl font-bold">Whatsapp Blaster</h1>
-            <p className="text-muted-foreground text-sm">Urus proses kerja dan hantar mesej WhatsApp</p>
+            <div className="flex justify-between items-start">
+              <div>
+                <h1 className="text-xl font-bold">Whatsapp Blaster</h1>
+                <p className="text-muted-foreground text-sm">Urus proses kerja dan hantar mesej WhatsApp</p>
+              </div>
+              <Button
+                onClick={handleTestSend}
+                variant="outline"
+                size="sm"
+              >
+                <Send className="w-3 h-3 mr-1" />
+                Test API
+              </Button>
+            </div>
           </div>
 
           {/* Super Admin Studio Selector */}
@@ -198,11 +294,11 @@ const AdminWhatsappBlaster = () => {
 
           {/* Kanban Board */}
           <div className="space-y-4">
-            {/* Complete Photoshoot */}
+            {/* Ready for Editing */}
             <div>
               <h3 className="font-medium mb-3 flex items-center gap-2">
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                Complete Photoshoot
+                Done photoshoot
                 <Badge variant="secondary" className="text-xs">{dummyBookings['complete-photoshoot'].length}</Badge>
               </h3>
               <div className="space-y-3">
@@ -292,7 +388,10 @@ const AdminWhatsappBlaster = () => {
                       <div className="space-y-2">
                         <div className="flex justify-between items-start">
                           <span className="font-medium text-sm">{booking.reference}</span>
-                          <Badge variant="default" className="text-xs">Ready</Badge>
+                          <div className="flex items-center gap-1">
+            <Badge className={`text-xs ${bookingLinks[booking.id] ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'}`}>{bookingLinks[booking.id] ? 'Ready' : 'Pending'}</Badge>
+                            <Badge variant="outline" className="text-xs">{bookingLinks[booking.id] ? 'Link Added ✔️' : 'Link Not Added ⏳'}</Badge>
+                          </div>
                         </div>
                         <div className="space-y-1 text-xs text-muted-foreground">
                           <div className="flex items-center gap-1">
@@ -308,12 +407,46 @@ const AdminWhatsappBlaster = () => {
                             {new Date(booking.date).toLocaleDateString('ms-MY')}
                           </div>
                         </div>
+                        <div className="border-t pt-2 mt-2">
+                          <label className="text-xs text-muted-foreground block mb-1">Link:</label>
+                          <input type="url" value={bookingLinks[booking.id] || ''} onChange={(e) => updateBookingLink(booking.id, e.target.value)} className="w-full p-1 text-xs border rounded" placeholder="Enter link" />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
                 ))}
               </div>
             </div>
+
+            {/* WhatsApp Blast Dialog */}
+            <Dialog open={isBlastDialogOpen} onOpenChange={setIsBlastDialogOpen}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Hantar WhatsApp Blast</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label className="font-medium">Mesej:</label>
+                    <Textarea value={blastMessage} onChange={(e) => setBlastMessage(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="font-medium">Penerima:</label>
+                    <div className="max-h-40 overflow-y-auto border rounded p-2">
+                      {readyWithLinks.length > 0 ? readyWithLinks.map(b => (
+                        <div key={b.id} className="flex justify-between text-sm py-1">
+                          <span>{b.customerName}</span>
+                          <span>{b.customerPhone}</span>
+                          <a href={bookingLinks[b.id]} target="_blank" className="text-blue-500 underline text-xs">Link</a>
+                        </div>
+                      )) : <p>Tidak ada penerima (semua booking tidak ada link)</p>}
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button onClick={handleSend} disabled={readyWithLinks.length === 0}>Hantar Sekarang</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </main>
       </div>
@@ -327,8 +460,20 @@ const AdminWhatsappBlaster = () => {
           <div className="p-8">
             {/* Header */}
             <div className="mb-8">
-              <h1 className="text-2xl font-bold">Whatsapp Blaster</h1>
-              <p className="text-muted-foreground">Urus proses kerja dan hantar mesej WhatsApp</p>
+              <div className="flex justify-between items-start">
+                <div>
+                  <h1 className="text-2xl font-bold">Whatsapp Blaster</h1>
+                  <p className="text-muted-foreground">Urus proses kerja dan hantar mesej WhatsApp</p>
+                </div>
+                <Button
+                  onClick={handleTestSend}
+                  variant="outline"
+                  className="text-sm"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  Test WhatsApp API
+                </Button>
+              </div>
             </div>
 
             {/* Super Admin Studio Selector */}
@@ -340,7 +485,7 @@ const AdminWhatsappBlaster = () => {
 
             {/* Kanban Board */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Complete Photoshoot Column */}
+              {/* Ready for Editing Column */}
               <div
                 className="bg-muted/30 rounded-lg p-4 min-h-[500px]"
                 onDragOver={handleDragOver}
@@ -349,7 +494,7 @@ const AdminWhatsappBlaster = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <h3 className="font-semibold">Complete Photoshoot</h3>
+                    <h3 className="font-semibold">Done photoshoot</h3>
                   </div>
                   <Badge variant="secondary">{bookingsData['complete-photoshoot'].length}</Badge>
                 </div>
@@ -374,7 +519,7 @@ const AdminWhatsappBlaster = () => {
                                 <div className="text-xs text-muted-foreground">{booking.customerName}</div>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Badge variant="default" className="text-xs">Completed</Badge>
+                                <Badge variant="default" className="text-xs">Done</Badge>
                                 {isExpanded ?
                                   <ChevronUp className="w-4 h-4 text-muted-foreground" /> :
                                   <ChevronDown className="w-4 h-4 text-muted-foreground" />
@@ -515,7 +660,8 @@ const AdminWhatsappBlaster = () => {
                                 <div className="text-xs text-muted-foreground">{booking.customerName}</div>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Badge variant="default" className="text-xs">Ready</Badge>
+                <Badge className={`text-xs ${bookingLinks[booking.id] ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'}`}>{bookingLinks[booking.id] ? 'Ready' : 'Pending'}</Badge>
+                                <Badge variant="outline" className="text-xs">{bookingLinks[booking.id] ? 'Link Added ✔️' : 'Link Not Added ⏳'}</Badge>
                                 {isExpanded ?
                                   <ChevronUp className="w-4 h-4 text-muted-foreground" /> :
                                   <ChevronDown className="w-4 h-4 text-muted-foreground" />
@@ -524,18 +670,24 @@ const AdminWhatsappBlaster = () => {
                             </div>
 
                             {isExpanded && (
-                              <div className="space-y-1 text-xs text-muted-foreground border-t pt-2 mt-2">
-                                <div className="flex items-center gap-1">
-                                  <Phone className="w-3 h-3" />
-                                  {booking.customerPhone}
+                              <div>
+                                <div className="space-y-1 text-xs text-muted-foreground border-t pt-2 mt-2">
+                                  <div className="flex items-center gap-1">
+                                    <Phone className="w-3 h-3" />
+                                    {booking.customerPhone}
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Mail className="w-3 h-3" />
+                                    <span className="truncate">{booking.customerEmail}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    {new Date(booking.date).toLocaleDateString('ms-MY')}
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  <Mail className="w-3 h-3" />
-                                  <span className="truncate">{booking.customerEmail}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
-                                  {new Date(booking.date).toLocaleDateString('ms-MY')}
+                                <div className="border-t pt-2 mt-2">
+                                  <label className="text-xs text-muted-foreground block mb-1">Link:</label>
+                                  <input type="url" value={bookingLinks[booking.id] || ''} onChange={(e) => updateBookingLink(booking.id, e.target.value)} className="w-full p-1 text-xs border rounded" placeholder="Enter link" />
                                 </div>
                               </div>
                             )}
@@ -547,6 +699,36 @@ const AdminWhatsappBlaster = () => {
                 </div>
               </div>
             </div>
+
+            {/* WhatsApp Blast Dialog */}
+            <Dialog open={isBlastDialogOpen} onOpenChange={setIsBlastDialogOpen}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Hantar WhatsApp Blast</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label className="font-medium">Mesej:</label>
+                    <Textarea value={blastMessage} onChange={(e) => setBlastMessage(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="font-medium">Penerima:</label>
+                    <div className="max-h-40 overflow-y-auto border rounded p-2">
+                      {readyWithLinks.length > 0 ? readyWithLinks.map(b => (
+                        <div key={b.id} className="flex justify-between text-sm py-1">
+                          <span>{b.customerName}</span>
+                          <span>{b.customerPhone}</span>
+                          <a href={bookingLinks[b.id]} target="_blank" className="text-blue-500 underline text-xs">Link</a>
+                        </div>
+                      )) : <p>Tidak ada penerima (semua booking tidak ada link)</p>}
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button onClick={handleSend} disabled={readyWithLinks.length === 0}>Hantar Sekarang</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </main>
       </div>

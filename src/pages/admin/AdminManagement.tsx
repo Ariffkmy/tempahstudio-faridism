@@ -227,7 +227,7 @@ export default function AdminManagement() {
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder="+60123456789"
+                    placeholder="+601129947089"
                     value={newAdminPhone}
                     onChange={(e) => setNewAdminPhone(e.target.value)}
                   />

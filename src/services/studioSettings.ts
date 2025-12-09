@@ -33,6 +33,13 @@ export interface StudioSettings {
   googleClientSecret: string;
   googleClientIdConfigured: boolean;
   googleRefreshTokenConfigured: boolean;
+
+  // Booking form settings
+  termsConditionsType: string;
+  termsConditionsText: string;
+  termsConditionsPdf: string;
+  timeSlotGap: number;
+  studioLogo: string;
 }
 
 export interface StudioSettingsWithLayouts extends StudioSettings {
@@ -141,6 +148,11 @@ export async function loadStudioSettings(studioId?: string): Promise<StudioSetti
       googleClientSecret: studio.google_client_secret || '',
       googleClientIdConfigured: !!(studio.google_client_id),
       googleRefreshTokenConfigured: !!(studio.google_refresh_token),
+      termsConditionsType: (studio as any).terms_conditions_type || 'none',
+      termsConditionsText: (studio as any).terms_conditions_text || '',
+      termsConditionsPdf: (studio as any).terms_conditions_pdf || '',
+      timeSlotGap: (studio as any).time_slot_gap || 30,
+      studioLogo: (studio as any).studio_logo || '',
       layouts: layouts || []
     };
 

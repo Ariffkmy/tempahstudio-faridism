@@ -14,7 +14,15 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink } from 'lucide-react';
 import { loadStudioSettings, saveStudioSettings, updateStudioLayouts, saveGoogleCredentials, initiateGoogleAuth, exchangeGoogleCode } from '@/services/studioSettings';
 import { supabase } from '@/lib/supabase';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -54,10 +62,16 @@ const AdminSettings = () => {
     googleClientId: '',
     googleClientSecret: '',
     googleClientIdConfigured: false,
-    googleRefreshTokenConfigured: false
+    googleRefreshTokenConfigured: false,
+    termsConditionsType: 'none',
+    termsConditionsText: '',
+    termsConditionsPdf: '',
+    timeSlotGap: 30,
+    studioLogo: ''
   });
 
   const [layouts, setLayouts] = useState<StudioLayout[]>([]);
+  const [bookingLink, setBookingLink] = useState('');
 
   const [newLayout, setNewLayout] = useState({
     name: '',
@@ -103,7 +117,12 @@ const AdminSettings = () => {
             googleClientId: data.googleClientId,
             googleClientSecret: data.googleClientSecret,
             googleClientIdConfigured: data.googleClientIdConfigured,
-            googleRefreshTokenConfigured: data.googleRefreshTokenConfigured
+            googleRefreshTokenConfigured: data.googleRefreshTokenConfigured,
+            termsConditionsType: data.termsConditionsType || 'none',
+            termsConditionsText: data.termsConditionsText || '',
+            termsConditionsPdf: data.termsConditionsPdf || '',
+            timeSlotGap: data.timeSlotGap || 30,
+            studioLogo: data.studioLogo || ''
           });
           setLayouts(data.layouts);
         }
@@ -121,6 +140,15 @@ const AdminSettings = () => {
 
     loadSettings();
   }, [toast, effectiveStudioId]);
+
+  // Generate booking link for this studio
+  useEffect(() => {
+    if (effectiveStudioId) {
+      const baseUrl = window.location.origin;
+      const studioBookingLink = `${baseUrl}/book/${effectiveStudioId}`;
+      setBookingLink(studioBookingLink);
+    }
+  }, [effectiveStudioId]);
 
   // Handle OAuth callback on component mount
   useEffect(() => {
@@ -197,7 +225,7 @@ const AdminSettings = () => {
     }
   }, [settings.googleClientId, settings.googleClientSecret, toast]);
 
-  const handleSettingChange = (field: string, value: string | boolean) => {
+  const handleSettingChange = (field: string, value: string | boolean | number) => {
     setSettings(prev => ({
       ...prev,
       [field]: value
@@ -730,32 +758,50 @@ const AdminSettings = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="bookingLink" className="text-sm">Pautan Tempahan</Label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="bookingLink"
-                        value={settings.bookingLink}
-                        onChange={(e) => handleSettingChange('bookingLink', e.target.value)}
-                        placeholder="https://studio.com/book"
-                        className="pl-9"
-                      />
+                  <Label htmlFor="bookingLink" className="text-sm">Pautan Tempahan Awam</Label>
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <ExternalLink className="h-4 w-4 text-primary" />
+                      <h4 className="text-sm font-semibold text-primary">Pautan Tempahan Studio</h4>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(settings.bookingLink);
-                        toast({
-                          description: "Link copied!",
-                        });
-                      }}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
+                    <p className="text-muted-foreground text-xs mb-3">
+                      Kongsi pautan ini dengan pelanggan untuk membuat tempahan secara langsung
+                    </p>
+                    <div className="bg-background border rounded-md p-2 mb-3">
+                      <code className="text-xs font-mono break-all">{bookingLink && bookingLink !== settings.bookingLink ? bookingLink : settings.bookingLink}</code>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          const link = bookingLink && bookingLink !== settings.bookingLink ? bookingLink : settings.bookingLink;
+                          navigator.clipboard.writeText(link);
+                          toast({
+                            description: "Pautan telah disalin!",
+                          });
+                        }}
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Salin
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const link = bookingLink && bookingLink !== settings.bookingLink ? bookingLink : settings.bookingLink;
+                          window.open(link, '_blank');
+                        }}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Buka
+                      </Button>
+                    </div>
                   </div>
                 </div>
+
+                <Separator />
+
+                
               </CardContent>
             </Card>
 
@@ -926,14 +972,49 @@ const AdminSettings = () => {
               {isSuperAdmin && <StudioSelector />}
             </div>
 
-            {/* Settings Form */}
-            <div className="space-y-6">
-              {/* Basic Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Maklumat Asas Studio</CardTitle>
-                  <CardDescription>Maklumat umum tentang studio anda</CardDescription>
-                </CardHeader>
+            {/* Settings Tabs */}
+            <Tabs defaultValue="maklumat-asas" className="w-full">
+              <div className="border-b border-border">
+                <TabsList className="grid w-full grid-cols-4 md:flex md:w-auto h-auto p-0 bg-transparent justify-start">
+                  <TabsTrigger 
+                    value="maklumat-asas" 
+                    className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    <span className="mr-2">🏢</span>
+                    Maklumat Asas Studio
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="google-calendar" 
+                    className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    <span className="mr-2">📅</span>
+                    Google Calendar
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="pakej" 
+                    className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    <span className="mr-2">📦</span>
+                    Pakej
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="booking-form" 
+                    className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    <span className="mr-2">📋</span>
+                    Booking Form
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              {/* Tab 1: Maklumat Asas Studio */}
+              <TabsContent value="maklumat-asas" className="space-y-6 mt-6">
+                {/* Basic Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Maklumat Asas Studio</CardTitle>
+                    <CardDescription>Maklumat umum tentang studio anda</CardDescription>
+                  </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -1089,512 +1170,622 @@ const AdminSettings = () => {
                 </CardContent>
               </Card>
 
-              {/* OAuth Credentials */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Google OAuth Credentials</CardTitle>
-                  <CardDescription>API credentials from Google Cloud Console</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="googleClientId">Client ID</Label>
-                    <Input
-                      id="googleClientId"
-                      type="password"
-                      value={settings.googleClientId}
-                      onChange={(e) => handleSettingChange('googleClientId', e.target.value)}
-                      placeholder="Your Google OAuth Client ID"
-                    />
-                  </div>
+                {/* Save Button for Tab 1 */}
+                <div className="flex justify-end">
+                  <Button onClick={saveSettings} size="lg" disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Menyimpan...
+                      </>
+                    ) : (
+                      'Simpan Tetapan'
+                    )}
+                  </Button>
+                </div>
+              </TabsContent>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="googleClientSecret">Client Secret</Label>
-                    <Input
-                      id="googleClientSecret"
-                      type="password"
-                      value={settings.googleClientSecret}
-                      onChange={(e) => handleSettingChange('googleClientSecret', e.target.value)}
-                      placeholder="Your Google OAuth Client Secret"
-                    />
-                  </div>
+              {/* Tab 2: Google Calendar */}
+              <TabsContent value="google-calendar" className="space-y-6 mt-6">
+                {/* Google OAuth Credentials */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Google Calendar Keys</CardTitle>
+                    <CardDescription>API credentials from Google Cloud Console</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="googleClientIdTab2">Client ID</Label>
+                      <Input
+                        id="googleClientIdTab2"
+                        type="password"
+                        value={settings.googleClientId}
+                        onChange={(e) => handleSettingChange('googleClientId', e.target.value)}
+                        placeholder="Your Google OAuth Client ID"
+                      />
+                    </div>
 
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={async () => {
-                        if (!settings.googleClientId || !settings.googleClientSecret) {
-                          toast({
-                            title: "Error",
-                            description: "Please enter both Client ID and Client Secret first",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
+                    <div className="space-y-2">
+                      <Label htmlFor="googleClientSecretTab2">Client Secret</Label>
+                      <Input
+                        id="googleClientSecretTab2"
+                        type="password"
+                        value={settings.googleClientSecret}
+                        onChange={(e) => handleSettingChange('googleClientSecret', e.target.value)}
+                        placeholder="Your Google OAuth Client Secret"
+                      />
+                    </div>
 
-                        try {
-                          const result = await saveGoogleCredentials(settings.googleClientId, settings.googleClientSecret);
-                          if (result.success) {
-                            toast({
-                              title: "Success",
-                              description: "OAuth credentials saved successfully",
-                            });
-                            // Reload settings to update configured status
-                            const data = await loadStudioSettings();
-                            if (data) {
-                              setSettings(prev => ({
-                                ...prev,
-                                googleClientIdConfigured: true
-                              }));
-                            }
-                          } else {
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={async () => {
+                          if (!settings.googleClientId || !settings.googleClientSecret) {
                             toast({
                               title: "Error",
-                              description: result.error || "Failed to save credentials",
+                              description: "Please enter both Client ID and Client Secret first",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+
+                          try {
+                            const result = await saveGoogleCredentials(settings.googleClientId, settings.googleClientSecret);
+                            if (result.success) {
+                              toast({
+                                title: "Success",
+                                description: "OAuth credentials saved successfully",
+                              });
+                              const data = await loadStudioSettings(effectiveStudioId);
+                              if (data) {
+                                setSettings(prev => ({
+                                  ...prev,
+                                  googleClientIdConfigured: true
+                                }));
+                              }
+                            } else {
+                              toast({
+                                title: "Error",
+                                description: result.error || "Failed to save credentials",
+                                variant: "destructive",
+                              });
+                            }
+                          } catch (error) {
+                            toast({
+                              title: "Error",
+                              description: "Failed to save credentials",
                               variant: "destructive",
                             });
                           }
-                        } catch (error) {
-                          toast({
-                            title: "Error",
-                            description: "Failed to save credentials",
-                            variant: "destructive",
-                          });
-                        }
-                      }}
-                      disabled={!settings.googleClientId || !settings.googleClientSecret}
-                    >
-                      Save Credentials
-                    </Button>
-                  </div>
-
-                  {settings.googleClientIdConfigured && (
-                    <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm text-green-800">Credentials configured</span>
+                        }}
+                        disabled={!settings.googleClientId || !settings.googleClientSecret}
+                      >
+                        Save Credentials
+                      </Button>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
 
-              {/* Google Calendar Integration */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Integrasi Google Calendar</CardTitle>
-                  <CardDescription>Automatik tambah tempahan ke kalendar Google</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="text-base">Google Calendar Integration</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Apabila dihidupkan, tempahan baru akan automatik ditambah ke kalendar Google anda
-                      </p>
+                    {settings.googleClientIdConfigured && (
+                      <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-sm text-green-800">Credentials configured</span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Google Calendar Integration */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Integrasi Google Calendar</CardTitle>
+                    <CardDescription>Automatik tambah tempahan ke kalendar Google</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label className="text-base">Enable Integration</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Tempahan baru automatik ditambah ke kalendar Google
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings.googleCalendarEnabled}
+                        onCheckedChange={(checked) => handleSettingChange('googleCalendarEnabled', checked)}
+                      />
                     </div>
-                    <Switch
-                      checked={settings.googleCalendarEnabled}
-                      onCheckedChange={(checked) => handleSettingChange('googleCalendarEnabled', checked)}
-                    />
-                  </div>
 
-                  {settings.googleCalendarEnabled && (
-                    <div className="space-y-4">
-                      {!settings.googleClientIdConfigured && (
-                        <div className="rounded-md bg-yellow-50 p-4 border border-yellow-200">
-                          <div className="flex">
-                            <div className="flex-shrink-0">
-                              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                              </svg>
-                            </div>
-                            <div className="ml-3">
-                              <h3 className="text-sm font-medium text-yellow-800">Setup Required</h3>
-                              <div className="mt-2 text-sm text-yellow-700">
-                                <p>Please enter your Google OAuth credentials above first.</p>
+                    {settings.googleCalendarEnabled && (
+                      <div className="space-y-4">
+                        {!settings.googleClientIdConfigured && (
+                          <div className="rounded-md bg-yellow-50 p-4 border border-yellow-200">
+                            <div className="flex">
+                              <div className="flex-shrink-0">
+                                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                              <div className="ml-3">
+                                <h3 className="text-sm font-medium text-yellow-800">Setup Required</h3>
+                                <div className="mt-2 text-sm text-yellow-700">
+                                  <p>Please configure your Google OAuth credentials first.</p>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {settings.googleClientIdConfigured && !settings.googleRefreshTokenConfigured && (
-                        <div className="rounded-md bg-blue-50 p-4 border border-blue-200">
-                          <div className="flex">
-                            <div className="flex-shrink-0">
-                              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                              </svg>
-                            </div>
-                            <div className="ml-3">
-                              <h3 className="text-sm font-medium text-blue-800">Authorization Required</h3>
-                              <div className="mt-2 text-sm text-blue-700">
-                                <p>Click the button below to authorize access to your Google Calendar.</p>
+                        {settings.googleClientIdConfigured && !settings.googleRefreshTokenConfigured && (
+                          <div className="rounded-md bg-blue-50 p-4 border border-blue-200">
+                            <div className="flex">
+                              <div className="flex-shrink-0">
+                                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                              <div className="ml-3">
+                                <h3 className="text-sm font-medium text-blue-800">Authorization Required</h3>
+                                <div className="mt-2 text-sm text-blue-700">
+                                  <p>Click the button below to authorize access to your Google Calendar.</p>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <div className="mt-4">
-                            <Button
-                              onClick={async () => {
-                                try {
-                                  // First, save all settings to ensure Google Calendar settings are persisted
-                                  const settingsResult = await saveStudioSettings(settings, []);
-                                  if (!settingsResult.success) {
-                                    toast({
-                                      title: "Error",
-                                      description: "Failed to save settings before authorization",
-                                      variant: "destructive",
-                                    });
-                                    return;
-                                  }
-
-                                  toast({
-                                    title: "Settings saved",
-                                    description: "Redirecting to Google for authorization...",
-                                  });
-
-                                  // Now initiate OAuth flow
-                                  const { authUrl } = await initiateGoogleAuth(settings.googleClientId);
-                                  // Store both client ID and secret in session storage for the callback
-                                  sessionStorage.setItem('googleClientId', settings.googleClientId);
-                                  sessionStorage.setItem('googleClientSecret', settings.googleClientSecret);
-                                  window.location.href = authUrl; // Redirect to Google OAuth
-                                } catch (error) {
-                                  toast({
-                                    title: "Error",
-                                    description: "Failed to initiate authorization",
-                                    variant: "destructive",
-                                  });
-                                }
-                              }}
-                            >
-                              Authorize Google Calendar
-                            </Button>
-                            <p className="text-xs text-muted-foreground mt-2">
-                              This will save your settings and redirect you to Google for authorization
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Check for tokens in localStorage that need to be imported */}
-                      {!settings.googleRefreshTokenConfigured && localStorage.getItem('temp_google_refresh_token') && (
-                        <div className="rounded-md bg-orange-50 p-4 border border-orange-200">
-                          <div className="flex">
-                            <div className="flex-shrink-0">
-                              <svg className="h-5 w-5 text-orange-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                              </svg>
-                            </div>
-                            <div className="ml-3 flex-1">
-                              <h3 className="text-sm font-medium text-orange-800">Tokens Ready for Import</h3>
-                              <div className="mt-2 text-sm text-orange-700">
-                                <p>OAuth tokens were obtained but couldn't be saved to database. Click below to import them.</p>
-                              </div>
-                              <div className="mt-3">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={async () => {
-                                    try {
-                                      const refreshToken = localStorage.getItem('temp_google_refresh_token');
-                                      const accessToken = localStorage.getItem('temp_google_access_token');
-                                      const expiresAt = localStorage.getItem('temp_google_token_expires_at');
-
-                                      if (!refreshToken || !accessToken || !expiresAt) {
-                                        toast({
-                                          title: "Error",
-                                          description: "Token data is incomplete",
-                                          variant: "destructive",
-                                        });
-                                        return;
-                                      }
-
-                                      // Import tokens to database
-                                      const { data: { session } } = await supabase.auth.getSession();
-                                      if (!session?.user) {
-                                        throw new Error('No authenticated user');
-                                      }
-
-                                      const { data: adminUser, error: adminError } = await supabase
-                                        .from('admin_users')
-                                        .select('studio_id')
-                                        .eq('auth_user_id', session.user.id)
-                                        .eq('is_active', true)
-                                        .single();
-
-                                      if (adminError || !adminUser) {
-                                        throw new Error('Failed to find admin studio');
-                                      }
-
-                                      const { error: updateError } = await supabase
-                                        .from('studios')
-                                        .update({
-                                          google_refresh_token: refreshToken,
-                                          google_access_token: accessToken,
-                                          google_token_expires_at: expiresAt,
-                                          updated_at: new Date().toISOString()
-                                        })
-                                        .eq('id', adminUser.studio_id);
-
-                                      if (updateError) {
-                                        throw updateError;
-                                      }
-
-                                      // Clear localStorage
-                                      localStorage.removeItem('temp_google_refresh_token');
-                                      localStorage.removeItem('temp_google_access_token');
-                                      localStorage.removeItem('temp_google_token_expires_at');
-
+                            <div className="mt-4">
+                              <Button
+                                onClick={async () => {
+                                  try {
+                                    const settingsResult = await saveStudioSettings(settings, []);
+                                    if (!settingsResult.success) {
                                       toast({
-                                        title: "Success",
-                                        description: "Tokens imported successfully! Google Calendar is now connected.",
-                                      });
-
-                                      // Reload settings
-                                      const data = await loadStudioSettings();
-                                      if (data) {
-                                        setSettings(prev => ({
-                                          ...prev,
-                                          googleRefreshTokenConfigured: true
-                                        }));
-                                      }
-                                    } catch (error) {
-                                      console.error('Error importing tokens:', error);
-                                      toast({
-                                        title: "Import Failed",
-                                        description: "Failed to import tokens to database",
+                                        title: "Error",
+                                        description: "Failed to save settings before authorization",
                                         variant: "destructive",
                                       });
+                                      return;
                                     }
-                                  }}
-                                >
-                                  Import Tokens
+
+                                    toast({
+                                      title: "Settings saved",
+                                      description: "Redirecting to Google for authorization...",
+                                    });
+
+                                    const { authUrl } = await initiateGoogleAuth(settings.googleClientId);
+                                    sessionStorage.setItem('googleClientId', settings.googleClientId);
+                                    sessionStorage.setItem('googleClientSecret', settings.googleClientSecret);
+                                    window.location.href = authUrl;
+                                  } catch (error) {
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to initiate authorization",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
+                              >
+                                Authorize Google Calendar
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {settings.googleRefreshTokenConfigured && (
+                          <div className="rounded-md bg-green-50 p-4 border border-green-200">
+                            <div className="flex">
+                              <div className="flex-shrink-0">
+                                <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                              <div className="ml-3">
+                                <h3 className="text-sm font-medium text-green-800">Google Calendar Connected</h3>
+                                <div className="mt-1 text-sm text-green-700">
+                                  <p>Calendar events will be automatically created for new bookings.</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="space-y-2">
+                          <Label htmlFor="googleCalendarIdTab2">ID Kalendar Google</Label>
+                          <Input
+                            id="googleCalendarIdTab2"
+                            value={settings.googleCalendarId}
+                            onChange={(e) => handleSettingChange('googleCalendarId', e.target.value)}
+                            placeholder="primary atau calendar-id@group.calendar.google.com"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Gunakan 'primary' untuk kalendar utama atau dapatkan ID dari tetapan kalendar Google anda
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Save Button for Tab 2 */}
+                <div className="flex justify-end">
+                  <Button onClick={saveSettings} size="lg" disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Menyimpan...
+                      </>
+                    ) : (
+                      'Simpan Tetapan'
+                    )}
+                  </Button>
+                </div>
+              </TabsContent>
+
+              {/* Tab 3: Pakej */}
+              <TabsContent value="pakej" className="space-y-6 mt-6">
+                {/* Studio Layouts */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Layout Studio</CardTitle>
+                    <CardDescription>Urus Layout dan kemudahan studio</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Existing Layouts */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Layout Semasa</h4>
+                      {layouts.map((layout, index) => (
+                        <div key={layout.id} className="border rounded-lg p-4 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Switch
+                                checked={layout.is_active}
+                                onCheckedChange={(checked) => handleLayoutChange(index, 'is_active', checked)}
+                              />
+                              <h5 className="font-medium">{layout.name}</h5>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => removeLayout(index)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label>Nama Layout</Label>
+                              <Input
+                                value={layout.name}
+                                onChange={(e) => handleLayoutChange(index, 'name', e.target.value)}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Kapasiti</Label>
+                              <Input
+                                type="number"
+                                value={layout.capacity}
+                                onChange={(e) => handleLayoutChange(index, 'capacity', parseInt(e.target.value))}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Harga per Jam (RM)</Label>
+                              <Input
+                                type="number"
+                                value={layout.price_per_hour}
+                                onChange={(e) => handleLayoutChange(index, 'price_per_hour', parseInt(e.target.value))}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label>Gambar</Label>
+                              <div className="flex gap-2">
+                                <Input
+                                  value={layout.image}
+                                  onChange={(e) => handleLayoutChange(index, 'image', e.target.value)}
+                                  placeholder="URL gambar"
+                                />
+                                <Button variant="outline" size="sm">
+                                  <Upload className="h-4 w-4" />
                                 </Button>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      )}
 
-                      {settings.googleRefreshTokenConfigured && (
-                        <div className="rounded-md bg-green-50 p-4 border border-green-200">
-                          <div className="flex">
-                            <div className="flex-shrink-0">
-                              <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                              </svg>
-                            </div>
-                            <div className="ml-3">
-                              <h3 className="text-sm font-medium text-green-800">Google Calendar Connected</h3>
-                              <div className="mt-1 text-sm text-green-700">
-                                <p>Calendar events will be automatically created for new bookings.</p>
-                              </div>
-                            </div>
+                          <div className="space-y-2">
+                            <Label>Perihal</Label>
+                            <Textarea
+                              value={layout.description}
+                              onChange={(e) => handleLayoutChange(index, 'description', e.target.value)}
+                              placeholder="Huraian Layout"
+                            />
                           </div>
                         </div>
-                      )}
-
-                      <div className="space-y-2">
-                        <Label htmlFor="googleCalendarId">ID Kalendar Google</Label>
-                        <Input
-                          id="googleCalendarId"
-                          value={settings.googleCalendarId}
-                          onChange={(e) => handleSettingChange('googleCalendarId', e.target.value)}
-                          placeholder="primary atau calendar-id@group.calendar.google.com"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Gunakan 'primary' untuk kalendar utama atau dapatkan ID dari tetapan kalendar Google anda
-                        </p>
-                      </div>
+                      ))}
                     </div>
-                  )}
-                </CardContent>
-              </Card>
 
-              {/* Booking Link */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Pautan Tempahan</CardTitle>
-                  <CardDescription>Pautan untuk sistem tempahan</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="bookingLink">Pautan Tempahan</Label>
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="bookingLink"
-                          value={settings.bookingLink}
-                          onChange={(e) => handleSettingChange('bookingLink', e.target.value)}
-                          placeholder="https://studio.com/book"
-                          className="pl-9"
-                        />
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          navigator.clipboard.writeText(settings.bookingLink);
-                          toast({
-                            description: "Link copied!",
-                          });
-                        }}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    {/* Add New Layout */}
+                    <Separator />
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Tambah Pilihan Layout</h4>
 
-              {/* Studio Layouts */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Layout Studio</CardTitle>
-                  <CardDescription>Urus Layout dan kemudahan studio</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Existing Layouts */}
-                  <div className="space-y-4">
-                    <h4 className="font-medium">Layout Semasa</h4>
-                    {layouts.map((layout, index) => (
-                      <div key={layout.id} className="border rounded-lg p-4 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Switch
-                              checked={layout.is_active}
-                              onCheckedChange={(checked) => handleLayoutChange(index, 'is_active', checked)}
-                            />
-                            <h5 className="font-medium">{layout.name}</h5>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => removeLayout(index)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Nama Layout</Label>
-                            <Input
-                              value={layout.name}
-                              onChange={(e) => handleLayoutChange(index, 'name', e.target.value)}
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label>Kapasiti</Label>
-                            <Input
-                              type="number"
-                              value={layout.capacity}
-                              onChange={(e) => handleLayoutChange(index, 'capacity', parseInt(e.target.value))}
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label>Harga per Jam (RM)</Label>
-                            <Input
-                              type="number"
-                              value={layout.price_per_hour}
-                              onChange={(e) => handleLayoutChange(index, 'price_per_hour', parseInt(e.target.value))}
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label>Gambar</Label>
-                            <div className="flex gap-2">
-                              <Input
-                                value={layout.image}
-                                onChange={(e) => handleLayoutChange(index, 'image', e.target.value)}
-                                placeholder="URL gambar"
-                              />
-                              <Button variant="outline" size="sm">
-                                <Upload className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Nama Layout</Label>
+                          <Input
+                            value={newLayout.name}
+                            onChange={(e) => setNewLayout(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder="Nama Layout"
+                          />
                         </div>
 
                         <div className="space-y-2">
-                          <Label>Perihal</Label>
-                          <Textarea
-                            value={layout.description}
-                            onChange={(e) => handleLayoutChange(index, 'description', e.target.value)}
-                            placeholder="Huraian Layout"
+                          <Label>Kapasiti</Label>
+                          <Input
+                            type="number"
+                            value={newLayout.capacity}
+                            onChange={(e) => setNewLayout(prev => ({ ...prev, capacity: parseInt(e.target.value) }))}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Harga per Jam (RM)</Label>
+                          <Input
+                            type="number"
+                            value={newLayout.price_per_hour}
+                            onChange={(e) => setNewLayout(prev => ({ ...prev, price_per_hour: parseInt(e.target.value) }))}
                           />
                         </div>
                       </div>
-                    ))}
-                  </div>
 
-                  {/* Add New Layout */}
-                  <Separator />
-                  <div className="space-y-4">
-                    <h4 className="font-medium">Tambah Pilihan Layout</h4>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label>Nama Layout</Label>
-                        <Input
-                          value={newLayout.name}
-                          onChange={(e) => setNewLayout(prev => ({ ...prev, name: e.target.value }))}
-                          placeholder="Nama Layout"
+                        <Label>Perihal</Label>
+                        <Textarea
+                          value={newLayout.description}
+                          onChange={(e) => setNewLayout(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Huraian Layout"
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <Label>Kapasiti</Label>
-                        <Input
-                          type="number"
-                          value={newLayout.capacity}
-                          onChange={(e) => setNewLayout(prev => ({ ...prev, capacity: parseInt(e.target.value) }))}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Harga per Jam (RM)</Label>
-                        <Input
-                          type="number"
-                          value={newLayout.price_per_hour}
-                          onChange={(e) => setNewLayout(prev => ({ ...prev, price_per_hour: parseInt(e.target.value) }))}
-                        />
-                      </div>
+                      <Button onClick={addNewLayout} className="w-full">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Tambah Pilihan Layout
+                      </Button>
                     </div>
+                  </CardContent>
+                </Card>
 
+                {/* Save Button for Tab 3 */}
+                <div className="flex justify-end">
+                  <Button onClick={saveSettings} size="lg" disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Menyimpan...
+                      </>
+                    ) : (
+                      'Simpan Tetapan'
+                    )}
+                  </Button>
+                </div>
+              </TabsContent>
+
+              {/* Tab 4: Booking Form */}
+              <TabsContent value="booking-form" className="space-y-6 mt-6">
+                {/* Booking Link */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Pautan Tempahan</CardTitle>
+                    <CardDescription>Pautan untuk sistem tempahan</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Perihal</Label>
-                      <Textarea
-                        value={newLayout.description}
-                        onChange={(e) => setNewLayout(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="Huraian Layout"
-                      />
+                      <Label htmlFor="bookingLinkTab4">Pautan Tempahan Awam</Label>
+                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-6">
+                        <div className="flex items-center gap-2 mb-2">
+                          <ExternalLink className="h-4 w-4 text-primary" />
+                          <h4 className="text-sm font-semibold text-primary">Pautan Tempahan Studio</h4>
+                        </div>
+                        <p className="text-muted-foreground mb-3">
+                          Kongsi pautan ini dengan pelanggan untuk membuat tempahan secara langsung
+                        </p>
+                        <div className="bg-background border rounded-md p-3 mb-3">
+                          <code className="text-sm font-mono break-all">{bookingLink && bookingLink !== settings.bookingLink ? bookingLink : settings.bookingLink}</code>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button
+                            onClick={() => {
+                              const link = bookingLink && bookingLink !== settings.bookingLink ? bookingLink : settings.bookingLink;
+                              navigator.clipboard.writeText(link);
+                              toast({
+                                description: "Pautan telah disalin!",
+                              });
+                            }}
+                          >
+                            <Copy className="h-4 w-4 mr-2" />
+                            Salin
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              const link = bookingLink && bookingLink !== settings.bookingLink ? bookingLink : settings.bookingLink;
+                              window.open(link, '_blank');
+                            }}
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Buka
+                          </Button>
+                        </div>
+                      </div>
                     </div>
 
-                    <Button onClick={addNewLayout} className="w-full">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Tambah Pilihan Layout
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                    <Separator />
 
-              {/* Save Button */}
-              <div className="flex justify-end">
-                <Button onClick={saveSettings} size="lg" disabled={isSaving}>
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Menyimpan...
-                    </>
-                  ) : (
-                    'Simpan Tetapan'
-                  )}
-                </Button>
-              </div>
-            </div>
+                    
+                  </CardContent>
+                </Card>
+
+                {/* Terms and Conditions Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Terma dan Syarat</CardTitle>
+                    <CardDescription>Tetapkan terma dan syarat yang akan dipaparkan dalam borang tempahan</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-3">
+                      <Label>Jenis Terma dan Syarat</Label>
+                      <div className="flex flex-col space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="tc-none"
+                            name="termsType"
+                            value="none"
+                            checked={settings.termsConditionsType === 'none'}
+                            onChange={() => handleSettingChange('termsConditionsType', 'none')}
+                            className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
+                          />
+                          <Label htmlFor="tc-none" className="text-sm">Tiada terma dan syarat</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="tc-text"
+                            name="termsType"
+                            value="text"
+                            checked={settings.termsConditionsType === 'text'}
+                            onChange={() => handleSettingChange('termsConditionsType', 'text')}
+                            className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
+                          />
+                          <Label htmlFor="tc-text" className="text-sm">Taipkan teks terma dan syarat</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="tc-pdf"
+                            name="termsType"
+                            value="pdf"
+                            checked={settings.termsConditionsType === 'pdf'}
+                            onChange={() => handleSettingChange('termsConditionsType', 'pdf')}
+                            className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
+                          />
+                          <Label htmlFor="tc-pdf" className="text-sm">Muat naik fail PDF</Label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {settings.termsConditionsType === 'text' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="termsText">Teks Terma dan Syarat</Label>
+                        <Textarea
+                          id="termsText"
+                          value={settings.termsConditionsText}
+                          onChange={(e) => handleSettingChange('termsConditionsText', e.target.value)}
+                          placeholder="Taip terma dan syarat studio anda di sini..."
+                          rows={6}
+                          className="min-h-[120px]"
+                        />
+                      </div>
+                    )}
+
+                    {settings.termsConditionsType === 'pdf' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="termsPdf">Fail PDF Terma dan Syarat</Label>
+                        <Input
+                          id="termsPdf"
+                          type="file"
+                          accept=".pdf"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleSettingChange('termsConditionsPdf', file.name);
+                            }
+                          }}
+                        />
+                        {settings.termsConditionsPdf && (
+                          <p className="text-sm text-muted-foreground">
+                            Fail semasa: {settings.termsConditionsPdf}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Time Slot Configuration */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Konfigurasi Slot Masa</CardTitle>
+                    <CardDescription>Tetapkan jarak antara slot masa dalam borang tempahan</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="timeSlotGap">Jarak Slot Masa</Label>
+                      <Select value={settings.timeSlotGap.toString()} onValueChange={(value) => handleSettingChange('timeSlotGap', parseInt(value))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih jarak slot masa" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="15">15 minit</SelectItem>
+                          <SelectItem value="30">30 minit</SelectItem>
+                          <SelectItem value="45">45 minit</SelectItem>
+                          <SelectItem value="60">1 jam</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-muted-foreground">
+                        Slot masa akan dipaparkan dengan jarak {settings.timeSlotGap} minit antara setiap pilihan.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Studio Logo Upload */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Logo Studio</CardTitle>
+                    <CardDescription>Muat naik logo perniagaan studio untuk dipaparkan dalam borang tempahan</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="studioLogo">Logo Studio</Label>
+                      <Input
+                        id="studioLogo"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            // In a real app, you would upload to a cloud storage and store the URL
+                            // For now, we'll just store the file name as placeholder
+                            handleSettingChange('studioLogo', file.name);
+                          }
+                        }}
+                      />
+                      {settings.studioLogo ? (
+                        <div className="flex items-center space-x-2 p-2 bg-muted rounded-md">
+                          <span className="text-sm">Logo semasa: {settings.studioLogo}</span>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Jika tiada logo dimuat naik, logo lalai akan digunakan.
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Save Button for Tab 4 */}
+                <div className="flex justify-end">
+                  <Button onClick={saveSettings} size="lg" disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Menyimpan...
+                      </>
+                    ) : (
+                      'Simpan Tetapan'
+                    )}
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
       </div>

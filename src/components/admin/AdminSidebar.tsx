@@ -9,6 +9,7 @@ import {
   Building2,
   Shield,
   Key,
+  Send,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 const navigation = [
   { name: 'Papan Pemuka', href: '/admin', icon: LayoutDashboard },
   { name: 'Tempahan', href: '/admin/bookings', icon: Calendar },
+  { name: 'Whatsapp Blaster', href: '/admin/whatsapp-blaster', icon: Send },
   { name: 'Laporan', href: '/admin/reports', icon: FileText },
   { name: 'Tetapan', href: '/admin/settings', icon: Settings },
 ];

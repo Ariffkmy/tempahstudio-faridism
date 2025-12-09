@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Search, Download, CalendarDays, List, Clock, User, Plus, Copy, ExternalLink, Menu, Home, BarChart3, Cog, LogOut, Building2 } from 'lucide-react';
+import { Search, Download, CalendarDays, List, Clock, User, Plus, Copy, ExternalLink, Menu, Home, BarChart3, Cog, LogOut, Building2, Send } from 'lucide-react';
 import { Booking } from '@/types/booking';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveStudioId } from '@/contexts/StudioContext';
@@ -37,6 +37,7 @@ import { ms } from 'date-fns/locale';
 const navigation = [
   { name: 'Papan Pemuka', href: '/admin', icon: Home },
   { name: 'Tempahan', href: '/admin/bookings', icon: CalendarDays },
+  { name: 'Whatsapp Blaster', href: '/admin/whatsapp-blaster', icon: Send },
   { name: 'Laporan', href: '/admin/reports', icon: BarChart3 },
   { name: 'Tetapan', href: '/admin/settings', icon: Cog },
 ];

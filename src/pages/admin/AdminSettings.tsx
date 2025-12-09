@@ -2055,7 +2055,7 @@ const AdminSettings = () => {
                             <Label htmlFor="footerTrademark" className="text-sm">Trademark</Label>
                             <Input
                               id="footerTrademark"
-                              placeholder="© 2025 {{BrandName}}. All rights reserved."
+                              placeholder=" 2025 {{BrandName}}. All rights reserved."
                               value={settings.footerTrademark}
                               onChange={(e) => handleSettingChange('footerTrademark', e.target.value)}
                             />

@@ -14,7 +14,7 @@ const AdminRegister = () => {
   const { toast } = useToast();
   const { register, isAuthenticated, isLoading: authLoading } = useAuth();
   const isMobile = useIsMobile();
-  
+
   // Form state
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -25,7 +25,7 @@ const AdminRegister = () => {
   const [studioLocation, setStudioLocation] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
   // Form loading state
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -61,7 +61,7 @@ const AdminRegister = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form
     const validationError = validateForm();
     if (validationError) {
@@ -91,7 +91,8 @@ const AdminRegister = () => {
         title: 'Pendaftaran Berjaya!',
         description: 'Akaun anda telah dibuat. Sila semak emel untuk pengesahan.',
       });
-      navigate('/admin/login');
+      // Navigate to email verification page with email in state
+      navigate('/admin/verify-email', { state: { email } });
     } else {
       toast({
         title: 'Pendaftaran Gagal',
@@ -254,9 +255,9 @@ const AdminRegister = () => {
               </div>
 
               {/* Submit Button */}
-              <Button 
-                type="submit" 
-                className="w-full" 
+              <Button
+                type="submit"
+                className="w-full"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Mendaftar...' : 'Daftar Akaun'}
@@ -268,8 +269,8 @@ const AdminRegister = () => {
               <p className="text-sm text-muted-foreground">
                 Sudah mempunyai akaun?
               </p>
-              <Link 
-                to="/admin/login" 
+              <Link
+                to="/admin/login"
                 className="text-sm text-primary hover:underline font-medium"
               >
                 Log masuk di sini

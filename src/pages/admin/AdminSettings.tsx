@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { StudioSelector } from '@/components/admin/StudioSelector';
@@ -23,8 +23,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink, Palette, Image as ImageIcon, Users as UsersIcon } from 'lucide-react';
-import { loadStudioSettings, saveStudioSettings, updateStudioLayouts, saveGoogleCredentials, initiateGoogleAuth, exchangeGoogleCode } from '@/services/studioSettings';
+import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink, Palette, Image as ImageIcon, Users as UsersIcon, Trash } from 'lucide-react';
+import { loadStudioSettings, saveStudioSettings, updateStudioLayouts, saveGoogleCredentials, initiateGoogleAuth, exchangeGoogleCode, loadStudioPortfolioPhotos, deleteStudioPortfolioPhoto } from '@/services/studioSettings';
 import { uploadLogo } from '@/services/fileUploadService';
 import BookingFormPreview, { PreviewSettings } from '@/components/booking/preview/BookingFormPreview';
 import { supabase } from '@/lib/supabase';
@@ -50,6 +50,10 @@ const AdminSettings = () => {
   const isMobile = useIsMobile();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [portfolioPhotos, setPortfolioPhotos] = useState<string[]>([]);
+  const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
+  const [deletingPhotoUrl, setDeletingPhotoUrl] = useState<string | null>(null);
   const [settings, setSettings] = useState({
     studioName: '',
     studioLocation: '',
@@ -202,6 +206,70 @@ const AdminSettings = () => {
 
     loadSettings();
   }, [toast, effectiveStudioId]);
+
+  // Load portfolio photos
+  const fetchPortfolioPhotos = useCallback(async () => {
+    if (!effectiveStudioId) return;
+    setIsLoadingPortfolio(true);
+    try {
+      const photos = await loadStudioPortfolioPhotos(effectiveStudioId);
+      setPortfolioPhotos(photos);
+    } catch (error) {
+      console.error('Failed to load portfolio photos:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load portfolio photos. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingPortfolio(false);
+    }
+  }, [effectiveStudioId, toast]);
+
+  useEffect(() => {
+    fetchPortfolioPhotos();
+  }, [fetchPortfolioPhotos]);
+
+  const handleDeletePortfolioPhoto = useCallback(async (photoUrl: string) => {
+    setDeletingPhotoUrl(photoUrl);
+    try {
+      const { deletePortfolioPhoto } = await import('@/services/fileUploadService');
+
+      // Remove from storage first
+      const storageResult = await deletePortfolioPhoto(photoUrl);
+      if (!storageResult.success) {
+        toast({
+          title: "Delete failed",
+          description: storageResult.error || "Failed to delete photo from storage",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Remove DB record
+      const dbResult = await deleteStudioPortfolioPhoto(photoUrl, effectiveStudioId || undefined);
+      if (!dbResult) {
+        toast({
+          title: "Delete failed",
+          description: "Photo removed from storage but not from database.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Deleted", description: "Portfolio photo deleted." });
+      }
+
+      await fetchPortfolioPhotos();
+    } catch (error) {
+      console.error('Failed to delete portfolio photo:', error);
+      toast({
+        title: "Delete failed",
+        description: "Unexpected error while deleting photo",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingPhotoUrl(null);
+    }
+  }, [effectiveStudioId, fetchPortfolioPhotos, toast]);
 
   // Generate booking link for this studio
   useEffect(() => {
@@ -436,8 +504,9 @@ const AdminSettings = () => {
   const saveSettings = async () => {
     setIsSaving(true);
     try {
+      console.log('[AdminSettings] saving settings payload:', { ...settings, layoutsCount: layouts.length, effectiveStudioId });
       // Save settings
-      const settingsResult = await saveStudioSettings(settings, layouts);
+      const settingsResult = await saveStudioSettings(settings, layouts, effectiveStudioId || undefined);
       if (!settingsResult.success) {
         toast({
           title: "Error",
@@ -448,7 +517,7 @@ const AdminSettings = () => {
       }
 
       // Save layouts separately
-      const layoutsResult = await updateStudioLayouts(layouts);
+      const layoutsResult = await updateStudioLayouts(layouts, effectiveStudioId || undefined);
       if (!layoutsResult.success) {
         toast({
           title: "Warning",
@@ -1566,7 +1635,7 @@ const AdminSettings = () => {
                               <Button
                                 onClick={async () => {
                                   try {
-                                    const settingsResult = await saveStudioSettings(settings, []);
+                                    const settingsResult = await saveStudioSettings(settings, [], effectiveStudioId || undefined);
                                     if (!settingsResult.success) {
                                       toast({
                                         title: "Error",
@@ -1984,18 +2053,63 @@ const AdminSettings = () => {
                         id="studioLogo"
                         type="file"
                         accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            // In a real app, you would upload to a cloud storage and store the URL
-                            // For now, we'll just store the file name as placeholder
-                            handleSettingChange('studioLogo', file.name);
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+
+                        if (!effectiveStudioId) {
+                          toast({
+                            title: "Studio not ready",
+                            description: "Please select a studio before uploading a logo.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+
+                        setIsUploadingLogo(true);
+                        try {
+                          const result = await uploadLogo(file, effectiveStudioId);
+                          if (result.success && result.url) {
+                            handleSettingChange('studioLogo', result.url);
+                            toast({ title: "Logo uploaded", description: "Logo updated successfully." });
+                          } else {
+                            toast({
+                              title: "Upload failed",
+                              description: result.error || "Failed to upload logo",
+                              variant: "destructive",
+                            });
                           }
-                        }}
+                        } catch (error) {
+                          console.error('Logo upload error:', error);
+                          toast({
+                            title: "Upload failed",
+                            description: "Unexpected error while uploading logo",
+                            variant: "destructive",
+                          });
+                        } finally {
+                          setIsUploadingLogo(false);
+                        }
+                      }}
                       />
                       {settings.studioLogo ? (
-                        <div className="flex items-center space-x-2 p-2 bg-muted rounded-md">
-                          <span className="text-sm">Logo semasa: {settings.studioLogo}</span>
+                      <div className="space-y-2 p-3 bg-muted rounded-md">
+                        <span className="text-sm block">Logo semasa:</span>
+                        <div className="relative h-24 w-24 rounded-md border bg-white overflow-hidden flex items-center justify-center">
+                          <img
+                            src={settings.studioLogo}
+                            alt="Studio logo"
+                            className="h-full w-full object-contain"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                          />
+                          {isUploadingLogo && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-white/70">
+                              <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
+                            </div>
+                          )}
+                        </div>
                         </div>
                       ) : (
                         <p className="text-sm text-muted-foreground">
@@ -2074,6 +2188,7 @@ const AdminSettings = () => {
                                           const result = await uploadPortfolioPhoto(file);
                                           if (result.success) {
                                             toast({ title: "Success", description: `${file.name} uploaded successfully` });
+                                            await fetchPortfolioPhotos();
                                           } else {
                                             toast({
                                               title: "Upload failed",
@@ -2098,8 +2213,47 @@ const AdminSettings = () => {
                             {/* Existing Portfolio Photos */}
                             <div className="space-y-2">
                               <Label className="text-xs font-medium">Current Portfolio Photos</Label>
-                              <div className="text-xs text-muted-foreground">
-                                Portfolio photos gallery will be displayed below when enabled
+                              <div className="min-h-[120px] space-y-3">
+                                {isLoadingPortfolio ? (
+                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Loading portfolio photos...
+                                  </div>
+                                ) : portfolioPhotos.length === 0 ? (
+                                  <p className="text-xs text-muted-foreground">
+                                    No portfolio photos uploaded yet.
+                                  </p>
+                                ) : (
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                    {portfolioPhotos.map((photoUrl, idx) => (
+                                      <div
+                                        key={`${photoUrl}-${idx}`}
+                                        className="relative overflow-hidden rounded-md border bg-muted/30 aspect-square"
+                                      >
+                                        <img
+                                          src={photoUrl}
+                                          alt={`Portfolio ${idx + 1}`}
+                                          className="h-full w-full object-cover"
+                                          loading="lazy"
+                                        />
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className="absolute top-1 right-1 h-8 w-8 bg-red-600 hover:bg-red-700 text-white"
+                                          disabled={deletingPhotoUrl === photoUrl}
+                                          onClick={() => handleDeletePortfolioPhoto(photoUrl)}
+                                          aria-label="Delete portfolio photo"
+                                        >
+                                          {deletingPhotoUrl === photoUrl ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                            <Trash className="h-4 w-4" />
+                                          )}
+                                        </Button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>

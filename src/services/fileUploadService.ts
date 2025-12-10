@@ -60,30 +60,6 @@ export async function uploadLogo(file: File, studioId: string): Promise<UploadRe
     const { data: { session } } = await supabase.auth.getSession();
     console.log('Current auth session:', { user: session?.user?.id, sessionValid: !!session?.user });
 
-    // Check if bucket exists, create if not
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-
-    // Add debugging
-    console.log('List buckets result:', { buckets, listError });
-    console.log('Looking for bucket:', LOGO_BUCKET);
-
-    const bucketExists = buckets?.some(b => b.name === LOGO_BUCKET);
-    console.log('Bucket exists?', bucketExists);
-
-    if (!bucketExists) {
-      // Attempt to create bucket with public access - may require admin permissions
-      const { error: bucketError } = await supabase.storage.createBucket(LOGO_BUCKET, {
-        public: true,
-        fileSizeLimit: MAX_LOGO_SIZE,
-        allowedMimeTypes: ALLOWED_FILE_TYPES
-      });
-
-      if (bucketError) {
-        console.warn('Failed to create logo bucket:', bucketError);
-        return { success: false, error: 'Storage not configured. Please contact administrator.' };
-      }
-    }
-
     // Upload file
     const { data, error } = await supabase.storage
       .from(LOGO_BUCKET)
@@ -204,21 +180,6 @@ export async function uploadPortfolioPhoto(file: File): Promise<UploadResult> {
     const fileExt = file.name.split('.').pop();
     const fileName = `${studioId}_${Date.now()}.${fileExt}`;
     const filePath = `${studioId}/${fileName}`;
-
-    // Check if portfolio bucket exists (don't try to create it - may require admin permissions)
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-
-    // Add debugging
-    console.log('Portfolio: List buckets result:', { buckets, listError });
-    console.log('Portfolio: Looking for bucket:', PORTFOLIO_BUCKET);
-
-    const bucketExists = buckets?.some(b => b.name === PORTFOLIO_BUCKET);
-    console.log('Portfolio: Bucket exists?', bucketExists);
-
-    if (!bucketExists) {
-      console.warn('Portfolio bucket does not exist. Please create it in Supabase dashboard.');
-      return { success: false, error: 'Portfolio storage not configured. Please contact administrator.' };
-    }
 
     // Upload file
     const { data, error } = await supabase.storage

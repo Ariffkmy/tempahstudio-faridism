@@ -9,11 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { generateTimeSlots } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
+import { CheckCircle, ArrowRight, Loader2, Upload, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Studio } from '@/types/database';
 import type { StudioLayout } from '@/types/booking';
 import { createPublicBooking } from '@/services/bookingService';
+import { loadStudioSettings } from '@/services/studioSettings';
 
 const NewBooking = () => {
   const navigate = useNavigate();
@@ -40,6 +41,13 @@ const NewBooking = () => {
   const [layouts, setLayouts] = useState<StudioLayout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Portfolio photo upload state
+  // Portfolio photos state (for display, not upload)
+  const [studioPortfolioEnabled, setStudioPortfolioEnabled] = useState(false);
+  const [studioPortfolioPhotos, setStudioPortfolioPhotos] = useState<string[]>([]);
+  const [portfolioUploadInstructions, setPortfolioUploadInstructions] = useState('');
+  const [portfolioMaxFileSize, setPortfolioMaxFileSize] = useState(10);
 
 
 
@@ -78,6 +86,17 @@ const NewBooking = () => {
         }
 
         setStudio(studioData);
+
+        // Load studio settings
+        const studioSettings = await loadStudioSettings(studioId);
+        if (studioSettings) {
+          setStudioPortfolioEnabled(studioSettings.enablePortfolioPhotoUpload);
+        }
+
+        // Load portfolio photos
+        const { loadStudioPortfolioPhotos } = await import('@/services/studioSettings');
+        const portfolioPhotos = await loadStudioPortfolioPhotos(studioId);
+        setStudioPortfolioPhotos(portfolioPhotos);
 
         // Load studio layouts
         const { data: layoutsData, error: layoutsError } = await supabase
@@ -309,6 +328,31 @@ const NewBooking = () => {
                 <h3 className="font-semibold mb-4">Pilih Masa</h3>
                 <div className="text-center py-8 text-muted-foreground">
                   <p>Sila pilih tarikh terlebih dahulu untuk melihat slot masa yang tersedia</p>
+                </div>
+              </Card>
+            )}
+
+            {/* Portfolio Showcase */}
+            {studioPortfolioEnabled && studioPortfolioPhotos.length > 0 && (
+              <Card variant="outline" className="p-4">
+                <h3 className="font-semibold mb-4">Portfolio Gallery</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Take a look at some of our recent work and photography styles
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {studioPortfolioPhotos.map((photoUrl, index) => (
+                    <div key={index} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                      <img
+                        src={photoUrl}
+                        alt={`Portfolio photo ${index + 1}`}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-200 cursor-pointer"
+                        onClick={() => {
+                          // Optional: Open full-size modal or lightbox
+                        }}
+                      />
+                    </div>
+                  ))}
                 </div>
               </Card>
             )}

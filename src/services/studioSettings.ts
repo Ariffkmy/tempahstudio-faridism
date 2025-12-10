@@ -61,6 +61,11 @@ export interface StudioSettings {
   whatsappMessage: string;
   brandColorPrimary: string;
   brandColorSecondary: string;
+
+  // Portfolio photo upload settings
+  enablePortfolioPhotoUpload: boolean;
+  portfolioUploadInstructions: string;
+  portfolioMaxFileSize: number;
 }
 
 export interface StudioSettingsWithLayouts extends StudioSettings {
@@ -194,6 +199,9 @@ export async function loadStudioSettings(studioId?: string): Promise<StudioSetti
       whatsappMessage: studio.whatsapp_message || 'Hubungi kami',
       brandColorPrimary: studio.brand_color_primary || '#000000',
       brandColorSecondary: studio.brand_color_secondary || '#ffffff',
+      enablePortfolioPhotoUpload: (studio as any).enable_portfolio_photo_upload || false,
+      portfolioUploadInstructions: (studio as any).portfolio_upload_instructions || 'Upload your photos for your portfolio session. Maximum 20 photos, each file up to 10MB.',
+      portfolioMaxFileSize: (studio as any).portfolio_max_file_size || 10,
       layouts: layouts || []
     };
 
@@ -207,7 +215,11 @@ export async function loadStudioSettings(studioId?: string): Promise<StudioSetti
 /**
  * Save studio settings to database
  */
-export async function saveStudioSettings(settings: StudioSettings, layouts: StudioLayout[]): Promise<{ success: boolean; error?: string }> {
+export async function saveStudioSettings(
+  settings: StudioSettings,
+  layouts: StudioLayout[],
+  studioId?: string
+): Promise<{ success: boolean; error?: string }> {
   try {
     // Get current admin to find their studio
     const { data: { session } } = await supabase.auth.getSession();
@@ -215,22 +227,60 @@ export async function saveStudioSettings(settings: StudioSettings, layouts: Stud
       return { success: false, error: 'No authenticated user' };
     }
 
-    // Get admin user with studio info
-    const { data: adminUser, error: adminError } = await supabase
-      .from('admin_users')
-      .select('studio_id')
-      .eq('auth_user_id', session.user.id)
-      .eq('is_active', true)
-      .single();
+    let targetStudioId = studioId;
+    if (!targetStudioId) {
+      // Get admin user with studio info
+      const { data: adminUser, error: adminError } = await supabase
+        .from('admin_users')
+        .select('studio_id')
+        .eq('auth_user_id', session.user.id)
+        .eq('is_active', true)
+        .single();
 
-    if (adminError || !adminUser) {
-      return { success: false, error: 'Failed to find admin studio' };
+      if (adminError || !adminUser) {
+        return { success: false, error: 'Failed to find admin studio' };
+      }
+
+      targetStudioId = adminUser.studio_id;
     }
 
-    const studioId = adminUser.studio_id;
+    console.log('[saveStudioSettings] target studio:', targetStudioId);
+    console.log('[saveStudioSettings] payload:', {
+      name: settings.studioName,
+      location: settings.studioLocation,
+      email: settings.studioEmail,
+      google_maps_link: settings.googleMapsLink,
+      waze_link: settings.wazeLink,
+      bank_account_number: settings.bankAccountNumber,
+      account_owner_name: settings.accountOwnerName,
+      qr_code: settings.qrCode,
+      studio_logo: settings.studioLogo,
+      booking_link: settings.bookingLink,
+      google_calendar_enabled: settings.googleCalendarEnabled,
+      google_calendar_id: settings.googleCalendarId,
+      enable_custom_header: settings.enableCustomHeader,
+      enable_custom_footer: settings.enableCustomFooter,
+      enable_whatsapp_button: settings.enableWhatsappButton,
+      header_logo: settings.headerLogo,
+      header_home_enabled: settings.headerHomeEnabled,
+      header_home_url: settings.headerHomeUrl,
+      header_about_enabled: settings.headerAboutEnabled,
+      header_about_url: settings.headerAboutUrl,
+      header_portfolio_enabled: settings.headerPortfolioEnabled,
+      header_portfolio_url: settings.headerPortfolioUrl,
+      header_contact_enabled: settings.headerContactEnabled,
+      header_contact_url: settings.headerContactUrl,
+      footer_whatsapp_link: settings.footerWhatsappLink,
+      footer_facebook_link: settings.footerFacebookLink,
+      footer_instagram_link: settings.footerInstagramLink,
+      footer_trademark: settings.footerTrademark,
+      whatsapp_message: settings.whatsappMessage,
+      brand_color_primary: settings.brandColorPrimary,
+      brand_color_secondary: settings.brandColorSecondary,
+    });
 
     // Update studio settings
-    const { error: studioError } = await supabase
+    const { data: studioUpdate, error: studioError } = await supabase
       .from('studios')
       .update({
         name: settings.studioName,
@@ -241,6 +291,7 @@ export async function saveStudioSettings(settings: StudioSettings, layouts: Stud
         bank_account_number: settings.bankAccountNumber,
         account_owner_name: settings.accountOwnerName,
         qr_code: settings.qrCode,
+        studio_logo: settings.studioLogo,
         booking_link: settings.bookingLink,
         google_calendar_enabled: settings.googleCalendarEnabled,
         google_calendar_id: settings.googleCalendarId,
@@ -266,12 +317,22 @@ export async function saveStudioSettings(settings: StudioSettings, layouts: Stud
         brand_color_secondary: settings.brandColorSecondary,
         updated_at: new Date().toISOString()
       })
-      .eq('id', studioId);
+      .eq('id', targetStudioId)
+      .select('id, studio_logo')
+      .single();
 
     if (studioError) {
       console.error('Failed to update studio:', studioError);
+      console.error('Payload that failed:', settings);
       return { success: false, error: 'Failed to update studio settings' };
     }
+
+    if (!studioUpdate) {
+      console.error('Update returned no data for studio:', targetStudioId);
+      return { success: false, error: 'Studio update returned no data' };
+    }
+
+    console.log('[saveStudioSettings] updated studio:', studioUpdate);
 
     // Update admin user (owner info)
     const { error: adminUpdateError } = await supabase
@@ -302,7 +363,7 @@ export async function saveStudioSettings(settings: StudioSettings, layouts: Stud
 /**
  * Update studio layouts (separate function for now)
  */
-export async function updateStudioLayouts(layouts: StudioLayout[]): Promise<{ success: boolean; error?: string }> {
+export async function updateStudioLayouts(layouts: StudioLayout[], studioId?: string): Promise<{ success: boolean; error?: string }> {
   try {
     // Get current admin to find their studio
     const { data: { session } } = await supabase.auth.getSession();
@@ -310,19 +371,22 @@ export async function updateStudioLayouts(layouts: StudioLayout[]): Promise<{ su
       return { success: false, error: 'No authenticated user' };
     }
 
-    // Get admin user with studio info
-    const { data: adminUser, error: adminError } = await supabase
-      .from('admin_users')
-      .select('studio_id')
-      .eq('auth_user_id', session.user.id)
-      .eq('is_active', true)
-      .single();
+    let targetStudioId = studioId;
+    if (!targetStudioId) {
+      // Get admin user with studio info
+      const { data: adminUser, error: adminError } = await supabase
+        .from('admin_users')
+        .select('studio_id')
+        .eq('auth_user_id', session.user.id)
+        .eq('is_active', true)
+        .single();
 
-    if (adminError || !adminUser) {
-      return { success: false, error: 'Failed to find admin studio' };
+      if (adminError || !adminUser) {
+        return { success: false, error: 'Failed to find admin studio' };
+      }
+
+      targetStudioId = adminUser.studio_id;
     }
-
-    const studioId = adminUser.studio_id;
 
     // For simplicity, delete all existing layouts and insert new ones
     // In a production app, you'd want to do proper diffing
@@ -331,7 +395,7 @@ export async function updateStudioLayouts(layouts: StudioLayout[]): Promise<{ su
     const { error: deleteError } = await supabase
       .from('studio_layouts')
       .delete()
-      .eq('studio_id', studioId);
+      .eq('studio_id', targetStudioId);
 
     if (deleteError) {
       console.error('Failed to delete existing layouts:', deleteError);
@@ -525,5 +589,98 @@ export async function exchangeGoogleCode(
   } catch (error) {
     console.error('Error exchanging Google code:', error);
     return { success: false, error: 'Network error occurred' };
+  }
+}
+
+/**
+ * Load portfolio photos for a specific studio
+ */
+export async function loadStudioPortfolioPhotos(studioId?: string): Promise<string[]> {
+  try {
+    // Get current admin to validate permissions
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      return [];
+    }
+
+    if (!studioId) {
+      // Get current admin's studio
+      const { data: adminUser, error: adminError } = await supabase
+        .from('admin_users')
+        .select('studio_id')
+        .eq('auth_user_id', session.user.id)
+        .eq('is_active', true)
+        .single();
+
+      if (adminError || !adminUser) {
+        console.error('Failed to find admin studio:', adminError);
+        return [];
+      }
+
+      studioId = adminUser.studio_id;
+    }
+
+    // Load portfolio photos
+    const { data: photos, error: photosError } = await supabase
+      .from('portfolio_photos')
+      .select('photo_url')
+      .eq('studio_id', studioId)
+      .order('uploaded_at', { ascending: false });
+
+    if (photosError) {
+      console.error('Failed to load portfolio photos:', photosError);
+      return [];
+    }
+
+    return (photos || []).map(photo => photo.photo_url);
+  } catch (error) {
+    console.error('Error loading portfolio photos:', error);
+    return [];
+  }
+}
+
+/**
+ * Delete a portfolio photo record for a studio
+ */
+export async function deleteStudioPortfolioPhoto(photoUrl: string, studioId?: string): Promise<boolean> {
+  try {
+    // Validate session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      return false;
+    }
+
+    // Resolve studio id if not provided
+    if (!studioId) {
+      const { data: adminUser, error: adminError } = await supabase
+        .from('admin_users')
+        .select('studio_id')
+        .eq('auth_user_id', session.user.id)
+        .eq('is_active', true)
+        .single();
+
+      if (adminError || !adminUser) {
+        console.error('Failed to find admin studio:', adminError);
+        return false;
+      }
+
+      studioId = adminUser.studio_id;
+    }
+
+    const { error } = await supabase
+      .from('portfolio_photos')
+      .delete()
+      .eq('studio_id', studioId)
+      .eq('photo_url', photoUrl);
+
+    if (error) {
+      console.error('Failed to delete portfolio photo record:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting portfolio photo record:', error);
+    return false;
   }
 }

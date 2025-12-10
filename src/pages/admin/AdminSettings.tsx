@@ -22,7 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink, Palette, Image as ImageIcon } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink, Palette, Image as ImageIcon, Users as UsersIcon } from 'lucide-react';
 import { loadStudioSettings, saveStudioSettings, updateStudioLayouts, saveGoogleCredentials, initiateGoogleAuth, exchangeGoogleCode } from '@/services/studioSettings';
 import { uploadLogo } from '@/services/fileUploadService';
 import BookingFormPreview, { PreviewSettings } from '@/components/booking/preview/BookingFormPreview';
@@ -30,6 +31,8 @@ import { supabase } from '@/lib/supabase';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import type { StudioLayout } from '@/types/database';
+import { createStudioUser, getStudioAdmins } from '@/services/adminAuth';
+import type { AdminUser } from '@/types/database';
 
 
 const navigation = [
@@ -83,6 +86,9 @@ const AdminSettings = () => {
     headerPortfolioUrl: '',
     headerContactEnabled: false,
     headerContactUrl: '',
+    enablePortfolioPhotoUpload: false,
+    portfolioUploadInstructions: 'Upload your photos for your portfolio session. Maximum 20 photos, each file up to 10MB.',
+    portfolioMaxFileSize: 10,
     footerWhatsappLink: '',
     footerFacebookLink: '',
     footerInstagramLink: '',
@@ -94,6 +100,17 @@ const AdminSettings = () => {
 
   const [layouts, setLayouts] = useState<StudioLayout[]>([]);
   const [bookingLink, setBookingLink] = useState('');
+  
+  // Users management state
+  const [studioUsers, setStudioUsers] = useState<AdminUser[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [newUserForm, setNewUserForm] = useState({
+    email: '',
+    full_name: '',
+    phone: '',
+    password: '',
+  });
 
   const [newLayout, setNewLayout] = useState({
     name: '',
@@ -158,6 +175,9 @@ const AdminSettings = () => {
             headerPortfolioUrl: data.headerPortfolioUrl || '',
             headerContactEnabled: data.headerContactEnabled || false,
             headerContactUrl: data.headerContactUrl || '',
+            enablePortfolioPhotoUpload: data.enablePortfolioPhotoUpload || false,
+            portfolioUploadInstructions: data.portfolioUploadInstructions || 'Upload your photos for your portfolio session. Maximum 20 photos, each file up to 10MB.',
+            portfolioMaxFileSize: data.portfolioMaxFileSize || 10,
             footerWhatsappLink: data.footerWhatsappLink || '',
             footerFacebookLink: data.footerFacebookLink || '',
             footerInstagramLink: data.footerInstagramLink || '',
@@ -191,6 +211,108 @@ const AdminSettings = () => {
       setBookingLink(studioBookingLink);
     }
   }, [effectiveStudioId]);
+
+  // Load studio users
+  const loadStudioUsers = async () => {
+    if (!effectiveStudioId) return;
+    
+    setIsLoadingUsers(true);
+    try {
+      const users = await getStudioAdmins(effectiveStudioId);
+      setStudioUsers(users);
+    } catch (error) {
+      console.error('Error loading studio users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load users",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  // Load users when studio ID is available
+  useEffect(() => {
+    if (effectiveStudioId && user?.role !== 'super_admin') {
+      loadStudioUsers();
+    }
+  }, [effectiveStudioId, user?.role]);
+
+  // Handle create new user
+  const handleCreateUser = async () => {
+    // Validate form
+    if (!newUserForm.email || !newUserForm.full_name || !newUserForm.password) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newUserForm.email)) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate password (minimum 6 characters)
+    if (newUserForm.password.length < 6) {
+      toast({
+        title: "Validation Error",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCreatingUser(true);
+    try {
+      const result = await createStudioUser({
+        email: newUserForm.email,
+        password: newUserForm.password,
+        full_name: newUserForm.full_name,
+        phone: newUserForm.phone || undefined,
+      });
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "User created successfully",
+        });
+        // Reset form
+        setNewUserForm({
+          email: '',
+          full_name: '',
+          phone: '',
+          password: '',
+        });
+        // Reload users
+        await loadStudioUsers();
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to create user",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create user",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingUser(false);
+    }
+  };
 
   // Handle OAuth callback on component mount
   useEffect(() => {
@@ -1081,7 +1203,7 @@ const AdminSettings = () => {
             {/* Settings Tabs */}
             <Tabs defaultValue="maklumat-asas" className="w-full">
               <div className="border-b border-border">
-                <TabsList className="grid w-full grid-cols-4 md:flex md:w-auto h-auto p-0 bg-transparent justify-start">
+                <TabsList className="grid w-full grid-cols-5 md:flex md:w-auto h-auto p-0 bg-transparent justify-start">
                   <TabsTrigger 
                     value="maklumat-asas" 
                     className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
@@ -1109,6 +1231,13 @@ const AdminSettings = () => {
                   >
                     <span className="mr-2">📋</span>
                     Booking Form
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="users" 
+                    className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    <UsersIcon className="h-4 w-4 mr-2" />
+                    Users
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -1887,6 +2016,99 @@ const AdminSettings = () => {
                     <CardDescription>Sesuaikan penampilan dan fungsi borang tempahan anda</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
+                    {/* Portfolio Showcase */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label className="text-base">Enable Portfolio Gallery</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Display your portfolio photos gallery on the booking form
+                          </p>
+                        </div>
+                        <Switch
+                          checked={settings.enablePortfolioPhotoUpload}
+                          onCheckedChange={(checked) => handleSettingChange('enablePortfolioPhotoUpload', checked)}
+                        />
+                      </div>
+
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-semibold">Portfolio Photos Management</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Upload photos of your previous work to showcase on your booking form
+                        </p>
+
+                        {/* Portfolio Photo Upload Interface */}
+                        <Card variant="outline" className="p-4">
+                          <div className="space-y-4">
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                              <div className="text-center">
+                                <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                                <div className="mt-4">
+                                  <label htmlFor="portfolio-photo-upload" className="cursor-pointer">
+                                    <span className="mt-2 block text-sm font-medium text-gray-900">
+                                      Upload portfolio photos
+                                    </span>
+                                    <span className="mt-1 block text-xs text-gray-500">
+                                      JPEG, PNG, GIF up to 10MB each
+                                    </span>
+                                  </label>
+                                  <input
+                                    id="portfolio-photo-upload"
+                                    name="portfolio-photo-upload"
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    className="sr-only"
+                                    onChange={async (e) => {
+                                      const files = Array.from(e.target.files || []);
+                                      if (files.length === 0) return;
+
+                                      // Clear the input
+                                      e.target.value = '';
+
+                                      const { toast } = await import('@/hooks/use-toast');
+                                      const { uploadPortfolioPhoto } = await import('@/services/fileUploadService');
+
+                                      for (const file of files) {
+                                        try {
+                                          const result = await uploadPortfolioPhoto(file);
+                                          if (result.success) {
+                                            toast({ title: "Success", description: `${file.name} uploaded successfully` });
+                                          } else {
+                                            toast({
+                                              title: "Upload failed",
+                                              description: result.error || "Failed to upload photo",
+                                              variant: "destructive"
+                                            });
+                                          }
+                                        } catch (error) {
+                                          toast({
+                                            title: "Upload failed",
+                                            description: "Failed to upload photo",
+                                            variant: "destructive"
+                                          });
+                                        }
+                                      }
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Existing Portfolio Photos */}
+                            <div className="space-y-2">
+                              <Label className="text-xs font-medium">Current Portfolio Photos</Label>
+                              <div className="text-xs text-muted-foreground">
+                                Portfolio photos gallery will be displayed below when enabled
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      </div>
+                    </div>
+
+                    <Separator />
+
                     {/* Header Customization */}
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
@@ -1999,8 +2221,6 @@ const AdminSettings = () => {
                         </div>
                       )}
                     </div>
-
-                    <Separator />
 
                     {/* Footer Customization */}
                     <div className="space-y-4">
@@ -2208,6 +2428,145 @@ const AdminSettings = () => {
                     )}
                   </Button>
                 </div>
+              </TabsContent>
+
+              {/* Tab 5: Users */}
+              <TabsContent value="users" className="space-y-6 mt-6">
+                {/* Add New User Form */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Add New User</CardTitle>
+                    <CardDescription>Create a new admin user for this studio. The user will be able to login immediately without email verification.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="userEmail">Email *</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="userEmail"
+                            type="email"
+                            value={newUserForm.email}
+                            onChange={(e) => setNewUserForm({ ...newUserForm, email: e.target.value })}
+                            placeholder="user@example.com"
+                            className="pl-9"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="userFullName">Full Name *</Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="userFullName"
+                            value={newUserForm.full_name}
+                            onChange={(e) => setNewUserForm({ ...newUserForm, full_name: e.target.value })}
+                            placeholder="John Doe"
+                            className="pl-9"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="userPhone">Phone</Label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="userPhone"
+                            type="tel"
+                            value={newUserForm.phone}
+                            onChange={(e) => setNewUserForm({ ...newUserForm, phone: e.target.value })}
+                            placeholder="+60123456789"
+                            className="pl-9"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="userPassword">Password *</Label>
+                        <Input
+                          id="userPassword"
+                          type="password"
+                          value={newUserForm.password}
+                          onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
+                          placeholder="Minimum 6 characters"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={handleCreateUser}
+                        disabled={isCreatingUser}
+                      >
+                        {isCreatingUser ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Creating...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create User
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Existing Users List */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Studio Users</CardTitle>
+                    <CardDescription>Manage users associated with this studio</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingUsers ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : studioUsers.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <UsersIcon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No users found</p>
+                      </div>
+                    ) : (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Phone</TableHead>
+                            <TableHead>Role</TableHead>
+                            <TableHead>Created</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {studioUsers.map((studioUser) => (
+                            <TableRow key={studioUser.id}>
+                              <TableCell className="font-medium">
+                                {studioUser.full_name}
+                              </TableCell>
+                              <TableCell>{studioUser.email}</TableCell>
+                              <TableCell>{studioUser.phone || '-'}</TableCell>
+                              <TableCell>
+                                <Badge variant="default">
+                                  {studioUser.role === 'admin' ? 'Admin' : studioUser.role === 'staff' ? 'Staff' : studioUser.role}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {new Date(studioUser.created_at).toLocaleDateString()}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           </div>

@@ -119,9 +119,18 @@ const AdminBookings = () => {
 
         setBookings(formattedBookings);
 
-        // Generate booking link for this studio
+        // Fetch studio slug for cleaner booking link
+        const { data: studioData } = await supabase
+          .from('studios')
+          .select('slug')
+          .eq('id', effectiveStudioId)
+          .single();
+
+        // Generate booking link for this studio - use slug if available
         const baseUrl = window.location.origin;
-        const studioBookingLink = `${baseUrl}/book/${effectiveStudioId}`;
+        const studioBookingLink = studioData?.slug 
+          ? `${baseUrl}/${studioData.slug}` 
+          : `${baseUrl}/book/${effectiveStudioId}`;
         setBookingLink(studioBookingLink);
       } catch (error) {
         console.error('Error fetching data:', error);

@@ -18,7 +18,7 @@ import { loadStudioSettings } from '@/services/studioSettings';
 
 const NewBooking = () => {
   const navigate = useNavigate();
-  const { studioId } = useParams<{ studioId: string }>();
+  const { studioId, studioSlug } = useParams<{ studioId?: string; studioSlug?: string }>();
   const { toast } = useToast();
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -56,10 +56,10 @@ const NewBooking = () => {
   // Load studio data and layouts
   useEffect(() => {
     const loadStudioData = async () => {
-      if (!studioId) {
+      if (!studioId && !studioSlug) {
         toast({
           title: "Error",
-          description: "Studio ID tidak sah",
+          description: "Studio tidak dijumpai",
           variant: "destructive",
         });
         navigate('/');
@@ -67,13 +67,19 @@ const NewBooking = () => {
       }
 
       try {
-        // Load studio information
-        const { data: studioData, error: studioError } = await supabase
+        // Load studio information - by ID or by slug
+        let query = supabase
           .from('studios')
           .select('*')
-          .eq('id', studioId)
-          .eq('is_active', true)
-          .single();
+          .eq('is_active', true);
+        
+        if (studioId) {
+          query = query.eq('id', studioId);
+        } else if (studioSlug) {
+          query = query.eq('slug', studioSlug);
+        }
+        
+        const { data: studioData, error: studioError } = await query.single();
 
         if (studioError || !studioData) {
           toast({
@@ -86,23 +92,25 @@ const NewBooking = () => {
         }
 
         setStudio(studioData);
+        
+        const actualStudioId = studioData.id;
 
         // Load studio settings
-        const studioSettings = await loadStudioSettings(studioId);
+        const studioSettings = await loadStudioSettings(actualStudioId);
         if (studioSettings) {
           setStudioPortfolioEnabled(studioSettings.enablePortfolioPhotoUpload);
         }
 
         // Load portfolio photos
         const { loadStudioPortfolioPhotos } = await import('@/services/studioSettings');
-        const portfolioPhotos = await loadStudioPortfolioPhotos(studioId);
+        const portfolioPhotos = await loadStudioPortfolioPhotos(actualStudioId);
         setStudioPortfolioPhotos(portfolioPhotos);
 
         // Load studio layouts
         const { data: layoutsData, error: layoutsError } = await supabase
           .from('studio_layouts')
           .select('*')
-          .eq('studio_id', studioId)
+          .eq('studio_id', actualStudioId)
           .eq('is_active', true)
           .order('name');
 
@@ -127,7 +135,7 @@ const NewBooking = () => {
           setLayouts(formattedLayouts);
 
           // Debug logging
-          console.log('Loaded layouts for studio', studioId, ':', formattedLayouts);
+          console.log('Loaded layouts for studio', actualStudioId, ':', formattedLayouts);
         }
       } catch (error) {
         console.error('Error loading studio data:', error);
@@ -143,7 +151,7 @@ const NewBooking = () => {
     };
 
     loadStudioData();
-  }, [studioId, navigate, toast]);
+  }, [studioId, studioSlug, navigate, toast]);
 
   const isFormValid = Boolean(
     selectedLayout &&
@@ -167,7 +175,7 @@ const NewBooking = () => {
   };
 
   const handleSubmit = async () => {
-    if (!isFormValid || !studioId || !selectedLayout || !selectedDate || !selectedTime) return;
+    if (!isFormValid || !studio?.id || !selectedLayout || !selectedDate || !selectedTime) return;
 
     setIsSubmitting(true);
 
@@ -186,7 +194,7 @@ const NewBooking = () => {
         customerName: formData.name,
         customerEmail: formData.email,
         customerPhone: formData.phone,
-        studioId: studioId,
+        studioId: studio.id,
         layoutId: selectedLayout,
         date: selectedDate.toISOString().split('T')[0],
         startTime: selectedTime,
@@ -292,7 +300,7 @@ const NewBooking = () => {
                 <div className="text-center py-8 text-muted-foreground">
                   <p>Tiada layout studio tersedia untuk studio ini</p>
                   <p className="text-sm mt-2">Sila hubungi pentadbir studio untuk menambah layout</p>
-                  <p className="text-xs mt-2 text-muted-foreground">Studio ID: {studioId}</p>
+                  <p className="text-xs mt-2 text-muted-foreground">Studio: {studio?.slug || studio?.id}</p>
                 </div>
               )}
             </Card>

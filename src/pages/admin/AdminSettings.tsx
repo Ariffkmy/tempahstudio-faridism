@@ -25,7 +25,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink, Palette, Image as ImageIcon, Users as UsersIcon, Trash } from 'lucide-react';
 import { loadStudioSettings, saveStudioSettings, updateStudioLayouts, saveGoogleCredentials, initiateGoogleAuth, exchangeGoogleCode, loadStudioPortfolioPhotos, deleteStudioPortfolioPhoto } from '@/services/studioSettings';
-import { uploadLogo } from '@/services/fileUploadService';
+import { uploadLogo, deleteLogo } from '@/services/fileUploadService';
 import BookingFormPreview, { PreviewSettings } from '@/components/booking/preview/BookingFormPreview';
 import { supabase } from '@/lib/supabase';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -51,11 +51,13 @@ const AdminSettings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isDeletingLogo, setIsDeletingLogo] = useState(false);
   const [portfolioPhotos, setPortfolioPhotos] = useState<string[]>([]);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
   const [deletingPhotoUrl, setDeletingPhotoUrl] = useState<string | null>(null);
   const [settings, setSettings] = useState({
     studioName: '',
+    studioSlug: '',
     studioLocation: '',
     googleMapsLink: '',
     wazeLink: '',
@@ -145,6 +147,7 @@ const AdminSettings = () => {
         if (data) {
           setSettings({
             studioName: data.studioName,
+            studioSlug: data.studioSlug || '',
             studioLocation: data.studioLocation,
             googleMapsLink: data.googleMapsLink,
             wazeLink: data.wazeLink,
@@ -275,10 +278,13 @@ const AdminSettings = () => {
   useEffect(() => {
     if (effectiveStudioId) {
       const baseUrl = window.location.origin;
-      const studioBookingLink = `${baseUrl}/book/${effectiveStudioId}`;
+      // Use slug for cleaner URL if available, otherwise fallback to ID
+      const studioBookingLink = settings.studioSlug 
+        ? `${baseUrl}/${settings.studioSlug}` 
+        : `${baseUrl}/book/${effectiveStudioId}`;
       setBookingLink(studioBookingLink);
     }
-  }, [effectiveStudioId]);
+  }, [effectiveStudioId, settings.studioSlug]);
 
   // Load studio users
   const loadStudioUsers = async () => {
@@ -2104,11 +2110,54 @@ const AdminSettings = () => {
                               target.style.display = 'none';
                             }}
                           />
-                          {isUploadingLogo && (
+                          {(isUploadingLogo || isDeletingLogo) && (
                             <div className="absolute inset-0 flex items-center justify-center bg-white/70">
                               <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
                             </div>
                           )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="absolute top-1 right-1 h-8 w-8 bg-red-600 hover:bg-red-700 text-white"
+                            disabled={isDeletingLogo}
+                            onClick={async () => {
+                              if (!settings.studioLogo) return;
+                              
+                              setIsDeletingLogo(true);
+                              try {
+                                const result = await deleteLogo(settings.studioLogo);
+                                if (result.success) {
+                                  handleSettingChange('studioLogo', '');
+                                  toast({ 
+                                    title: "Logo dipadam", 
+                                    description: "Logo telah berjaya dipadam." 
+                                  });
+                                } else {
+                                  toast({
+                                    title: "Gagal memadam",
+                                    description: result.error || "Gagal memadam logo",
+                                    variant: "destructive",
+                                  });
+                                }
+                              } catch (error) {
+                                console.error('Logo delete error:', error);
+                                toast({
+                                  title: "Gagal memadam",
+                                  description: "Ralat tidak dijangka semasa memadam logo",
+                                  variant: "destructive",
+                                });
+                              } finally {
+                                setIsDeletingLogo(false);
+                              }
+                            }}
+                            aria-label="Delete studio logo"
+                          >
+                            {isDeletingLogo ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash className="h-4 w-4" />
+                            )}
+                          </Button>
                         </div>
                         </div>
                       ) : (

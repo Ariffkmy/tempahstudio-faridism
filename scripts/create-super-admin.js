@@ -35,7 +35,7 @@ async function createSuperAdmin() {
   const email = process.argv[2] || 'superadmin@rayastudio.com';
   const password = process.argv[3] || 'superadmin123';
   const fullName = process.argv[4] || 'Super Administrator';
-  const phone = process.argv[5] || '+60123456789';
+  const phone = process.argv[5] || '+601129947089';
 
   console.log(`Email: ${email}`);
   console.log(`Password: ${password}`);

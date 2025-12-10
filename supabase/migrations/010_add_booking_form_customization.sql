@@ -106,7 +106,7 @@ COMMENT ON COLUMN studios.header_portfolio_enabled IS 'Show Portfolio link in he
 COMMENT ON COLUMN studios.header_portfolio_url IS 'URL for Portfolio page';
 COMMENT ON COLUMN studios.header_contact_enabled IS 'Show Contact link in header navigation';
 COMMENT ON COLUMN studios.header_contact_url IS 'URL for Contact page';
-COMMENT ON COLUMN studios.footer_whatsapp_link IS 'WhatsApp phone number for footer (e.g., +60123456789)';
+COMMENT ON COLUMN studios.footer_whatsapp_link IS 'WhatsApp phone number for footer (e.g., +601129947089)';
 COMMENT ON COLUMN studios.footer_facebook_link IS 'Facebook page URL for footer';
 COMMENT ON COLUMN studios.footer_instagram_link IS 'Instagram profile URL for footer';
 COMMENT ON COLUMN studios.whatsapp_message IS 'Default message for WhatsApp floating button';

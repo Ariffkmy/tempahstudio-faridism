@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, Menu, Home, Users, CalendarDays, BarChart3, Cog, LogOut, Key, Shield, Mail, Plus, X, FileText, Edit, Check, RotateCcw, User, UserCheck } from 'lucide-react';
+import { Settings, Menu, Home, Users, CalendarDays, BarChart3, Cog, LogOut, Key, Shield, Mail, Phone, Plus, X, FileText, Edit, Check, RotateCcw, User, UserCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
@@ -139,6 +139,13 @@ const AdminSuperSettings = () => {
     userSecretKey: '',
     categoryCode: '',
   });
+
+  // Twilio settings state
+  const [twilioSettings, setTwilioSettings] = useState({
+    twilioSid: '',
+    twilioAuthToken: '',
+    twilioWhatsappNumber: '',
+  });
   const [sendgridTemplates, setSendgridTemplates] = useState<Array<any>>([]);
   const [newTemplate, setNewTemplate] = useState({
     template_id: '',
@@ -192,6 +199,17 @@ const AdminSuperSettings = () => {
           setPaymentGatewaySettings({
             userSecretKey: paymentResult.settings.user_secret_key || '',
             categoryCode: paymentResult.settings.category_code || '',
+          });
+        }
+
+        // Load Twilio settings from database
+        const { getTwilioSettings } = await import('@/services/twilioService');
+        const twilioResult = await getTwilioSettings();
+        if (twilioResult.success && twilioResult.settings) {
+          setTwilioSettings({
+            twilioSid: twilioResult.settings.twilio_sid || '',
+            twilioAuthToken: twilioResult.settings.twilio_auth_token || '',
+            twilioWhatsappNumber: twilioResult.settings.twilio_whatsapp_number || '',
           });
         }
 
@@ -285,6 +303,13 @@ const AdminSuperSettings = () => {
 
   const handlePaymentGatewayChange = (field: string, value: string) => {
     setPaymentGatewaySettings(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleTwilioChange = (field: string, value: string) => {
+    setTwilioSettings(prev => ({
       ...prev,
       [field]: value
     }));
@@ -535,9 +560,21 @@ const AdminSuperSettings = () => {
         throw new Error(paymentResult.error || 'Failed to save payment gateway settings');
       }
 
+      // Save Twilio settings to database
+      const { updateTwilioSettings } = await import('@/services/twilioService');
+      const twilioResult = await updateTwilioSettings({
+        twilio_sid: twilioSettings.twilioSid,
+        twilio_auth_token: twilioSettings.twilioAuthToken,
+        twilio_whatsapp_number: twilioSettings.twilioWhatsappNumber,
+      });
+
+      if (!twilioResult.success) {
+        throw new Error(twilioResult.error || 'Failed to save Twilio settings');
+      }
+
       toast({
         title: 'Berjaya!',
-        description: 'Tetapan super admin, templat dan pembayaran gateway telah disimpan',
+        description: 'Tetapan super admin, templat, pembayaran gateway dan Twilio telah disimpan',
       });
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -662,7 +699,7 @@ const AdminSuperSettings = () => {
           {/* Settings Tabs */}
           <Tabs defaultValue="users" className="w-full">
             <div className="border-b border-border">
-              <TabsList className="grid w-full grid-cols-4 md:flex md:w-auto h-auto p-0 bg-transparent justify-start">
+              <TabsList className="grid w-full grid-cols-5 md:flex md:w-auto h-auto p-0 bg-transparent justify-start">
                 <TabsTrigger value="users" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
                   <User className="h-4 w-4 mr-2" />
                   Users
@@ -678,6 +715,10 @@ const AdminSuperSettings = () => {
                 <TabsTrigger value="sendgrid" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
                   <Mail className="h-4 w-4 mr-2" />
                   SendGrid
+                </TabsTrigger>
+                <TabsTrigger value="twilio" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                  <Phone className="h-4 w-4 mr-2" />
+                  Twilio WhatsApp
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -980,242 +1021,311 @@ const AdminSuperSettings = () => {
               </Card>
             </TabsContent>
 
-            <TabsContent value="sendgrid" className="space-y-4">
-              {/* SendGrid API Key Settings */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Mail className="h-5 w-5" />
-                    SendGrid API Key
-                  </CardTitle>
-                  <CardDescription className="text-sm">
-                    Tetapan API untuk integrasi email melalui SendGrid
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="sendgridApiKey" className="text-sm">API Key</Label>
-                    <Input
-                      id="sendgridApiKey"
-                      type="password"
-                      value={settings.sendgridApiKey}
-                      onChange={(e) => handleSettingChange('sendgridApiKey', e.target.value)}
-                      placeholder="SG.xxxxxxxx-xxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                      className="font-mono text-xs"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Dapat dari SendGrid Dashboard → Settings → API Keys
-                    </p>
-                  </div>
-
-                  <div className="pt-4 border-t">
-                    <Button
-                      onClick={saveSettings}
-                      disabled={isLoading}
-                      className="w-full"
-                    >
-                      {isLoading ? 'Menyimpan...' : 'Simpan Tetapan'}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Side by side Email Notifications and SendGrid Templates */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Email Notification Configuration */}
+              <TabsContent value="sendgrid" className="space-y-4">
+                {/* SendGrid API Key Settings */}
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      Email Notifications
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Mail className="h-5 w-5" />
+                      SendGrid API Key
                     </CardTitle>
-                    <CardDescription className="text-xs">
-                      Configure email templates for user actions
+                    <CardDescription className="text-sm">
+                      Tetapan API untuk integrasi email melalui SendGrid
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="text-xs text-muted-foreground bg-blue-50 border border-blue-200 rounded-lg p-2">
-                      Map user actions to SendGrid templates
+                    <div className="space-y-2">
+                      <Label htmlFor="sendgridApiKey" className="text-sm">API Key</Label>
+                      <Input
+                        id="sendgridApiKey"
+                        type="password"
+                        value={settings.sendgridApiKey}
+                        onChange={(e) => handleSettingChange('sendgridApiKey', e.target.value)}
+                        placeholder="SG.xxxxxxxx-xxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        className="font-mono text-xs"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Dapat dari SendGrid Dashboard → Settings → API Keys
+                      </p>
                     </div>
 
-                    {emailLoading ? (
-                      <div className="text-center py-6">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                        <p className="text-xs text-muted-foreground mt-1">Loading...</p>
-                      </div>
-                    ) : emailNotifications.length === 0 ? (
-                      <div className="text-center py-6 text-muted-foreground">
-                        <Mail className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-xs">No notifications</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3 max-h-64 overflow-y-auto">
-                        {emailNotifications.map((notification) => (
-                          <NotificationConfigItem
-                            key={notification.id}
-                            notification={notification}
-                            availableTemplates={availableTemplates}
-                            onUpdate={saveEmailNotification}
-                          />
-                        ))}
-                      </div>
-                    )}
+                    <div className="pt-4 border-t">
+                      <Button
+                        onClick={saveSettings}
+                        disabled={isLoading}
+                        className="w-full"
+                      >
+                        {isLoading ? 'Menyimpan...' : 'Simpan Tetapan'}
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
 
-                {/* SendGrid Templates Section */}
+                {/* Side by side Email Notifications and SendGrid Templates */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Email Notification Configuration */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        Email Notifications
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Configure email templates for user actions
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="text-xs text-muted-foreground bg-blue-50 border border-blue-200 rounded-lg p-2">
+                        Map user actions to SendGrid templates
+                      </div>
+
+                      {emailLoading ? (
+                        <div className="text-center py-6">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                          <p className="text-xs text-muted-foreground mt-1">Loading...</p>
+                        </div>
+                      ) : emailNotifications.length === 0 ? (
+                        <div className="text-center py-6 text-muted-foreground">
+                          <Mail className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-xs">No notifications</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3 max-h-64 overflow-y-auto">
+                          {emailNotifications.map((notification) => (
+                            <NotificationConfigItem
+                              key={notification.id}
+                              notification={notification}
+                              availableTemplates={availableTemplates}
+                              onUpdate={saveEmailNotification}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* SendGrid Templates Section */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Templates
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Manage email templates
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="text-xs text-muted-foreground bg-amber-50 border border-amber-200 rounded-lg p-2">
+                        Templates for notifications
+                      </div>
+
+                      {/* Existing Templates */}
+                      {availableTemplates.length > 0 && (
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {availableTemplates.map((template) => {
+                            const isEditing = editingTemplate === template.id;
+                            return (
+                              <div key={template.id} className="border rounded-md p-3">
+                                {isEditing ? (
+                                  <div className="space-y-3">
+                                    <div className="grid grid-cols-1 gap-3">
+                                      <div className="space-y-1">
+                                        <Label className="text-xs">Template Name</Label>
+                                        <Input
+                                          value={editTemplateData.name}
+                                          onChange={(e) => setEditTemplateData(prev => ({ ...prev, name: e.target.value }))}
+                                          placeholder="e.g., Booking Confirmation"
+                                          className="text-xs h-8"
+                                        />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <Label className="text-xs">Template ID</Label>
+                                        <Input
+                                          value={editTemplateData.template_id}
+                                          onChange={(e) => setEditTemplateData(prev => ({ ...prev, template_id: e.target.value }))}
+                                          placeholder="e.g., d-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                                          className="font-mono text-xs h-8"
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="flex justify-end gap-1">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={cancelEditTemplate}
+                                        className="text-xs h-7 px-2"
+                                      >
+                                        <RotateCcw className="h-3 w-3 mr-1" />
+                                        Cancel
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        onClick={saveEditTemplate}
+                                        disabled={!editTemplateData.name || !editTemplateData.template_id}
+                                        className="text-xs h-7 px-2"
+                                      >
+                                        <Check className="h-3 w-3 mr-1" />
+                                        Save
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-between">
+                                    <div className="min-w-0 flex-1">
+                                      <p className="font-medium text-xs truncate">{template.name}</p>
+                                      <p className="text-xs text-muted-foreground font-mono truncate">{template.template_id}</p>
+                                    </div>
+                                    <div className="flex gap-1 ml-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => startEditTemplate(template)}
+                                        className="text-xs h-6 w-6 p-0"
+                                      >
+                                        <Edit className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => removeTemplate(template.id)}
+                                        className="text-destructive hover:text-destructive text-xs h-6 w-6 p-0"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {availableTemplates.length === 0 && (
+                        <div className="text-center py-4 text-muted-foreground">
+                          <FileText className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                          <p className="text-xs">No templates</p>
+                        </div>
+                      )}
+
+                      {/* Add New Template */}
+                      <div className="space-y-3 border-t pt-3">
+                        <h5 className="font-medium text-sm">Add Template</h5>
+                        <div className="space-y-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Template Name</Label>
+                            <Input
+                              value={newTemplate.name}
+                              onChange={(e) => setNewTemplate(prev => ({ ...prev, name: e.target.value }))}
+                              placeholder="e.g., Booking Confirmation"
+                              className="text-xs h-8"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Template ID</Label>
+                            <Input
+                              value={newTemplate.template_id}
+                              onChange={(e) => setNewTemplate(prev => ({ ...prev, template_id: e.target.value }))}
+                              placeholder="e.g., d-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                              className="font-mono text-xs h-8"
+                            />
+                          </div>
+                          <Button
+                            onClick={addTemplate}
+                            disabled={!newTemplate.name || !newTemplate.template_id}
+                            className="w-full text-xs h-8"
+                            size="sm"
+                          >
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add Template
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Save Button for SendGrid tab */}
+                <div className="pt-4 border-t">
+                  <Button
+                    onClick={saveSettings}
+                    disabled={isLoading}
+                    className="w-full"
+                  >
+                    {isLoading ? 'Menyimpan...' : 'Simpan Tetapan SendGrid'}
+                  </Button>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="twilio" className="space-y-4">
+                {/* Twilio WhatsApp Settings */}
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      Templates
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Phone className="h-5 w-5" />
+                      Twilio WhatsApp Configuration
                     </CardTitle>
-                    <CardDescription className="text-xs">
-                      Manage email templates
+                    <CardDescription className="text-sm">
+                      Tetapan untuk integrasi WhatsApp melalui Twilio
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="text-xs text-muted-foreground bg-amber-50 border border-amber-200 rounded-lg p-2">
-                      Templates for notifications
+                    <div className="space-y-2">
+                      <Label htmlFor="twilioSidMobile" className="text-sm">Twilio SID</Label>
+                      <Input
+                        id="twilioSidMobile"
+                        value={twilioSettings.twilioSid}
+                        onChange={(e) => handleTwilioChange('twilioSid', e.target.value)}
+                        placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        className="font-mono text-xs"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Dapat dari Twilio Console → Project Settings → SID
+                      </p>
                     </div>
 
-                    {/* Existing Templates */}
-                    {availableTemplates.length > 0 && (
-                      <div className="space-y-2 max-h-48 overflow-y-auto">
-                        {availableTemplates.map((template) => {
-                          const isEditing = editingTemplate === template.id;
-                          return (
-                            <div key={template.id} className="border rounded-md p-3">
-                              {isEditing ? (
-                                <div className="space-y-3">
-                                  <div className="grid grid-cols-1 gap-3">
-                                    <div className="space-y-1">
-                                      <Label className="text-xs">Template Name</Label>
-                                      <Input
-                                        value={editTemplateData.name}
-                                        onChange={(e) => setEditTemplateData(prev => ({ ...prev, name: e.target.value }))}
-                                        placeholder="e.g., Booking Confirmation"
-                                        className="text-xs h-8"
-                                      />
-                                    </div>
-                                    <div className="space-y-1">
-                                      <Label className="text-xs">Template ID</Label>
-                                      <Input
-                                        value={editTemplateData.template_id}
-                                        onChange={(e) => setEditTemplateData(prev => ({ ...prev, template_id: e.target.value }))}
-                                        placeholder="e.g., d-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                                        className="font-mono text-xs h-8"
-                                      />
-                                    </div>
-                                  </div>
-                                  <div className="flex justify-end gap-1">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={cancelEditTemplate}
-                                      className="text-xs h-7 px-2"
-                                    >
-                                      <RotateCcw className="h-3 w-3 mr-1" />
-                                      Cancel
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      onClick={saveEditTemplate}
-                                      disabled={!editTemplateData.name || !editTemplateData.template_id}
-                                      className="text-xs h-7 px-2"
-                                    >
-                                      <Check className="h-3 w-3 mr-1" />
-                                      Save
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="flex items-center justify-between">
-                                  <div className="min-w-0 flex-1">
-                                    <p className="font-medium text-xs truncate">{template.name}</p>
-                                    <p className="text-xs text-muted-foreground font-mono truncate">{template.template_id}</p>
-                                  </div>
-                                  <div className="flex gap-1 ml-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => startEditTemplate(template)}
-                                      className="text-xs h-6 w-6 p-0"
-                                    >
-                                      <Edit className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => removeTemplate(template.id)}
-                                      className="text-destructive hover:text-destructive text-xs h-6 w-6 p-0"
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                    <div className="space-y-2">
+                      <Label htmlFor="twilioAuthTokenMobile" className="text-sm">Auth Token</Label>
+                      <Input
+                        id="twilioAuthTokenMobile"
+                        type="password"
+                        value={twilioSettings.twilioAuthToken}
+                        onChange={(e) => handleTwilioChange('twilioAuthToken', e.target.value)}
+                        placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        className="font-mono text-xs"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Rahsia auth token dari Twilio
+                      </p>
+                    </div>
 
-                    {availableTemplates.length === 0 && (
-                      <div className="text-center py-4 text-muted-foreground">
-                        <FileText className="h-6 w-6 mx-auto mb-2 opacity-50" />
-                        <p className="text-xs">No templates</p>
-                      </div>
-                    )}
+                    <div className="space-y-2">
+                      <Label htmlFor="twilioWhatsappNumberMobile" className="text-sm">WhatsApp Number</Label>
+                      <Input
+                        id="twilioWhatsappNumberMobile"
+                        value={twilioSettings.twilioWhatsappNumber}
+                        onChange={(e) => handleTwilioChange('twilioWhatsappNumber', e.target.value)}
+                        placeholder="+1234567890"
+                        className="text-xs"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Nombor WhatsApp yang didaftarkan dengan Twilio
+                      </p>
+                    </div>
 
-                    {/* Add New Template */}
-                    <div className="space-y-3 border-t pt-3">
-                      <h5 className="font-medium text-sm">Add Template</h5>
-                      <div className="space-y-2">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Template Name</Label>
-                          <Input
-                            value={newTemplate.name}
-                            onChange={(e) => setNewTemplate(prev => ({ ...prev, name: e.target.value }))}
-                            placeholder="e.g., Booking Confirmation"
-                            className="text-xs h-8"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Template ID</Label>
-                          <Input
-                            value={newTemplate.template_id}
-                            onChange={(e) => setNewTemplate(prev => ({ ...prev, template_id: e.target.value }))}
-                            placeholder="e.g., d-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                            className="font-mono text-xs h-8"
-                          />
-                        </div>
-                        <Button
-                          onClick={addTemplate}
-                          disabled={!newTemplate.name || !newTemplate.template_id}
-                          className="w-full text-xs h-8"
-                          size="sm"
-                        >
-                          <Plus className="h-3 w-3 mr-1" />
-                          Add Template
-                        </Button>
-                      </div>
+                    <div className="pt-4 border-t">
+                      <Button
+                        onClick={saveSettings}
+                        disabled={isLoading}
+                        className="w-full"
+                      >
+                        {isLoading ? 'Menyimpan...' : 'Simpan Tetapan Twilio'}
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
-              </div>
-
-              {/* Save Button for SendGrid tab */}
-              <div className="pt-4 border-t">
-                <Button
-                  onClick={saveSettings}
-                  disabled={isLoading}
-                  className="w-full"
-                >
-                  {isLoading ? 'Menyimpan...' : 'Simpan Tetapan SendGrid'}
-                </Button>
-              </div>
-            </TabsContent>
+              </TabsContent>
           </Tabs>
         </main>
 
@@ -1364,7 +1474,7 @@ const AdminSuperSettings = () => {
           {/* Settings Tabs */}
           <Tabs defaultValue="users" className="w-full max-w-6xl">
             <div className="border-b border-border">
-              <TabsList className="grid w-full grid-cols-4 md:flex md:w-auto h-auto p-0 bg-transparent justify-start">
+              <TabsList className="grid w-full grid-cols-5 md:flex md:w-auto h-auto p-0 bg-transparent justify-start">
                 <TabsTrigger value="users" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
                   <User className="h-4 w-4 mr-2" />
                   Users
@@ -1380,6 +1490,10 @@ const AdminSuperSettings = () => {
                 <TabsTrigger value="sendgrid" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
                   <Mail className="h-4 w-4 mr-2" />
                   SendGrid
+                </TabsTrigger>
+                <TabsTrigger value="twilio" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                  <Phone className="h-4 w-4 mr-2" />
+                  Twilio WhatsApp
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -1924,6 +2038,76 @@ const AdminSuperSettings = () => {
                     {isLoading ? 'Menyimpan...' : 'Simpan Tetapan SendGrid'}
                   </Button>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="twilio" className="space-y-6 mt-6">
+                {/* Twilio WhatsApp Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Phone className="h-5 w-5" />
+                      Twilio WhatsApp Configuration
+                    </CardTitle>
+                    <CardDescription>
+                      Tetapan untuk integrasi WhatsApp melalui Twilio di seluruh sistem
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="twilioSidDesktop">Twilio SID</Label>
+                        <Input
+                          id="twilioSidDesktop"
+                          value={twilioSettings.twilioSid}
+                          onChange={(e) => handleTwilioChange('twilioSid', e.target.value)}
+                          placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                          className="font-mono"
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          Dapat dari Twilio Console → Project Settings → SID
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="twilioAuthTokenDesktop">Auth Token</Label>
+                        <Input
+                          id="twilioAuthTokenDesktop"
+                          type="password"
+                          value={twilioSettings.twilioAuthToken}
+                          onChange={(e) => handleTwilioChange('twilioAuthToken', e.target.value)}
+                          placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                          className="font-mono"
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          Rahsia auth token dari Twilio
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="twilioWhatsappNumberDesktop">WhatsApp Number</Label>
+                        <Input
+                          id="twilioWhatsappNumberDesktop"
+                          value={twilioSettings.twilioWhatsappNumber}
+                          onChange={(e) => handleTwilioChange('twilioWhatsappNumber', e.target.value)}
+                          placeholder="+1234567890"
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          Nombor WhatsApp yang didaftarkan dengan Twilio
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-6 border-t">
+                      <Button
+                        onClick={saveSettings}
+                        disabled={isLoading}
+                        size="lg"
+                      >
+                        {isLoading ? 'Menyimpan...' : 'Simpan Tetapan Twilio'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           </div>

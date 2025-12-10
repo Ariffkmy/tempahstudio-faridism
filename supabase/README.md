@@ -103,7 +103,7 @@ const result = await registerAdmin({
   email: 'admin@example.com',
   password: 'secure123',
   full_name: 'Ahmad Abdullah',
-  phone: '+60123456789',
+  phone: '+601129947089',
   studio_name: 'Studio Fotografi ABC',
   studio_location: 'Kuala Lumpur, Malaysia'
 });

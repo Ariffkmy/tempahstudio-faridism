@@ -123,7 +123,7 @@ export const mockBookings: Booking[] = [
     customerId: 'c1',
     customerName: 'Sarah Chen',
     customerEmail: 'sarah@example.com',
-    customerPhone: '+60123456789',
+    customerPhone: '+601129947089',
     companyId: 'raya-kl',
     studioId: 'studio-1',
     layoutId: 'premium',

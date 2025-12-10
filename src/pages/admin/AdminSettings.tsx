@@ -576,7 +576,7 @@ const AdminSettings = () => {
                       id="ownerPhone"
                       value={settings.ownerPhone}
                       onChange={(e) => handleSettingChange('ownerPhone', e.target.value)}
-                      placeholder="+60123456789"
+                      placeholder="+601129947089"
                       className="pl-9"
                     />
                   </div>
@@ -1217,7 +1217,7 @@ const AdminSettings = () => {
                           id="ownerPhone"
                           value={settings.ownerPhone}
                           onChange={(e) => handleSettingChange('ownerPhone', e.target.value)}
-                          placeholder="+60123456789"
+                          placeholder="+601129947089"
                           className="pl-9"
                         />
                       </div>
@@ -2097,7 +2097,7 @@ const AdminSettings = () => {
                             <Label htmlFor="whatsappNumber" className="text-sm">Nombor WhatsApp</Label>
                             <Input
                               id="whatsappNumber"
-                              placeholder="+60123456789"
+                              placeholder="+601129947089"
                               value={settings.ownerPhone}
                               onChange={(e) => handleSettingChange('ownerPhone', e.target.value)}
                             />

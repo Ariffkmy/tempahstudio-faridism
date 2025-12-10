@@ -42,6 +42,8 @@ const App = () => (
               <Route path="/book/:studioId" element={<NewBooking />} />
               <Route path="/brand/:studioId" element={<BrandBooking />} />
               <Route path="/booking/confirmation" element={<BookingConfirmation />} />
+              {/* Studio slug-based booking route (e.g., /my-studio-name) */}
+              <Route path="/:studioSlug" element={<NewBooking />} />
 
               {/* Admin Auth Routes (Public) */}
               <Route path="/admin/login" element={<AdminLogin />} />

@@ -42,6 +42,7 @@ export interface Studio {
   id: string;
   company_id: string;
   name: string;
+  slug?: string | null;
   location?: string | null;
   description?: string | null;
   image?: string | null;
@@ -53,6 +54,13 @@ export interface Studio {
   account_owner_name?: string | null;
   qr_code?: string | null;
   booking_link?: string | null;
+  // Studio logo for booking form
+  studio_logo?: string | null;
+  // Booking form settings
+  terms_conditions_type?: string | null;
+  terms_conditions_text?: string | null;
+  terms_conditions_pdf?: string | null;
+  time_slot_gap?: number | null;
   // Google Calendar integration
   google_calendar_enabled?: boolean | null;
   google_calendar_id?: string | null;

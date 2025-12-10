@@ -9,6 +9,7 @@ import type { Studio, StudioLayout, AdminUser } from '@/types/database';
 export interface StudioSettings {
   // Studio info
   studioName: string;
+  studioSlug: string;
   studioLocation: string;
   studioEmail: string;
   googleMapsLink: string;
@@ -158,6 +159,7 @@ export async function loadStudioSettings(studioId?: string): Promise<StudioSetti
     // Build settings object
     const settings: StudioSettingsWithLayouts = {
       studioName: studio.name || '',
+      studioSlug: studio.slug || '',
       studioLocation: studio.location || '',
       studioEmail: studio.email || '',
       googleMapsLink: studio.google_maps_link || '',
@@ -174,11 +176,11 @@ export async function loadStudioSettings(studioId?: string): Promise<StudioSetti
       googleClientSecret: studio.google_client_secret || '',
       googleClientIdConfigured: !!(studio.google_client_id),
       googleRefreshTokenConfigured: !!(studio.google_refresh_token),
-      termsConditionsType: (studio as any).terms_conditions_type || 'none',
-      termsConditionsText: (studio as any).terms_conditions_text || '',
-      termsConditionsPdf: (studio as any).terms_conditions_pdf || '',
-      timeSlotGap: (studio as any).time_slot_gap || 30,
-      studioLogo: (studio as any).studio_logo || '',
+      termsConditionsType: studio.terms_conditions_type || 'none',
+      termsConditionsText: studio.terms_conditions_text || '',
+      termsConditionsPdf: studio.terms_conditions_pdf || '',
+      timeSlotGap: studio.time_slot_gap || 30,
+      studioLogo: studio.studio_logo || '',
       // Booking form customization
       enableCustomHeader: studio.enable_custom_header || false,
       enableCustomFooter: studio.enable_custom_footer || false,

@@ -6,8 +6,10 @@
 import { supabase } from '@/lib/supabase';
 
 const LOGO_BUCKET = 'studio-logos';
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
-const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const PORTFOLIO_BUCKET = 'studio-portfolio';
+const MAX_LOGO_SIZE = 2 * 1024 * 1024; // 2MB
+const MAX_PORTFOLIO_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
 
 export interface UploadResult {
   success: boolean;
@@ -18,12 +20,12 @@ export interface UploadResult {
 /**
  * Validate file before upload
  */
-export function validateFile(file: File): { valid: boolean; error?: string } {
+export function validateFile(file: File, maxSize: number = MAX_LOGO_SIZE): { valid: boolean; error?: string } {
   // Check file size
-  if (file.size > MAX_FILE_SIZE) {
+  if (file.size > maxSize) {
     return {
       valid: false,
-      error: `File size too large. Maximum size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`
+      error: `File size too large. Maximum size is ${maxSize / (1024 * 1024)}MB`
     };
   }
 
@@ -31,7 +33,7 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
   if (!ALLOWED_FILE_TYPES.includes(file.type)) {
     return {
       valid: false,
-      error: 'Invalid file type. Only JPG, PNG, and WebP images are allowed.'
+      error: 'Invalid file type. Only JPG, PNG, WebP, and GIF images are allowed.'
     };
   }
 
@@ -54,21 +56,31 @@ export async function uploadLogo(file: File, studioId: string): Promise<UploadRe
     const fileName = `${studioId}_${Date.now()}.${fileExt}`;
     const filePath = `${studioId}/${fileName}`;
 
+    // Debug authentication status
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('Current auth session:', { user: session?.user?.id, sessionValid: !!session?.user });
+
     // Check if bucket exists, create if not
-    const { data: buckets } = await supabase.storage.listBuckets();
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+
+    // Add debugging
+    console.log('List buckets result:', { buckets, listError });
+    console.log('Looking for bucket:', LOGO_BUCKET);
+
     const bucketExists = buckets?.some(b => b.name === LOGO_BUCKET);
+    console.log('Bucket exists?', bucketExists);
 
     if (!bucketExists) {
-      // Create bucket with public access
+      // Attempt to create bucket with public access - may require admin permissions
       const { error: bucketError } = await supabase.storage.createBucket(LOGO_BUCKET, {
         public: true,
-        fileSizeLimit: MAX_FILE_SIZE,
+        fileSizeLimit: MAX_LOGO_SIZE,
         allowedMimeTypes: ALLOWED_FILE_TYPES
       });
 
       if (bucketError) {
-        console.error('Failed to create bucket:', bucketError);
-        return { success: false, error: 'Failed to initialize storage' };
+        console.warn('Failed to create logo bucket:', bucketError);
+        return { success: false, error: 'Storage not configured. Please contact administrator.' };
       }
     }
 
@@ -155,4 +167,132 @@ export async function fileToBase64(file: File): Promise<string> {
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = error => reject(error);
   });
+}
+
+/**
+ * Upload portfolio photo to Supabase Storage
+ */
+export async function uploadPortfolioPhoto(file: File): Promise<UploadResult> {
+  try {
+    // Get current admin to find their studio
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      return { success: false, error: 'No authenticated user' };
+    }
+
+    // Get admin user with studio info
+    const { data: adminUser, error: adminError } = await supabase
+      .from('admin_users')
+      .select('studio_id')
+      .eq('auth_user_id', session.user.id)
+      .eq('is_active', true)
+      .single();
+
+    if (adminError || !adminUser) {
+      return { success: false, error: 'Failed to find admin studio' };
+    }
+
+    const studioId = adminUser.studio_id;
+
+    // Validate file
+    const validation = validateFile(file, MAX_PORTFOLIO_SIZE);
+    if (!validation.valid) {
+      return { success: false, error: validation.error };
+    }
+
+    // Create unique filename with studio ID and timestamp
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${studioId}_${Date.now()}.${fileExt}`;
+    const filePath = `${studioId}/${fileName}`;
+
+    // Check if portfolio bucket exists (don't try to create it - may require admin permissions)
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+
+    // Add debugging
+    console.log('Portfolio: List buckets result:', { buckets, listError });
+    console.log('Portfolio: Looking for bucket:', PORTFOLIO_BUCKET);
+
+    const bucketExists = buckets?.some(b => b.name === PORTFOLIO_BUCKET);
+    console.log('Portfolio: Bucket exists?', bucketExists);
+
+    if (!bucketExists) {
+      console.warn('Portfolio bucket does not exist. Please create it in Supabase dashboard.');
+      return { success: false, error: 'Portfolio storage not configured. Please contact administrator.' };
+    }
+
+    // Upload file
+    const { data, error } = await supabase.storage
+      .from(PORTFOLIO_BUCKET)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true
+      });
+
+    if (error) {
+      console.error('Portfolio upload error:', error);
+      return { success: false, error: 'Failed to upload portfolio photo' };
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from(PORTFOLIO_BUCKET)
+      .getPublicUrl(filePath);
+
+    // Save photo record to database
+    const { error: dbError } = await supabase
+      .from('portfolio_photos')
+      .insert({
+        studio_id: studioId,
+        photo_url: publicUrl,
+        file_name: file.name,
+        file_size: file.size
+      });
+
+    if (dbError) {
+      console.error('Failed to save photo to database:', dbError);
+      return { success: false, error: 'Failed to save photo record' };
+    }
+
+    return { success: true, url: publicUrl };
+  } catch (error) {
+    console.error('Unexpected error during portfolio upload:', error);
+    return { success: false, error: 'Unexpected error occurred' };
+  }
+}
+
+/**
+ * Delete portfolio photo from Supabase Storage
+ */
+export async function deletePortfolioPhoto(url: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Extract file path from URL
+    // URL format: https://{project}.supabase.co/storage/v1/object/public/studio-portfolio/{path}
+    const urlParts = url.split('/storage/v1/object/public/');
+    if (urlParts.length < 2) {
+      return { success: false, error: 'Invalid URL format' };
+    }
+
+    const fullPath = urlParts[1];
+    const pathParts = fullPath.split('/');
+    if (pathParts[0] !== PORTFOLIO_BUCKET) {
+      return { success: false, error: 'Invalid bucket' };
+    }
+
+    const filePath = pathParts.slice(1).join('/');
+
+    // Delete file
+    const { error } = await supabase.storage
+      .from(PORTFOLIO_BUCKET)
+      .remove([filePath]);
+
+    if (error) {
+      console.error('Delete portfolio photo error:', error);
+      return { success: false, error: 'Failed to delete portfolio photo' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Unexpected error during portfolio deletion:', error);
+    return { success: false, error: 'Unexpected error occurred' };
+  }
 }

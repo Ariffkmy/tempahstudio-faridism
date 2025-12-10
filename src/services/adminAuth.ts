@@ -721,6 +721,99 @@ export async function updateAdminRole(
 }
 
 // =============================================
+// STUDIO USER MANAGEMENT
+// =============================================
+
+/**
+ * Create a new studio user (admin) without email verification
+ * Only callable by admins (not staff) of the same studio
+ */
+export async function createStudioUser(data: {
+  email: string;
+  password: string;
+  full_name: string;
+  phone?: string;
+}): Promise<{
+  success: boolean;
+  user?: AdminUser;
+  error?: string;
+}> {
+  try {
+    // Get current admin to verify permissions and get studio_id
+    const currentAdmin = await getCurrentAdmin();
+    if (!currentAdmin) {
+      return {
+        success: false,
+        error: 'Not authenticated',
+      };
+    }
+
+    // Check if current user is staff (staff cannot create users)
+    if (currentAdmin.role === 'staff') {
+      return {
+        success: false,
+        error: 'Staff cannot create users',
+      };
+    }
+
+    // Super admins don't have a studio_id, so they can't create studio users this way
+    if (!currentAdmin.studio_id) {
+      return {
+        success: false,
+        error: 'Super admins cannot create studio users via this method',
+      };
+    }
+
+    // Get current session to get auth user ID
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session?.user) {
+      return {
+        success: false,
+        error: 'Failed to get session',
+      };
+    }
+
+    // Call Edge Function to create user
+    const { data: result, error: functionError } = await supabase.functions.invoke('create-studio-user', {
+      body: {
+        email: data.email,
+        password: data.password,
+        full_name: data.full_name,
+        phone: data.phone || null,
+        studio_id: currentAdmin.studio_id,
+        requesting_user_id: session.user.id,
+      },
+    });
+
+    if (functionError) {
+      console.error('Error calling create-studio-user function:', functionError);
+      return {
+        success: false,
+        error: functionError.message || 'Failed to create user',
+      };
+    }
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error || 'Failed to create user',
+      };
+    }
+
+    return {
+      success: true,
+      user: result.user as AdminUser,
+    };
+  } catch (error) {
+    console.error('Create studio user error:', error);
+    return {
+      success: false,
+      error: 'Unexpected error occurred',
+    };
+  }
+}
+
+// =============================================
 // AUTH STATE LISTENER
 // =============================================
 

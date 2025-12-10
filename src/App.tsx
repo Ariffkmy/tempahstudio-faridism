@@ -14,6 +14,7 @@ import BrandBooking from "./pages/BrandBooking";
 import BookingConfirmation from "./pages/BookingConfirmation";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminRegister from "./pages/admin/AdminRegister";
+import VerifyEmail from "./pages/admin/VerifyEmail";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminBookings from "./pages/admin/AdminBookings";
 import AdminWhatsappBlaster from "./pages/admin/AdminWhatsappBlaster";
@@ -46,6 +47,7 @@ const App = () => (
               {/* Admin Auth Routes (Public) */}
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/register" element={<AdminRegister />} />
+              <Route path="/admin/verify-email" element={<VerifyEmail />} />
 
               {/* Protected Admin Routes */}
               <Route

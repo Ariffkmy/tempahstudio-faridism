@@ -25,7 +25,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink, Palette, Image as ImageIcon, Users as UsersIcon, Trash } from 'lucide-react';
 import { loadStudioSettings, saveStudioSettings, updateStudioLayouts, saveGoogleCredentials, initiateGoogleAuth, exchangeGoogleCode, loadStudioPortfolioPhotos, deleteStudioPortfolioPhoto } from '@/services/studioSettings';
-import { uploadLogo, deleteLogo } from '@/services/fileUploadService';
+import { uploadLogo, uploadTermsPdf } from '@/services/fileUploadService';
 import BookingFormPreview, { PreviewSettings } from '@/components/booking/preview/BookingFormPreview';
 import { supabase } from '@/lib/supabase';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -51,13 +51,14 @@ const AdminSettings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
-  const [isDeletingLogo, setIsDeletingLogo] = useState(false);
+  const [isUploadingPdf, setIsUploadingPdf] = useState(false);
   const [portfolioPhotos, setPortfolioPhotos] = useState<string[]>([]);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
   const [deletingPhotoUrl, setDeletingPhotoUrl] = useState<string | null>(null);
+
   const [settings, setSettings] = useState({
     studioName: '',
-    studioSlug: '',
+    slug: '',
     studioLocation: '',
     googleMapsLink: '',
     wazeLink: '',
@@ -83,6 +84,7 @@ const AdminSettings = () => {
     enableCustomHeader: false,
     enableCustomFooter: false,
     enableWhatsappButton: false,
+    showStudioName: false,
     headerLogo: '',
     headerHomeEnabled: false,
     headerHomeUrl: '',
@@ -106,7 +108,7 @@ const AdminSettings = () => {
 
   const [layouts, setLayouts] = useState<StudioLayout[]>([]);
   const [bookingLink, setBookingLink] = useState('');
-  
+
   // Users management state
   const [studioUsers, setStudioUsers] = useState<AdminUser[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
@@ -147,7 +149,7 @@ const AdminSettings = () => {
         if (data) {
           setSettings({
             studioName: data.studioName,
-            studioSlug: data.studioSlug || '',
+            slug: data.slug || '',
             studioLocation: data.studioLocation,
             googleMapsLink: data.googleMapsLink,
             wazeLink: data.wazeLink,
@@ -173,6 +175,7 @@ const AdminSettings = () => {
             enableCustomHeader: data.enableCustomHeader || false,
             enableCustomFooter: data.enableCustomFooter || false,
             enableWhatsappButton: data.enableWhatsappButton || false,
+            showStudioName: data.showStudioName || false,
             headerLogo: data.headerLogo || '',
             headerHomeEnabled: data.headerHomeEnabled || false,
             headerHomeUrl: data.headerHomeUrl || '',
@@ -209,6 +212,34 @@ const AdminSettings = () => {
 
     loadSettings();
   }, [toast, effectiveStudioId]);
+
+  // Dedicated effect to calculate booking link exactly like AdminBookings
+  useEffect(() => {
+    const fetchBookingLink = async () => {
+      if (!effectiveStudioId) return;
+
+      try {
+        const { data: studioData } = await supabase
+          .from('studios')
+          .select('slug')
+          .eq('id', effectiveStudioId)
+          .single();
+
+        const baseUrl = window.location.origin;
+        const link = studioData?.slug
+          ? `${baseUrl}/${studioData.slug}`
+          : `${baseUrl}/book/${effectiveStudioId}`;
+
+        // setFinalBookingLink(link);
+      } catch (e) {
+        console.error('Error fetching slug for link:', e);
+        // Fallback
+        // setFinalBookingLink(`${window.location.origin}/book/${effectiveStudioId}`);
+      }
+    };
+
+    fetchBookingLink();
+  }, [effectiveStudioId]);
 
   // Load portfolio photos
   const fetchPortfolioPhotos = useCallback(async () => {
@@ -278,18 +309,15 @@ const AdminSettings = () => {
   useEffect(() => {
     if (effectiveStudioId) {
       const baseUrl = window.location.origin;
-      // Use slug for cleaner URL if available, otherwise fallback to ID
-      const studioBookingLink = settings.studioSlug 
-        ? `${baseUrl}/${settings.studioSlug}` 
-        : `${baseUrl}/book/${effectiveStudioId}`;
+      const studioBookingLink = `${baseUrl}/book/${effectiveStudioId}`;
       setBookingLink(studioBookingLink);
     }
-  }, [effectiveStudioId, settings.studioSlug]);
+  }, [effectiveStudioId]);
 
   // Load studio users
   const loadStudioUsers = async () => {
     if (!effectiveStudioId) return;
-    
+
     setIsLoadingUsers(true);
     try {
       const users = await getStudioAdmins(effectiveStudioId);
@@ -548,6 +576,8 @@ const AdminSettings = () => {
       setIsSaving(false);
     }
   };
+
+
 
   if (isLoading) {
     return (
@@ -990,123 +1020,7 @@ const AdminSettings = () => {
             </Card>
 
             {/* Booking Link */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Pautan Tempahan</CardTitle>
-                <CardDescription className="text-sm">Pautan untuk sistem tempahan</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="bookingLink" className="text-sm">Pautan Tempahan Awam</Label>
-                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <ExternalLink className="h-4 w-4 text-primary" />
-                      <h4 className="text-sm font-semibold text-primary">Pautan Tempahan Studio</h4>
-                    </div>
-                    <p className="text-muted-foreground text-xs mb-3">
-                      Kongsi pautan ini dengan pelanggan untuk membuat tempahan secara langsung
-                    </p>
-                    <div className="bg-background border rounded-md p-2 mb-3">
-                      <code className="text-xs font-mono break-all">{bookingLink && bookingLink !== settings.bookingLink ? bookingLink : settings.bookingLink}</code>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          const link = bookingLink && bookingLink !== settings.bookingLink ? bookingLink : settings.bookingLink;
-                          navigator.clipboard.writeText(link);
-                          toast({
-                            description: "Pautan telah disalin!",
-                          });
-                        }}
-                      >
-                        <Copy className="h-4 w-4 mr-2" />
-                        Salin
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const link = bookingLink && bookingLink !== settings.bookingLink ? bookingLink : settings.bookingLink;
-                          window.open(link, '_blank');
-                        }}
-                      >
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Buka
-                      </Button>
-                    </div>
-                  </div>
-                </div>
 
-                    <Separator />
-
-                    {/* Branded Booking Link */}
-                    {settings.enableCustomHeader && settings.enableCustomFooter && settings.enableWhatsappButton ? (
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-sm font-semibold text-emerald-600">✓ Branding Enabled</span>
-                          <Badge variant="outline" className="text-xs">Premium</Badge>
-                        </div>
-                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Palette className="h-4 w-4 text-purple-500" />
-                            <h4 className="text-sm font-semibold text-purple-700">Branded Booking Link</h4>
-                            <Badge variant="secondary" className="text-xs">Enhanced</Badge>
-                          </div>
-                          <p className="text-muted-foreground mb-3 text-sm">
-                            Premium branded experience with custom header, navigation, footer, and WhatsApp button
-                          </p>
-                          <div className="bg-background border rounded-md p-3 mb-3">
-                            <code className="text-sm font-mono break-all text-purple-700">
-                              {window.location.origin}/brand/{effectiveStudioId}
-                            </code>
-                          </div>
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-purple-300 text-purple-700 hover:bg-purple-50"
-                              onClick={() => {
-                                navigator.clipboard.writeText(`${window.location.origin}/brand/${effectiveStudioId}`);
-                                toast({
-                                  description: "Branded booking link copied!",
-                                  className: "bg-purple-50 border-purple-200"
-                                });
-                              }}
-                            >
-                              <Copy className="h-4 w-4 mr-2" />
-                              Copy Branded Link
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-purple-300 text-purple-700 hover:bg-purple-50"
-                              onClick={() => {
-                                window.open(`${window.location.origin}/brand/${effectiveStudioId}`, '_blank');
-                              }}
-                            >
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              Open Branded Form
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ) : settings.enableCustomHeader || settings.enableCustomFooter || settings.enableWhatsappButton ? (
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <svg className="h-4 w-4 text-yellow-600" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                          </svg>
-                          <span className="text-sm font-semibold text-yellow-800">Branded Link Ready</span>
-                        </div>
-                        <p className="text-yellow-700 text-sm">
-                          Enable additional customizations (header/footer/WhatsApp) to unlock the premium branded booking link.
-                        </p>
-                      </div>
-                    ) : null}
-
-              </CardContent>
-            </Card>
 
             {/* Studio Layouts */}
             <Card>
@@ -1279,36 +1193,36 @@ const AdminSettings = () => {
             <Tabs defaultValue="maklumat-asas" className="w-full">
               <div className="border-b border-border">
                 <TabsList className="grid w-full grid-cols-5 md:flex md:w-auto h-auto p-0 bg-transparent justify-start">
-                  <TabsTrigger 
-                    value="maklumat-asas" 
+                  <TabsTrigger
+                    value="maklumat-asas"
                     className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
                   >
                     <span className="mr-2">🏢</span>
                     Maklumat Asas Studio
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="google-calendar" 
+                  <TabsTrigger
+                    value="google-calendar"
                     className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
                   >
                     <span className="mr-2">📅</span>
                     Google Calendar
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="pakej" 
+                  <TabsTrigger
+                    value="pakej"
                     className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
                   >
                     <span className="mr-2">📦</span>
                     Pakej
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="booking-form" 
+                  <TabsTrigger
+                    value="booking-form"
                     className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
                   >
                     <span className="mr-2">📋</span>
                     Booking Form
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="users" 
+                  <TabsTrigger
+                    value="users"
                     className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
                   >
                     <UsersIcon className="h-4 w-4 mr-2" />
@@ -1325,160 +1239,160 @@ const AdminSettings = () => {
                     <CardTitle>Maklumat Asas Studio</CardTitle>
                     <CardDescription>Maklumat umum tentang studio anda</CardDescription>
                   </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="studioName">Nama Studio</Label>
-                      <Input
-                        id="studioName"
-                        value={settings.studioName}
-                        onChange={(e) => handleSettingChange('studioName', e.target.value)}
-                        placeholder="Masukkan nama studio"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="studioEmail">Emel Studio</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="studioName">Nama Studio</Label>
                         <Input
-                          id="studioEmail"
-                          type="email"
-                          value={settings.studioEmail}
-                          onChange={(e) => handleSettingChange('studioEmail', e.target.value)}
-                          placeholder="info@studio.com"
-                          className="pl-9"
+                          id="studioName"
+                          value={settings.studioName}
+                          onChange={(e) => handleSettingChange('studioName', e.target.value)}
+                          placeholder="Masukkan nama studio"
                         />
                       </div>
-                    </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="studioLocation">Lokasi Studio</Label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="studioLocation"
-                        value={settings.studioLocation}
-                        onChange={(e) => handleSettingChange('studioLocation', e.target.value)}
-                        placeholder="Alamat studio"
-                        className="pl-9"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="googleMapsLink">Pautan Google Maps</Label>
-                      <Input
-                        id="googleMapsLink"
-                        value={settings.googleMapsLink}
-                        onChange={(e) => handleSettingChange('googleMapsLink', e.target.value)}
-                        placeholder="https://maps.google.com/..."
-                      />
+                      <div className="space-y-2">
+                        <Label htmlFor="studioEmail">Emel Studio</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="studioEmail"
+                            type="email"
+                            value={settings.studioEmail}
+                            onChange={(e) => handleSettingChange('studioEmail', e.target.value)}
+                            placeholder="info@studio.com"
+                            className="pl-9"
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="wazeLink">Pautan Waze</Label>
-                      <Input
-                        id="wazeLink"
-                        value={settings.wazeLink}
-                        onChange={(e) => handleSettingChange('wazeLink', e.target.value)}
-                        placeholder="https://waze.com/..."
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Owner Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Maklumat Pemilik</CardTitle>
-                  <CardDescription>Maklumat hubungan pemilik studio</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="ownerName">Nama Pemilik</Label>
+                      <Label htmlFor="studioLocation">Lokasi Studio</Label>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
-                          id="ownerName"
-                          value={settings.ownerName}
-                          onChange={(e) => handleSettingChange('ownerName', e.target.value)}
-                          placeholder="Nama penuh pemilik"
+                          id="studioLocation"
+                          value={settings.studioLocation}
+                          onChange={(e) => handleSettingChange('studioLocation', e.target.value)}
+                          placeholder="Alamat studio"
                           className="pl-9"
                         />
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="ownerPhone">No Telefon Pemilik</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="googleMapsLink">Pautan Google Maps</Label>
                         <Input
-                          id="ownerPhone"
-                          value={settings.ownerPhone}
-                          onChange={(e) => handleSettingChange('ownerPhone', e.target.value)}
-                          placeholder="+601129947089"
-                          className="pl-9"
+                          id="googleMapsLink"
+                          value={settings.googleMapsLink}
+                          onChange={(e) => handleSettingChange('googleMapsLink', e.target.value)}
+                          placeholder="https://maps.google.com/..."
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="wazeLink">Pautan Waze</Label>
+                        <Input
+                          id="wazeLink"
+                          value={settings.wazeLink}
+                          onChange={(e) => handleSettingChange('wazeLink', e.target.value)}
+                          placeholder="https://waze.com/..."
                         />
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
 
-              {/* Banking Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Maklumat Perbankan</CardTitle>
-                  <CardDescription>Maklumat akaun bank untuk pembayaran</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="bankAccountNumber">No Akaun Bank</Label>
-                      <div className="relative">
-                        <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                {/* Owner Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Maklumat Pemilik</CardTitle>
+                    <CardDescription>Maklumat hubungan pemilik studio</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="ownerName">Nama Pemilik</Label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="ownerName"
+                            value={settings.ownerName}
+                            onChange={(e) => handleSettingChange('ownerName', e.target.value)}
+                            placeholder="Nama penuh pemilik"
+                            className="pl-9"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="ownerPhone">No Telefon Pemilik</Label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="ownerPhone"
+                            value={settings.ownerPhone}
+                            onChange={(e) => handleSettingChange('ownerPhone', e.target.value)}
+                            placeholder="+601129947089"
+                            className="pl-9"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Banking Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Maklumat Perbankan</CardTitle>
+                    <CardDescription>Maklumat akaun bank untuk pembayaran</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="bankAccountNumber">No Akaun Bank</Label>
+                        <div className="relative">
+                          <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="bankAccountNumber"
+                            value={settings.bankAccountNumber}
+                            onChange={(e) => handleSettingChange('bankAccountNumber', e.target.value)}
+                            placeholder="1234567890"
+                            className="pl-9"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="accountOwnerName">Nama Pemilik Akaun</Label>
                         <Input
-                          id="bankAccountNumber"
-                          value={settings.bankAccountNumber}
-                          onChange={(e) => handleSettingChange('bankAccountNumber', e.target.value)}
-                          placeholder="1234567890"
-                          className="pl-9"
+                          id="accountOwnerName"
+                          value={settings.accountOwnerName}
+                          onChange={(e) => handleSettingChange('accountOwnerName', e.target.value)}
+                          placeholder="Nama pada akaun bank"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="accountOwnerName">Nama Pemilik Akaun</Label>
+                      <Label htmlFor="qrCode">Kod QR</Label>
                       <Input
-                        id="accountOwnerName"
-                        value={settings.accountOwnerName}
-                        onChange={(e) => handleSettingChange('accountOwnerName', e.target.value)}
-                        placeholder="Nama pada akaun bank"
+                        id="qrCode"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleSettingChange('qrCode', file.name);
+                          }
+                        }}
                       />
                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="qrCode">Kod QR</Label>
-                    <Input
-                      id="qrCode"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          handleSettingChange('qrCode', file.name);
-                        }
-                      }}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
 
                 {/* Save Button for Tab 1 */}
                 <div className="flex justify-end">
@@ -1879,58 +1793,7 @@ const AdminSettings = () => {
 
               {/* Tab 4: Booking Form */}
               <TabsContent value="booking-form" className="space-y-6 mt-6">
-                {/* Booking Link */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Pautan Tempahan</CardTitle>
-                    <CardDescription>Pautan untuk sistem tempahan</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="bookingLinkTab4">Pautan Tempahan Awam</Label>
-                      <div className="bg-primary/5 border border-primary/20 rounded-lg p-6">
-                        <div className="flex items-center gap-2 mb-2">
-                          <ExternalLink className="h-4 w-4 text-primary" />
-                          <h4 className="text-sm font-semibold text-primary">Pautan Tempahan Studio</h4>
-                        </div>
-                        <p className="text-muted-foreground mb-3">
-                          Kongsi pautan ini dengan pelanggan untuk membuat tempahan secara langsung
-                        </p>
-                        <div className="bg-background border rounded-md p-3 mb-3">
-                          <code className="text-sm font-mono break-all">{bookingLink && bookingLink !== settings.bookingLink ? bookingLink : settings.bookingLink}</code>
-                        </div>
-                        <div className="flex flex-col sm:flex-row gap-2">
-                          <Button
-                            onClick={() => {
-                              const link = bookingLink && bookingLink !== settings.bookingLink ? bookingLink : settings.bookingLink;
-                              navigator.clipboard.writeText(link);
-                              toast({
-                                description: "Pautan telah disalin!",
-                              });
-                            }}
-                          >
-                            <Copy className="h-4 w-4 mr-2" />
-                            Salin
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              const link = bookingLink && bookingLink !== settings.bookingLink ? bookingLink : settings.bookingLink;
-                              window.open(link, '_blank');
-                            }}
-                          >
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            Buka
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
 
-                    <Separator />
-
-                    
-                  </CardContent>
-                </Card>
 
                 {/* Terms and Conditions Settings */}
                 <Card>
@@ -2002,17 +1865,65 @@ const AdminSettings = () => {
                           id="termsPdf"
                           type="file"
                           accept=".pdf"
-                          onChange={(e) => {
+                          disabled={isUploadingPdf}
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
-                            if (file) {
-                              handleSettingChange('termsConditionsPdf', file.name);
+                            if (!file) return;
+
+                            if (!effectiveStudioId) {
+                              toast({
+                                title: "Studio not ready",
+                                description: "Please select a studio before uploading a PDF.",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+
+                            setIsUploadingPdf(true);
+                            try {
+                              const result = await uploadTermsPdf(file, effectiveStudioId);
+                              if (result.success && result.url) {
+                                handleSettingChange('termsConditionsPdf', result.url);
+                                toast({ title: "PDF uploaded", description: "Terms & Conditions PDF updated successfully." });
+                              } else {
+                                toast({
+                                  title: "Upload failed",
+                                  description: result.error || "Failed to upload PDF",
+                                  variant: "destructive",
+                                });
+                              }
+                            } catch (error) {
+                              console.error('PDF upload error:', error);
+                              toast({
+                                title: "Upload failed",
+                                description: "Unexpected error while uploading PDF",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setIsUploadingPdf(false);
+                              // Clear the input
+                              e.target.value = '';
                             }
                           }}
                         />
                         {settings.termsConditionsPdf && (
-                          <p className="text-sm text-muted-foreground">
-                            Fail semasa: {settings.termsConditionsPdf}
-                          </p>
+                          <div className="space-y-2 p-3 bg-muted rounded-md">
+                            <span className="text-sm block">Fail semasa:</span>
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={settings.termsConditionsPdf}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-sm text-primary hover:underline flex items-center gap-1"
+                              >
+                                Lihat PDF
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                              {isUploadingPdf && (
+                                <Loader2 className="h-4 w-4 animate-spin text-gray-600" />
+                              )}
+                            </div>
+                          </div>
                         )}
                       </div>
                     )}
@@ -2059,106 +1970,63 @@ const AdminSettings = () => {
                         id="studioLogo"
                         type="file"
                         accept="image/*"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
 
-                        if (!effectiveStudioId) {
-                          toast({
-                            title: "Studio not ready",
-                            description: "Please select a studio before uploading a logo.",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-
-                        setIsUploadingLogo(true);
-                        try {
-                          const result = await uploadLogo(file, effectiveStudioId);
-                          if (result.success && result.url) {
-                            handleSettingChange('studioLogo', result.url);
-                            toast({ title: "Logo uploaded", description: "Logo updated successfully." });
-                          } else {
+                          if (!effectiveStudioId) {
                             toast({
-                              title: "Upload failed",
-                              description: result.error || "Failed to upload logo",
+                              title: "Studio not ready",
+                              description: "Please select a studio before uploading a logo.",
                               variant: "destructive",
                             });
+                            return;
                           }
-                        } catch (error) {
-                          console.error('Logo upload error:', error);
-                          toast({
-                            title: "Upload failed",
-                            description: "Unexpected error while uploading logo",
-                            variant: "destructive",
-                          });
-                        } finally {
-                          setIsUploadingLogo(false);
-                        }
-                      }}
+
+                          setIsUploadingLogo(true);
+                          try {
+                            const result = await uploadLogo(file, effectiveStudioId);
+                            if (result.success && result.url) {
+                              handleSettingChange('studioLogo', result.url);
+                              toast({ title: "Logo uploaded", description: "Logo updated successfully." });
+                            } else {
+                              toast({
+                                title: "Upload failed",
+                                description: result.error || "Failed to upload logo",
+                                variant: "destructive",
+                              });
+                            }
+                          } catch (error) {
+                            console.error('Logo upload error:', error);
+                            toast({
+                              title: "Upload failed",
+                              description: "Unexpected error while uploading logo",
+                              variant: "destructive",
+                            });
+                          } finally {
+                            setIsUploadingLogo(false);
+                          }
+                        }}
                       />
                       {settings.studioLogo ? (
-                      <div className="space-y-2 p-3 bg-muted rounded-md">
-                        <span className="text-sm block">Logo semasa:</span>
-                        <div className="relative h-24 w-24 rounded-md border bg-white overflow-hidden flex items-center justify-center">
-                          <img
-                            src={settings.studioLogo}
-                            alt="Studio logo"
-                            className="h-full w-full object-contain"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                            }}
-                          />
-                          {(isUploadingLogo || isDeletingLogo) && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-white/70">
-                              <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
-                            </div>
-                          )}
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="absolute top-1 right-1 h-8 w-8 bg-red-600 hover:bg-red-700 text-white"
-                            disabled={isDeletingLogo}
-                            onClick={async () => {
-                              if (!settings.studioLogo) return;
-                              
-                              setIsDeletingLogo(true);
-                              try {
-                                const result = await deleteLogo(settings.studioLogo);
-                                if (result.success) {
-                                  handleSettingChange('studioLogo', '');
-                                  toast({ 
-                                    title: "Logo dipadam", 
-                                    description: "Logo telah berjaya dipadam." 
-                                  });
-                                } else {
-                                  toast({
-                                    title: "Gagal memadam",
-                                    description: result.error || "Gagal memadam logo",
-                                    variant: "destructive",
-                                  });
-                                }
-                              } catch (error) {
-                                console.error('Logo delete error:', error);
-                                toast({
-                                  title: "Gagal memadam",
-                                  description: "Ralat tidak dijangka semasa memadam logo",
-                                  variant: "destructive",
-                                });
-                              } finally {
-                                setIsDeletingLogo(false);
-                              }
-                            }}
-                            aria-label="Delete studio logo"
-                          >
-                            {isDeletingLogo ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash className="h-4 w-4" />
+                        <div className="space-y-2 p-3 bg-muted rounded-md">
+                          <span className="text-sm block">Logo semasa:</span>
+                          <div className="relative h-24 w-24 rounded-md border bg-white overflow-hidden flex items-center justify-center">
+                            <img
+                              src={settings.studioLogo}
+                              alt="Studio logo"
+                              className="h-full w-full object-contain"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                              }}
+                            />
+                            {isUploadingLogo && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-white/70">
+                                <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
+                              </div>
                             )}
-                          </Button>
-                        </div>
+                          </div>
                         </div>
                       ) : (
                         <p className="text-sm text-muted-foreground">
@@ -2324,6 +2192,20 @@ const AdminSettings = () => {
                         <Switch
                           checked={settings.enableCustomHeader}
                           onCheckedChange={(checked) => handleSettingChange('enableCustomHeader', checked)}
+                        />
+                      </div>
+
+                      {/* Show Studio Name */}
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label className="text-base">Show Studio Name</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Paparkan nama studio di bawah logo dalam borang tempahan
+                          </p>
+                        </div>
+                        <Switch
+                          checked={settings.showStudioName}
+                          onCheckedChange={(checked) => handleSettingChange('showStudioName', checked)}
                         />
                       </div>
 

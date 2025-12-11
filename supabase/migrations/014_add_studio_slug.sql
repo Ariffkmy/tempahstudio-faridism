@@ -72,3 +72,4 @@ CREATE TRIGGER trigger_auto_generate_studio_slug
     FOR EACH ROW
     EXECUTE FUNCTION auto_generate_studio_slug();
 
+

@@ -270,7 +270,7 @@ const AdminReports = () => {
 
           {/* Summary Cards */}
           <div className="grid grid-cols-2 gap-3 mb-6">
-            <Card>
+            <Card className="transition-all duration-500 ease-in-out hover:scale-110 hover:shadow-xl cursor-pointer">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 pt-3">
                 <CardTitle className="text-xs font-medium">Jumlah Hasil</CardTitle>
                 <DollarSign className="h-3 w-3 text-muted-foreground" />
@@ -281,7 +281,7 @@ const AdminReports = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="transition-all duration-500 ease-in-out hover:scale-110 hover:shadow-xl cursor-pointer">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 pt-3">
                 <CardTitle className="text-xs font-medium">Tempahan</CardTitle>
                 <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -292,7 +292,7 @@ const AdminReports = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="transition-all duration-500 ease-in-out hover:scale-110 hover:shadow-xl cursor-pointer">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 pt-3">
                 <CardTitle className="text-xs font-medium">Selesai Edit</CardTitle>
                 <Users className="h-3 w-3 text-muted-foreground" />
@@ -303,7 +303,7 @@ const AdminReports = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="transition-all duration-500 ease-in-out hover:scale-110 hover:shadow-xl cursor-pointer">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 pt-3">
                 <CardTitle className="text-xs font-medium">Tertunggak</CardTitle>
                 <Clock className="h-3 w-3 text-muted-foreground" />
@@ -474,7 +474,7 @@ const AdminReports = () => {
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-              <Card>
+              <Card className="transition-all duration-500 ease-in-out hover:scale-110 hover:shadow-xl cursor-pointer">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Jumlah Hasil</CardTitle>
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -485,7 +485,7 @@ const AdminReports = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="transition-all duration-500 ease-in-out hover:scale-110 hover:shadow-xl cursor-pointer">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Jumlah Tempahan</CardTitle>
                   <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -496,7 +496,7 @@ const AdminReports = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="transition-all duration-500 ease-in-out hover:scale-110 hover:shadow-xl cursor-pointer">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Jumlah Selesai Edit</CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
@@ -507,7 +507,7 @@ const AdminReports = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="transition-all duration-500 ease-in-out hover:scale-110 hover:shadow-xl cursor-pointer">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Bayaran Tertunggak</CardTitle>
                   <Clock className="h-4 w-4 text-muted-foreground" />

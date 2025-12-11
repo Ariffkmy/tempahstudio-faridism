@@ -9,7 +9,7 @@ import type { Studio, StudioLayout, AdminUser } from '@/types/database';
 export interface StudioSettings {
   // Studio info
   studioName: string;
-  studioSlug: string;
+  slug: string;
   studioLocation: string;
   studioEmail: string;
   googleMapsLink: string;
@@ -46,6 +46,7 @@ export interface StudioSettings {
   enableCustomHeader: boolean;
   enableCustomFooter: boolean;
   enableWhatsappButton: boolean;
+  showStudioName: boolean;
   headerLogo: string;
   headerHomeEnabled: boolean;
   headerHomeUrl: string;
@@ -159,7 +160,7 @@ export async function loadStudioSettings(studioId?: string): Promise<StudioSetti
     // Build settings object
     const settings: StudioSettingsWithLayouts = {
       studioName: studio.name || '',
-      studioSlug: studio.slug || '',
+      slug: studio.slug || '',
       studioLocation: studio.location || '',
       studioEmail: studio.email || '',
       googleMapsLink: studio.google_maps_link || '',
@@ -176,15 +177,16 @@ export async function loadStudioSettings(studioId?: string): Promise<StudioSetti
       googleClientSecret: studio.google_client_secret || '',
       googleClientIdConfigured: !!(studio.google_client_id),
       googleRefreshTokenConfigured: !!(studio.google_refresh_token),
-      termsConditionsType: studio.terms_conditions_type || 'none',
-      termsConditionsText: studio.terms_conditions_text || '',
-      termsConditionsPdf: studio.terms_conditions_pdf || '',
-      timeSlotGap: studio.time_slot_gap || 30,
-      studioLogo: studio.studio_logo || '',
+      termsConditionsType: (studio as any).terms_conditions_type || 'none',
+      termsConditionsText: (studio as any).terms_conditions_text || '',
+      termsConditionsPdf: (studio as any).terms_conditions_pdf || '',
+      timeSlotGap: (studio as any).time_slot_gap || 30,
+      studioLogo: (studio as any).studio_logo || '',
       // Booking form customization
       enableCustomHeader: studio.enable_custom_header || false,
       enableCustomFooter: studio.enable_custom_footer || false,
       enableWhatsappButton: studio.enable_whatsapp_button || false,
+      showStudioName: (studio as any).show_studio_name || false,
       headerLogo: studio.header_logo || '',
       headerHomeEnabled: studio.header_home_enabled || false,
       headerHomeUrl: studio.header_home_url || '',
@@ -297,10 +299,16 @@ export async function saveStudioSettings(
         booking_link: settings.bookingLink,
         google_calendar_enabled: settings.googleCalendarEnabled,
         google_calendar_id: settings.googleCalendarId,
+        // Terms & Conditions
+        terms_conditions_type: settings.termsConditionsType,
+        terms_conditions_text: settings.termsConditionsText,
+        terms_conditions_pdf: settings.termsConditionsPdf,
+        time_slot_gap: settings.timeSlotGap,
         // Booking form customization
         enable_custom_header: settings.enableCustomHeader,
         enable_custom_footer: settings.enableCustomFooter,
         enable_whatsapp_button: settings.enableWhatsappButton,
+        show_studio_name: settings.showStudioName,
         header_logo: settings.headerLogo,
         header_home_enabled: settings.headerHomeEnabled,
         header_home_url: settings.headerHomeUrl,
@@ -317,6 +325,9 @@ export async function saveStudioSettings(
         whatsapp_message: settings.whatsappMessage,
         brand_color_primary: settings.brandColorPrimary,
         brand_color_secondary: settings.brandColorSecondary,
+        enable_portfolio_photo_upload: settings.enablePortfolioPhotoUpload,
+        portfolio_upload_instructions: settings.portfolioUploadInstructions,
+        portfolio_max_file_size: settings.portfolioMaxFileSize,
         updated_at: new Date().toISOString()
       })
       .eq('id', targetStudioId)

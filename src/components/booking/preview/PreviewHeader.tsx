@@ -8,13 +8,9 @@ import { Link } from 'react-router-dom';
 interface PreviewHeaderProps {
   logo: string;
   homeEnabled: boolean;
-  homeUrl: string;
   aboutEnabled: boolean;
-  aboutUrl: string;
   portfolioEnabled: boolean;
-  portfolioUrl: string;
   contactEnabled: boolean;
-  contactUrl: string;
   brandColorPrimary: string;
   brandColorSecondary: string;
 }
@@ -22,21 +18,17 @@ interface PreviewHeaderProps {
 const PreviewHeader = ({
   logo,
   homeEnabled,
-  homeUrl,
   aboutEnabled,
-  aboutUrl,
   portfolioEnabled,
-  portfolioUrl,
   contactEnabled,
-  contactUrl,
   brandColorPrimary,
   brandColorSecondary,
 }: PreviewHeaderProps) => {
   const navItems = [
-    { enabled: homeEnabled, label: 'Home', url: homeUrl },
-    { enabled: aboutEnabled, label: 'About', url: aboutUrl },
-    { enabled: portfolioEnabled, label: 'Portfolio', url: portfolioUrl },
-    { enabled: contactEnabled, label: 'Contact', url: contactUrl },
+    { enabled: homeEnabled, label: 'Home' },
+    { enabled: aboutEnabled, label: 'About' },
+    { enabled: portfolioEnabled, label: 'Portfolio' },
+    { enabled: contactEnabled, label: 'Contact' },
   ].filter(item => item.enabled);
 
   return (
@@ -70,15 +62,13 @@ const PreviewHeader = ({
           {navItems.length > 0 && (
             <nav className="hidden md:flex items-center gap-6">
               {navItems.map((item, index) => (
-                <a
+                <span
                   key={index}
-                  href="#"
                   className="text-sm font-medium hover:opacity-80 transition-opacity cursor-not-allowed"
                   style={{ color: brandColorSecondary }}
-                  onClick={(e) => e.preventDefault()}
                 >
                   {item.label}
-                </a>
+                </span>
               ))}
             </nav>
           )}

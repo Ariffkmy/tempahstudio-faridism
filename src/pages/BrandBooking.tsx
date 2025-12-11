@@ -10,6 +10,7 @@ import { DatePicker } from '@/components/booking/DatePicker';
 import { TimeSlots } from '@/components/booking/TimeSlots';
 import { ContactForm } from '@/components/booking/ContactForm';
 import { PaymentSelector } from '@/components/booking/PaymentSelector';
+import { TermsAndConditions } from '@/components/booking/TermsAndConditions';
 import CustomBookingHeader from '@/components/booking/CustomBookingHeader';
 import CustomBookingFooter from '@/components/booking/CustomBookingFooter';
 import FloatingWhatsAppButton from '@/components/booking/FloatingWhatsAppButton';
@@ -42,6 +43,7 @@ const BrandBooking = () => {
     receipt: null as File | null,
     proof: null as File | null,
   });
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Studio-specific state
   const [studio, setStudio] = useState<Studio | null>(null);
@@ -54,6 +56,7 @@ const BrandBooking = () => {
     enableCustomHeader: false,
     enableCustomFooter: false,
     enableWhatsappButton: false,
+    showStudioName: false,
     headerLogo: '',
     headerHomeEnabled: false,
     headerHomeUrl: '',
@@ -68,7 +71,10 @@ const BrandBooking = () => {
     footerInstagramLink: '',
     whatsappMessage: 'Hubungi kami',
     brandColorPrimary: '#000000',
-    brandColorSecondary: '#ffffff'
+    brandColorSecondary: '#ffffff',
+    termsConditionsType: 'none' as 'none' | 'text' | 'pdf',
+    termsConditionsText: '',
+    termsConditionsPdf: ''
   });
 
   const layout = layouts.find((l) => l.id === selectedLayout) || null;
@@ -92,13 +98,13 @@ const BrandBooking = () => {
           .from('studios')
           .select('*')
           .eq('is_active', true);
-        
+
         if (studioId) {
           query = query.eq('id', studioId);
         } else if (studioSlug) {
           query = query.eq('slug', studioSlug);
         }
-        
+
         const { data: studioData, error: studioError } = await query.single();
 
         if (studioError || !studioData) {
@@ -111,28 +117,16 @@ const BrandBooking = () => {
           return;
         }
 
-        // Check if customizations are enabled
-        const hasCustomizationsEnabled = studioData.enable_custom_header ||
-                                       studioData.enable_custom_footer ||
-                                       studioData.enable_whatsapp_button;
-
-        if (!hasCustomizationsEnabled) {
-          // Redirect to default booking if no customizations are enabled
-          // Use slug if available, otherwise use ID
-          const redirectPath = studioData.slug ? `/${studioData.slug}` : `/book/${studioData.id}`;
-          navigate(redirectPath, { replace: true });
-          return;
-        }
-
         setStudio(studioData);
-        
+
         const actualStudioId = studioData.id;
 
-        // Load studio customizations
+        // Load studio customizations (will be conditionally rendered)
         setCustomization({
           enableCustomHeader: studioData.enable_custom_header || false,
           enableCustomFooter: studioData.enable_custom_footer || false,
           enableWhatsappButton: studioData.enable_whatsapp_button || false,
+          showStudioName: (studioData as any).show_studio_name || false,
           headerLogo: studioData.header_logo || '',
           headerHomeEnabled: studioData.header_home_enabled || false,
           headerHomeUrl: studioData.header_home_url || '',
@@ -147,7 +141,10 @@ const BrandBooking = () => {
           footerInstagramLink: studioData.footer_instagram_link || '',
           whatsappMessage: studioData.whatsapp_message || 'Hubungi kami',
           brandColorPrimary: studioData.brand_color_primary || '#000000',
-          brandColorSecondary: studioData.brand_color_secondary || '#ffffff'
+          brandColorSecondary: studioData.brand_color_secondary || '#ffffff',
+          termsConditionsType: ((studioData as any).terms_conditions_type || 'none') as 'none' | 'text' | 'pdf',
+          termsConditionsText: (studioData as any).terms_conditions_text || '',
+          termsConditionsPdf: (studioData as any).terms_conditions_pdf || ''
         });
 
         // Load studio layouts
@@ -203,8 +200,10 @@ const BrandBooking = () => {
     formData.email.trim() &&
     formData.phone.trim() &&
     (selectedPayment === 'cash' ||
-     (selectedPayment === 'qr' && uploadedFiles.receipt) ||
-     (selectedPayment === 'bank' && uploadedFiles.proof))
+      (selectedPayment === 'qr' && uploadedFiles.receipt) ||
+      (selectedPayment === 'bank' && uploadedFiles.proof)) &&
+    // Terms acceptance is only required if T&C is configured
+    (customization.termsConditionsType === 'none' || termsAccepted)
   );
 
   const handleFormChange = (field: string, value: string) => {
@@ -315,13 +314,9 @@ const BrandBooking = () => {
         <CustomBookingHeader
           logo={customization.headerLogo}
           homeEnabled={customization.headerHomeEnabled}
-          homeUrl={customization.headerHomeUrl}
           aboutEnabled={customization.headerAboutEnabled}
-          aboutUrl={customization.headerAboutUrl}
           portfolioEnabled={customization.headerPortfolioEnabled}
-          portfolioUrl={customization.headerPortfolioUrl}
           contactEnabled={customization.headerContactEnabled}
-          contactUrl={customization.headerContactUrl}
           brandColorPrimary={customization.brandColorPrimary}
           brandColorSecondary={customization.brandColorSecondary}
         />
@@ -330,28 +325,22 @@ const BrandBooking = () => {
       <main className="pt-8 pb-16">
         <div className="container max-w-4xl mx-auto px-4">
           <div className="mb-8">
-            {/* Logo and brand info - hide default logo if custom header is enabled */}
-            {!customization.enableCustomHeader && (
-              <div className="text-center mb-6">
-                <img src="/studiorayalogo.png" alt="logo studio" className="mx-auto h-16 w-auto mb-2" />
-                <p className="text-sm text-muted-foreground">Studio Fotografi Profesional</p>
-              </div>
-            )}
-
+            {/* Studio branding - always visible */}
             <div className="text-center mb-6">
-              {customization.headerLogo && customization.enableCustomHeader && (
+              {/* Show logo if available */}
+              {studio.studio_logo && (
                 <img
-                  src={customization.headerLogo}
+                  src={studio.studio_logo}
                   alt="Studio Logo"
-                  className="mx-auto h-16 w-auto object-contain mb-2"
+                  className="mx-auto h-20 w-auto object-contain mb-2"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                   }}
                 />
               )}
-              <h2 className="text-xl font-bold">{studio.name}</h2>
-              {studio.location && (
-                <p className="text-sm text-muted-foreground">{studio.location}</p>
+              {/* Show studio name only if showStudioName is enabled */}
+              {customization.showStudioName && (
+                <h2 className="text-xl font-bold">{studio.name}</h2>
               )}
             </div>
 
@@ -436,8 +425,8 @@ const BrandBooking = () => {
                     <span className="text-muted-foreground">Kaedah Pembayaran:</span>
                     <span className="font-medium">
                       {selectedPayment === 'cash' ? 'Bayar melalui cash/QR di studio' :
-                       selectedPayment === 'qr' ? 'Bayar melalui QR sekarang' :
-                       selectedPayment === 'bank' ? 'Pemindahan Bank' : '-'}
+                        selectedPayment === 'qr' ? 'Bayar melalui QR sekarang' :
+                          selectedPayment === 'bank' ? 'Pemindahan Bank' : '-'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -447,6 +436,15 @@ const BrandBooking = () => {
                 </div>
               </Card>
             )}
+
+            {/* Terms and Conditions - Moved to last section */}
+            <TermsAndConditions
+              type={customization.termsConditionsType}
+              textContent={customization.termsConditionsText}
+              pdfUrl={customization.termsConditionsPdf}
+              accepted={termsAccepted}
+              onAcceptChange={setTermsAccepted}
+            />
 
             {/* Form Validation Status */}
             {!isFormValid && (
@@ -462,6 +460,7 @@ const BrandBooking = () => {
                   {!formData.phone.trim() && <li>• Masukkan nombor telefon</li>}
                   {selectedPayment === 'qr' && !uploadedFiles.receipt && <li>• Muat naik resit pembayaran</li>}
                   {selectedPayment === 'bank' && !uploadedFiles.proof && <li>• Muat naik bukti pembayaran</li>}
+                  {customization.termsConditionsType !== 'none' && !termsAccepted && <li>• Bersetuju dengan Terma & Syarat</li>}
                 </ul>
               </Card>
             )}

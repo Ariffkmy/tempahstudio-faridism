@@ -7,9 +7,12 @@ import { supabase } from '@/lib/supabase';
 
 const LOGO_BUCKET = 'studio-logos';
 const PORTFOLIO_BUCKET = 'studio-portfolio';
+const TERMS_PDF_BUCKET = 'studio-terms-pdfs';
 const MAX_LOGO_SIZE = 2 * 1024 * 1024; // 2MB
 const MAX_PORTFOLIO_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_PDF_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+const ALLOWED_PDF_TYPES = ['application/pdf'];
 
 export interface UploadResult {
   success: boolean;
@@ -257,3 +260,72 @@ export async function deletePortfolioPhoto(url: string): Promise<{ success: bool
     return { success: false, error: 'Unexpected error occurred' };
   }
 }
+
+/**
+ * Validate PDF file before upload
+ */
+export function validatePdfFile(file: File): { valid: boolean; error?: string } {
+  // Check file size
+  if (file.size > MAX_PDF_SIZE) {
+    return {
+      valid: false,
+      error: `File size too large. Maximum size is ${MAX_PDF_SIZE / (1024 * 1024)}MB`
+    };
+  }
+
+  // Check file type
+  if (!ALLOWED_PDF_TYPES.includes(file.type)) {
+    return {
+      valid: false,
+      error: 'Invalid file type. Only PDF files are allowed.'
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Upload Terms & Conditions PDF to Supabase Storage
+ */
+export async function uploadTermsPdf(file: File, studioId: string): Promise<UploadResult> {
+  try {
+    // Validate file
+    const validation = validatePdfFile(file);
+    if (!validation.valid) {
+      return { success: false, error: validation.error };
+    }
+
+    // Create unique filename with studio ID and timestamp
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${studioId}_terms_${Date.now()}.${fileExt}`;
+    const filePath = `${studioId}/${fileName}`;
+
+    // Debug authentication status
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('Current auth session:', { user: session?.user?.id, sessionValid: !!session?.user });
+
+    // Upload file
+    const { data, error } = await supabase.storage
+      .from(TERMS_PDF_BUCKET)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true
+      });
+
+    if (error) {
+      console.error('PDF upload error:', error);
+      return { success: false, error: 'Failed to upload PDF file' };
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from(TERMS_PDF_BUCKET)
+      .getPublicUrl(filePath);
+
+    return { success: true, url: publicUrl };
+  } catch (error) {
+    console.error('Unexpected error during PDF upload:', error);
+    return { success: false, error: 'Unexpected error occurred' };
+  }
+}
+

@@ -40,11 +40,12 @@ const App = () => (
               <Route path="/studios" element={<Studios />} />
               <Route path="/studios/:studioId/slots" element={<StudioSlots />} />
               <Route path="/book" element={<Book />} />
-              <Route path="/book/:studioId" element={<NewBooking />} />
+              {/* All booking routes now use BrandBooking with conditional customizations */}
+              <Route path="/book/:studioId" element={<BrandBooking />} />
               <Route path="/brand/:studioId" element={<BrandBooking />} />
               <Route path="/booking/confirmation" element={<BookingConfirmation />} />
               {/* Studio slug-based booking route (e.g., /my-studio-name) */}
-              <Route path="/:studioSlug" element={<NewBooking />} />
+              <Route path="/:studioSlug" element={<BrandBooking />} />
 
               {/* Admin Auth Routes (Public) */}
               <Route path="/admin/login" element={<AdminLogin />} />

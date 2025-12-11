@@ -6,13 +6,9 @@
 interface CustomBookingHeaderProps {
   logo: string;
   homeEnabled: boolean;
-  homeUrl: string;
   aboutEnabled: boolean;
-  aboutUrl: string;
   portfolioEnabled: boolean;
-  portfolioUrl: string;
   contactEnabled: boolean;
-  contactUrl: string;
   brandColorPrimary: string;
   brandColorSecondary: string;
 }
@@ -20,22 +16,20 @@ interface CustomBookingHeaderProps {
 const CustomBookingHeader = ({
   logo,
   homeEnabled,
-  homeUrl,
   aboutEnabled,
-  aboutUrl,
   portfolioEnabled,
-  portfolioUrl,
   contactEnabled,
-  contactUrl,
   brandColorPrimary,
   brandColorSecondary,
 }: CustomBookingHeaderProps) => {
   const navItems = [
-    { enabled: homeEnabled, label: 'Home', url: homeUrl },
-    { enabled: aboutEnabled, label: 'About', url: aboutUrl },
-    { enabled: portfolioEnabled, label: 'Portfolio', url: portfolioUrl },
-    { enabled: contactEnabled, label: 'Contact', url: contactUrl },
-  ].filter(item => item.enabled && item.url);
+    { enabled: homeEnabled, label: 'Home' },
+    { enabled: aboutEnabled, label: 'About' },
+    { enabled: portfolioEnabled, label: 'Portfolio' },
+    { enabled: contactEnabled, label: 'Contact' },
+  ];
+
+  const filteredNavItems = navItems.filter(item => item.enabled);
 
   return (
     <header
@@ -64,25 +58,22 @@ const CustomBookingHeader = ({
           </div>
 
           {/* Navigation */}
-          {navItems.length > 0 && (
+          {filteredNavItems.length > 0 && (
             <nav className="hidden md:flex items-center gap-6">
-              {navItems.map((item, index) => (
-                <a
+              {filteredNavItems.map((item, index) => (
+                <span
                   key={index}
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm font-medium hover:opacity-80 transition-opacity"
+                  className="text-sm font-medium hover:opacity-80 transition-opacity cursor-pointer"
                   style={{ color: brandColorSecondary }}
                 >
                   {item.label}
-                </a>
+                </span>
               ))}
             </nav>
           )}
 
           {/* Mobile Menu Icon */}
-          {navItems.length > 0 && (
+          {filteredNavItems.length > 0 && (
             <button
               className="md:hidden p-2"
               style={{ color: brandColorSecondary }}

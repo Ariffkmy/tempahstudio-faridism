@@ -15,7 +15,7 @@ interface StatsCardProps {
 
 export function StatsCard({ title, value, description, icon: Icon, trend }: StatsCardProps) {
   return (
-    <Card>
+    <Card className="transition-all duration-500 ease-in-out hover:scale-110 hover:shadow-xl cursor-pointer">
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div>

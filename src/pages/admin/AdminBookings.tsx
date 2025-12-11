@@ -33,6 +33,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ms } from 'date-fns/locale';
+import { supabase } from '@/lib/supabase';
 
 const navigation = [
   { name: 'Papan Pemuka', href: '/admin', icon: Home },
@@ -128,8 +129,8 @@ const AdminBookings = () => {
 
         // Generate booking link for this studio - use slug if available
         const baseUrl = window.location.origin;
-        const studioBookingLink = studioData?.slug 
-          ? `${baseUrl}/${studioData.slug}` 
+        const studioBookingLink = studioData?.slug
+          ? `${baseUrl}/${studioData.slug}`
           : `${baseUrl}/book/${effectiveStudioId}`;
         setBookingLink(studioBookingLink);
       } catch (error) {
@@ -162,9 +163,9 @@ const AdminBookings = () => {
   const month = currentMonth.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfMonth = new Date(year, month, 1).getDay();
-  
-  const monthNames = ['Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 
-                      'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
+
+  const monthNames = ['Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun',
+    'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
 
   const handleDayClick = (dayNumber: number) => {
     const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${dayNumber.toString().padStart(2, '0')}`;
@@ -449,11 +450,10 @@ const AdminBookings = () => {
                         <div
                           key={dayNumber}
                           onClick={() => hasBookings && handleDayClick(dayNumber)}
-                          className={`aspect-square border rounded p-0.5 text-xs relative cursor-pointer ${
-                            hasBookings
+                          className={`aspect-square border rounded p-0.5 text-xs relative cursor-pointer ${hasBookings
                               ? 'bg-primary/10 border-primary/20 text-primary'
                               : 'border-border hover:bg-muted/50'
-                          }`}
+                            }`}
                         >
                           <div className="text-center font-medium">{dayNumber}</div>
                           {hasBookings && (
@@ -496,12 +496,12 @@ const AdminBookings = () => {
                         </div>
                         <Badge variant={
                           booking.status === 'confirmed' ? 'default' :
-                          booking.status === 'pending' ? 'secondary' :
-                          booking.status === 'cancelled' ? 'destructive' : 'outline'
+                            booking.status === 'pending' ? 'secondary' :
+                              booking.status === 'cancelled' ? 'destructive' : 'outline'
                         } className="text-xs">
                           {booking.status === 'confirmed' ? 'Disahkan' :
-                           booking.status === 'pending' ? 'Menunggu' :
-                           booking.status === 'cancelled' ? 'Dibatalkan' : 'Selesai'}
+                            booking.status === 'pending' ? 'Menunggu' :
+                              booking.status === 'cancelled' ? 'Dibatalkan' : 'Selesai'}
                         </Badge>
                       </div>
 
@@ -709,11 +709,10 @@ const AdminBookings = () => {
                           <div
                             key={dayNumber}
                             onClick={() => hasBookings && handleDayClick(dayNumber)}
-                            className={`aspect-square border rounded-lg p-1 text-sm relative cursor-pointer ${
-                              hasBookings
+                            className={`aspect-square border rounded-lg p-1 text-sm relative cursor-pointer ${hasBookings
                                 ? 'bg-primary/10 border-primary/20 text-primary hover:bg-primary/20'
                                 : 'border-border hover:bg-muted/50'
-                            }`}
+                              }`}
                           >
                             <div className="text-center font-medium">{dayNumber}</div>
                             {hasBookings && (
@@ -764,12 +763,12 @@ const AdminBookings = () => {
                           </div>
                           <Badge variant={
                             booking.status === 'confirmed' ? 'default' :
-                            booking.status === 'pending' ? 'secondary' :
-                            booking.status === 'cancelled' ? 'destructive' : 'outline'
+                              booking.status === 'pending' ? 'secondary' :
+                                booking.status === 'cancelled' ? 'destructive' : 'outline'
                           } className="capitalize">
                             {booking.status === 'confirmed' ? 'Disahkan' :
-                             booking.status === 'pending' ? 'Menunggu' :
-                             booking.status === 'cancelled' ? 'Dibatalkan' : 'Selesai'}
+                              booking.status === 'pending' ? 'Menunggu' :
+                                booking.status === 'cancelled' ? 'Dibatalkan' : 'Selesai'}
                           </Badge>
                         </div>
 

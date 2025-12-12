@@ -16,6 +16,29 @@ import type { StudioLayout } from '@/types/booking';
 import { createPublicBooking } from '@/services/bookingService';
 import { loadStudioSettings } from '@/services/studioSettings';
 
+// Inline styles for scroll animations
+const scrollAnimationStyles = `
+  .scroll-animate {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+  }
+
+  .scroll-animate.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .delay-100 { transition-delay: 0.1s; }
+  .delay-200 { transition-delay: 0.2s; }
+  .delay-300 { transition-delay: 0.3s; }
+  .delay-400 { transition-delay: 0.4s; }
+  .delay-500 { transition-delay: 0.5s; }
+  .delay-600 { transition-delay: 0.6s; }
+  .delay-700 { transition-delay: 0.7s; }
+  .delay-800 { transition-delay: 0.8s; }
+`;
+
 const NewBooking = () => {
   const navigate = useNavigate();
   const { studioId, studioSlug } = useParams<{ studioId?: string; studioSlug?: string }>();
@@ -48,6 +71,9 @@ const NewBooking = () => {
   const [studioPortfolioPhotos, setStudioPortfolioPhotos] = useState<string[]>([]);
   const [portfolioUploadInstructions, setPortfolioUploadInstructions] = useState('');
   const [portfolioMaxFileSize, setPortfolioMaxFileSize] = useState(10);
+
+  // Debug: Component mounted
+  console.log('🚀 NewBooking component mounted/rendered');
 
 
 
@@ -153,6 +179,54 @@ const NewBooking = () => {
 
     loadStudioData();
   }, [studioId, studioSlug, navigate, toast]);
+
+  // Scroll animation effect with logging
+  useEffect(() => {
+    console.log('🎬 Setting up scroll animations... isLoading=', isLoading);
+
+    if (isLoading) {
+      console.log('⏳ Skipping - still loading');
+      return;
+    }
+
+    const observerOptions = {
+      threshold: 0.15,
+      rootMargin: '0px 0px -100px 0px'
+    };
+
+    const handleIntersection = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach((entry) => {
+        console.log('👀 Element observed:', {
+          target: entry.target.className,
+          isIntersecting: entry.isIntersecting,
+          intersectionRatio: entry.intersectionRatio
+        });
+
+        if (entry.isIntersecting) {
+          console.log('✅ Element entering viewport, adding visible class');
+          entry.target.classList.add('visible');
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(handleIntersection, observerOptions);
+
+    // Wait a bit for DOM to be ready
+    setTimeout(() => {
+      const animatedElements = document.querySelectorAll('.scroll-animate');
+      console.log(`📦 Found ${animatedElements.length} elements to animate`);
+
+      animatedElements.forEach((element, index) => {
+        console.log(`🔗 Observing element ${index + 1}:`, element.className);
+        observer.observe(element);
+      });
+    }, 100);
+
+    return () => {
+      console.log('🧹 Cleaning up scroll animation observer');
+      observer.disconnect();
+    };
+  }, [isLoading]);
 
   const isFormValid = Boolean(
     selectedLayout &&
@@ -266,9 +340,12 @@ const NewBooking = () => {
 
   return (
     <div className="min-h-screen bg-muted/20">
+      {/* Inject scroll animation styles */}
+      <style>{scrollAnimationStyles}</style>
+
       <main className="pt-8 pb-16">
         <div className="container max-w-4xl mx-auto px-4">
-          <div className="mb-8">
+          <div className="mb-8 scroll-animate delay-100">
             <div className="text-center mb-6">
               <img src="/studiorayalogo.png" alt="logo studio" className="mx-auto h-16 w-auto mb-2" />
               <p className="text-sm text-muted-foreground">Studio Fotografi Profesional</p>
@@ -285,7 +362,7 @@ const NewBooking = () => {
 
           <div className="space-y-6">
             {/* Layout Selection */}
-            <Card variant="outline" className="p-4">
+            <Card variant="outline" className="p-4 scroll-animate delay-200">
               <h3 className="font-semibold mb-4">Pilih Layout Studio</h3>
               {isLoading ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -307,43 +384,51 @@ const NewBooking = () => {
             </Card>
 
             {/* Contact Form */}
-            <ContactForm
-              formData={formData}
-              onFormChange={handleFormChange}
-            />
+            <div className="scroll-animate delay-300">
+              <ContactForm
+                formData={formData}
+                onFormChange={handleFormChange}
+              />
+            </div>
 
             {/* Payment Selection */}
-            <PaymentSelector
-              selectedPayment={selectedPayment}
-              onSelectPayment={setSelectedPayment}
-              onFileUpload={handleFileUpload}
-            />
+            <div className="scroll-animate delay-400">
+              <PaymentSelector
+                selectedPayment={selectedPayment}
+                onSelectPayment={setSelectedPayment}
+                onFileUpload={handleFileUpload}
+              />
+            </div>
 
             {/* Date Selection */}
-            <DatePicker
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-            />
+            <div className="scroll-animate delay-500">
+              <DatePicker
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+              />
+            </div>
 
             {/* Time Selection */}
-            {selectedDate ? (
-              <TimeSlots
-                slots={generateTimeSlots(selectedDate, selectedLayout)}
-                selectedTime={selectedTime}
-                onSelectTime={setSelectedTime}
-              />
-            ) : (
-              <Card variant="outline" className="p-4">
-                <h3 className="font-semibold mb-4">Pilih Masa</h3>
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Sila pilih tarikh terlebih dahulu untuk melihat slot masa yang tersedia</p>
-                </div>
-              </Card>
-            )}
+            <div className="scroll-animate delay-600">
+              {selectedDate ? (
+                <TimeSlots
+                  slots={generateTimeSlots(selectedDate, selectedLayout)}
+                  selectedTime={selectedTime}
+                  onSelectTime={setSelectedTime}
+                />
+              ) : (
+                <Card variant="outline" className="p-4">
+                  <h3 className="font-semibold mb-4">Pilih Masa</h3>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>Sila pilih tarikh terlebih dahulu untuk melihat slot masa yang tersedia</p>
+                  </div>
+                </Card>
+              )}
+            </div>
 
             {/* Portfolio Showcase */}
             {studioPortfolioEnabled && studioPortfolioPhotos.length > 0 && (
-              <Card variant="outline" className="p-4">
+              <Card variant="outline" className="p-4 scroll-animate delay-700">
                 <h3 className="font-semibold mb-4">Portfolio Gallery</h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   Take a look at some of our recent work and photography styles
@@ -368,7 +453,7 @@ const NewBooking = () => {
 
             {/* Summary Card */}
             {layout && (
-              <Card variant="outline" className="p-4">
+              <Card variant="outline" className="p-4 scroll-animate delay-800">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-green-600" />
                   Ringkasan Tempahan
@@ -397,7 +482,7 @@ const NewBooking = () => {
 
             {/* Form Validation Status */}
             {!isFormValid && (
-              <Card variant="outline" className="p-4 border-yellow-200 bg-yellow-50">
+              <Card variant="outline" className="p-4 border-yellow-200 bg-yellow-50 scroll-animate delay-800">
                 <h4 className="font-medium text-yellow-800 mb-2">Sila lengkapkan maklumat berikut:</h4>
                 <ul className="text-sm text-yellow-700 space-y-1">
                   {!selectedLayout && <li>• Pilih layout studio</li>}
@@ -414,7 +499,7 @@ const NewBooking = () => {
             )}
 
             {/* Submit Button */}
-            <div className="flex justify-end">
+            <div className="flex justify-end scroll-animate delay-800">
               <Button
                 onClick={handleSubmit}
                 disabled={!isFormValid || isSubmitting}

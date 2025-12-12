@@ -21,6 +21,7 @@ interface CustomBookingHeaderProps {
   contactUrl?: string;
   brandColorPrimary: string;
   brandColorSecondary: string;
+  onPortfolioClick?: () => void;
 }
 
 const CustomBookingHeader = ({
@@ -35,6 +36,7 @@ const CustomBookingHeader = ({
   contactUrl,
   brandColorPrimary,
   brandColorSecondary,
+  onPortfolioClick,
 }: CustomBookingHeaderProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -47,7 +49,15 @@ const CustomBookingHeader = ({
 
   const filteredNavItems = navItems.filter(item => item.enabled);
 
-  const handleNavClick = (url?: string) => {
+  const handleNavClick = (label: string, url?: string) => {
+    // If it's Portfolio and we have a callback, use that instead of URL
+    if (label === 'Portfolio' && onPortfolioClick) {
+      onPortfolioClick();
+      setMobileMenuOpen(false);
+      return;
+    }
+
+    // Otherwise, open the URL if provided
     if (url) {
       window.open(url, '_blank', 'noopener,noreferrer');
     }
@@ -88,7 +98,7 @@ const CustomBookingHeader = ({
                 {filteredNavItems.map((item, index) => (
                   <button
                     key={index}
-                    onClick={() => handleNavClick(item.url)}
+                    onClick={() => handleNavClick(item.label, item.url)}
                     className="text-sm font-medium hover:opacity-80 transition-opacity cursor-pointer"
                     style={{ color: brandColorSecondary }}
                   >
@@ -135,7 +145,7 @@ const CustomBookingHeader = ({
                 {filteredNavItems.map((item, index) => (
                   <button
                     key={index}
-                    onClick={() => handleNavClick(item.url)}
+                    onClick={() => handleNavClick(item.label, item.url)}
                     className="px-4 py-3 rounded-lg hover:bg-muted transition-colors text-left w-full font-medium"
                   >
                     {item.label}

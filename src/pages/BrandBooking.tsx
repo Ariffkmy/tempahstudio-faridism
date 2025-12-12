@@ -23,6 +23,7 @@ import { supabase } from '@/lib/supabase';
 import type { Studio } from '@/types/database';
 import type { StudioLayout } from '@/types/booking';
 import { createPublicBooking } from '@/services/bookingService';
+import { PortfolioGallery } from '@/components/booking/PortfolioGallery';
 
 // Helper functions for font styling
 const getFontSizeClass = (size: string): string => {
@@ -48,6 +49,30 @@ const getFontFamilyClass = (font: string): string => {
   };
   return fontMap[font] || '';
 };
+
+// Inline styles for scroll animations
+const scrollAnimationStyles = `
+  .scroll-animate {
+    opacity: 0;
+    transform: scale(0.85) translateY(20px);
+    transition: opacity 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+                transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .scroll-animate.visible {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+
+  .delay-100 { transition-delay: 0.05s; }
+  .delay-200 { transition-delay: 0.1s; }
+  .delay-300 { transition-delay: 0.15s; }
+  .delay-400 { transition-delay: 0.2s; }
+  .delay-500 { transition-delay: 0.25s; }
+  .delay-600 { transition-delay: 0.3s; }
+  .delay-700 { transition-delay: 0.35s; }
+  .delay-800 { transition-delay: 0.4s; }
+`;
 
 const BrandBooking = () => {
   const navigate = useNavigate();
@@ -107,6 +132,13 @@ const BrandBooking = () => {
     bookingSubtitleFont: 'default',
     bookingSubtitleSize: 'base'
   });
+
+  // Debug: Component mounted
+  console.log('🚀 BrandBooking component mounted/rendered');
+
+  // Portfolio gallery state
+  const [portfolioGalleryOpen, setPortfolioGalleryOpen] = useState(false);
+  const [portfolioPhotos, setPortfolioPhotos] = useState<string[]>([]);
 
   const layout = layouts.find((l) => l.id === selectedLayout) || null;
 
@@ -210,9 +242,21 @@ const BrandBooking = () => {
             image: layout.image,
             thumbnail_photo: layout.thumbnail_photo,
             amenities: layout.amenities || [],
+            layout_photos: layout.layout_photos || [],
           }));
           setLayouts(formattedLayouts);
+
+          console.log('📸 Loaded layouts with photos:', formattedLayouts.map(l => ({
+            name: l.name,
+            photoCount: l.layout_photos?.length || 0
+          })));
         }
+
+        // Load portfolio photos
+        const { loadStudioPortfolioPhotos } = await import('@/services/studioSettings');
+        const photos = await loadStudioPortfolioPhotos(actualStudioId);
+        setPortfolioPhotos(photos);
+        console.log('🖼️ Loaded portfolio photos:', photos.length);
       } catch (error) {
         console.error('Error loading studio data:', error);
         toast({
@@ -228,6 +272,62 @@ const BrandBooking = () => {
 
     loadStudioData();
   }, [studioId, studioSlug, navigate, toast]);
+
+  // Scroll animation effect with logging
+  useEffect(() => {
+    console.log('🎬 Setting up scroll animations... isLoading=', isLoading);
+
+    if (isLoading) {
+      console.log('⏳ Skipping - still loading');
+      return;
+    }
+
+    console.log('✅ Not loading, setting up animations...');
+
+    const observerOptions = {
+      threshold: 0.15,
+      rootMargin: '0px 0px -100px 0px'
+    };
+
+    const handleIntersection = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach((entry) => {
+        console.log('👀 Element observed:', {
+          target: entry.target.className,
+          isIntersecting: entry.isIntersecting,
+          intersectionRatio: entry.intersectionRatio
+        });
+
+        if (entry.isIntersecting) {
+          console.log('✅ Element entering viewport, adding visible class');
+          entry.target.classList.add('visible');
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(handleIntersection, observerOptions);
+
+    // Wait a bit for DOM to be ready
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ Searching for .scroll-animate elements...');
+      const animatedElements = document.querySelectorAll('.scroll-animate');
+      console.log(`📦 Found ${animatedElements.length} elements to animate`);
+
+      if (animatedElements.length === 0) {
+        console.warn('⚠️ WARNING: No .scroll-animate elements found in DOM!');
+      }
+
+      animatedElements.forEach((element, index) => {
+        console.log(`🔗 Observing element ${index + 1}:`, element.className);
+        observer.observe(element);
+      });
+    }, 200);
+
+    return () => {
+      console.log('🧹 Cleaning up scroll animation observer');
+      clearTimeout(timeoutId);
+      observer.disconnect();
+    };
+  }, [isLoading]);
 
   const isFormValid = Boolean(
     selectedLayout &&
@@ -347,6 +447,8 @@ const BrandBooking = () => {
         backgroundColor: customization.brandColorPrimary ? `${customization.brandColorPrimary}03` : '#00000003'
       } : {}}
     >
+      {/* Inject scroll animation styles */}
+      <style>{scrollAnimationStyles}</style>
       {/* Custom Header */}
       {customization.enableCustomHeader && (
         <CustomBookingHeader
@@ -361,12 +463,13 @@ const BrandBooking = () => {
           contactUrl={customization.headerContactUrl}
           brandColorPrimary={customization.brandColorPrimary}
           brandColorSecondary={customization.brandColorSecondary}
+          onPortfolioClick={() => setPortfolioGalleryOpen(true)}
         />
       )}
 
       <main className="pt-8 pb-16">
         <div className="container max-w-4xl mx-auto px-4">
-          <div className="mb-8">
+          <div className="mb-8 scroll-animate delay-100">
             {/* Studio branding - always visible */}
             <div className="text-center mb-6">
               {/* Show logo if available */}
@@ -403,7 +506,7 @@ const BrandBooking = () => {
 
           <div className="space-y-6">
             {/* Layout Selection */}
-            <Card variant="outline" className="p-4">
+            <Card variant="outline" className="p-4 scroll-animate delay-200">
               <h3 className="font-semibold mb-4">Pilih Layout Studio</h3>
               {isLoading ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -425,43 +528,51 @@ const BrandBooking = () => {
             </Card>
 
             {/* Contact Form */}
-            <ContactForm
-              formData={formData}
-              onFormChange={handleFormChange}
-            />
+            <div className="scroll-animate delay-300">
+              <ContactForm
+                formData={formData}
+                onFormChange={handleFormChange}
+              />
+            </div>
 
             {/* Payment Selection */}
-            <PaymentSelector
-              selectedPayment={selectedPayment}
-              onSelectPayment={setSelectedPayment}
-              onFileUpload={handleFileUpload}
-            />
+            <div className="scroll-animate delay-400">
+              <PaymentSelector
+                selectedPayment={selectedPayment}
+                onSelectPayment={setSelectedPayment}
+                onFileUpload={handleFileUpload}
+              />
+            </div>
 
             {/* Date Selection */}
-            <DatePicker
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-            />
+            <div className="scroll-animate delay-500">
+              <DatePicker
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+              />
+            </div>
 
             {/* Time Selection */}
-            {selectedDate ? (
-              <TimeSlots
-                slots={generateTimeSlots(selectedDate, selectedLayout)}
-                selectedTime={selectedTime}
-                onSelectTime={setSelectedTime}
-              />
-            ) : (
-              <Card variant="outline" className="p-4">
-                <h3 className="font-semibold mb-4">Pilih Masa</h3>
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Sila pilih tarikh terlebih dahulu untuk melihat slot masa yang tersedia</p>
-                </div>
-              </Card>
-            )}
+            <div className="scroll-animate delay-600">
+              {selectedDate ? (
+                <TimeSlots
+                  slots={generateTimeSlots(selectedDate, selectedLayout)}
+                  selectedTime={selectedTime}
+                  onSelectTime={setSelectedTime}
+                />
+              ) : (
+                <Card variant="outline" className="p-4">
+                  <h3 className="font-semibold mb-4">Pilih Masa</h3>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>Sila pilih tarikh terlebih dahulu untuk melihat slot masa yang tersedia</p>
+                  </div>
+                </Card>
+              )}
+            </div>
 
             {/* Summary Card */}
             {layout && (
-              <Card variant="outline" className="p-4">
+              <Card variant="outline" className="p-4 scroll-animate delay-700">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-green-600" />
                   Ringkasan Tempahan
@@ -499,7 +610,7 @@ const BrandBooking = () => {
 
             {/* Form Validation Status */}
             {!isFormValid && (
-              <Card variant="outline" className="p-4 border-yellow-200 bg-yellow-50">
+              <Card variant="outline" className="p-4 border-yellow-200 bg-yellow-50 scroll-animate delay-800">
                 <h4 className="font-medium text-yellow-800 mb-2">Sila lengkapkan maklumat berikut:</h4>
                 <ul className="text-sm text-yellow-700 space-y-1">
                   {!selectedLayout && <li>• Pilih layout studio</li>}
@@ -517,7 +628,7 @@ const BrandBooking = () => {
             )}
 
             {/* Submit Button */}
-            <div className="flex justify-end">
+            <div className="flex justify-end scroll-animate delay-800">
               <Button
                 onClick={handleSubmit}
                 disabled={!isFormValid || isSubmitting}
@@ -576,6 +687,14 @@ const BrandBooking = () => {
           </div>
         </div>
       )}
+
+      {/* Portfolio Gallery Modal */}
+      <PortfolioGallery
+        open={portfolioGalleryOpen}
+        onOpenChange={setPortfolioGalleryOpen}
+        photos={portfolioPhotos}
+        studioName={studio?.name}
+      />
     </div>
   );
 };

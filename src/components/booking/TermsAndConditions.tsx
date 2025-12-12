@@ -42,13 +42,13 @@ export const TermsAndConditions = ({
                 <div className="space-y-4 mb-6">
                     <div className="border rounded-lg overflow-hidden bg-white">
                         <iframe
-                            src={pdfUrl}
-                            className="w-full h-[500px]"
+                            src={`https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl)}&embedded=true`}
+                            className="w-full h-[300px] sm:h-[400px] md:h-[500px]"
                             title="Terma dan Syarat"
                             style={{ border: 'none' }}
                         />
                     </div>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-sm text-muted-foreground">
                         <span>Dokumen Terma & Syarat</span>
                         <a
                             href={pdfUrl}
@@ -79,10 +79,10 @@ export const TermsAndConditions = ({
 
             {/* Acknowledgment Section with Checkboxes */}
             <div className={`border-t pt-6 -mx-6 -mb-6 px-6 pb-6 mt-6 rounded-b-lg transition-all duration-300 ${accepted === true
-                    ? 'bg-gradient-to-br from-green-50 to-emerald-50'
-                    : accepted === false
-                        ? 'bg-gradient-to-br from-red-50 to-rose-50'
-                        : 'bg-gradient-to-br from-gray-50 to-slate-50'
+                ? 'bg-gradient-to-br from-green-50 to-emerald-50'
+                : accepted === false
+                    ? 'bg-gradient-to-br from-red-50 to-rose-50'
+                    : 'bg-gradient-to-br from-gray-50 to-slate-50'
                 }`}>
                 <p className="text-sm font-medium text-gray-900 mb-4">
                     Sila pilih salah satu:
@@ -92,8 +92,8 @@ export const TermsAndConditions = ({
                     {/* Accept Checkbox */}
                     <div
                         className={`flex items-start space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${accepted === true
-                                ? 'bg-white border-green-500 shadow-sm'
-                                : 'bg-white/50 border-gray-200 hover:border-green-300'
+                            ? 'bg-white border-green-500 shadow-sm'
+                            : 'bg-white/50 border-gray-200 hover:border-green-300'
                             }`}
                         onClick={() => onAcceptChange(true)}
                     >
@@ -120,8 +120,8 @@ export const TermsAndConditions = ({
                     {/* Reject Checkbox */}
                     <div
                         className={`flex items-start space-x-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${accepted === false
-                                ? 'bg-white border-red-500 shadow-sm'
-                                : 'bg-white/50 border-gray-200 hover:border-red-300'
+                            ? 'bg-white border-red-500 shadow-sm'
+                            : 'bg-white/50 border-gray-200 hover:border-red-300'
                             }`}
                         onClick={() => onAcceptChange(false)}
                     >

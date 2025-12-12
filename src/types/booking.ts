@@ -9,6 +9,7 @@ export interface StudioLayout {
   image?: string;
   thumbnail_photo?: string;
   amenities?: string[];
+  layout_photos?: string[];
 }
 
 export interface TimeSlot {

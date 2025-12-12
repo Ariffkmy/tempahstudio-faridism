@@ -262,7 +262,7 @@ const AdminWhatsappBlaster = () => {
                       <div className="space-y-2">
                         <div className="flex justify-between items-start">
                           <span className="font-medium text-sm">{booking.reference}</span>
-                          <Badge variant="default" className="text-xs">Completed</Badge>
+                          <Badge className="text-xs bg-orange-500 text-white hover:bg-orange-600">📷 Done</Badge>
                         </div>
                         <div className="space-y-1 text-xs text-muted-foreground">
                           <div className="flex items-center gap-1">
@@ -505,7 +505,7 @@ const AdminWhatsappBlaster = () => {
                                 <div className="text-xs text-muted-foreground">{booking.customerName}</div>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Badge variant="default" className="text-xs">Done</Badge>
+                                <Badge className="text-xs bg-orange-500 text-white hover:bg-orange-600">📷 Done</Badge>
                                 {isExpanded ?
                                   <ChevronUp className="w-4 h-4 text-muted-foreground" /> :
                                   <ChevronDown className="w-4 h-4 text-muted-foreground" />

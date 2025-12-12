@@ -15,13 +15,13 @@ const AdminLogin = () => {
   const { toast } = useToast();
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
   const isMobile = useIsMobile();
-  
+
   // Form state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Password reset state
   const [showResetForm, setShowResetForm] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
@@ -36,7 +36,7 @@ const AdminLogin = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email.trim() || !password.trim()) {
       toast({
         title: 'Ralat',
@@ -69,7 +69,7 @@ const AdminLogin = () => {
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!resetEmail.trim()) {
       toast({
         title: 'Ralat',
@@ -101,15 +101,6 @@ const AdminLogin = () => {
     }
   };
 
-  // Show loading while checking auth
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
       <div className="w-full max-w-sm">
@@ -130,8 +121,8 @@ const AdminLogin = () => {
           <CardHeader>
             <CardTitle>{showResetForm ? 'Lupa Kata Laluan' : 'Log Masuk'}</CardTitle>
             <CardDescription>
-              {showResetForm 
-                ? 'Masukkan emel anda untuk menerima pautan tetapan semula' 
+              {showResetForm
+                ? 'Masukkan emel anda untuk menerima pautan tetapan semula'
                 : 'Masukkan emel dan kata laluan anda untuk log masuk'}
             </CardDescription>
           </CardHeader>
@@ -229,8 +220,8 @@ const AdminLogin = () => {
                 <p className="text-sm text-muted-foreground">
                   Belum mempunyai akaun?
                 </p>
-                <Link 
-                  to="/admin/register" 
+                <Link
+                  to="/admin/register"
                   className="text-sm text-primary hover:underline font-medium"
                 >
                   Daftar sebagai admin

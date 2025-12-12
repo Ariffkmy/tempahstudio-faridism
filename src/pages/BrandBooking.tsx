@@ -24,6 +24,31 @@ import type { Studio } from '@/types/database';
 import type { StudioLayout } from '@/types/booking';
 import { createPublicBooking } from '@/services/bookingService';
 
+// Helper functions for font styling
+const getFontSizeClass = (size: string): string => {
+  const sizeMap: Record<string, string> = {
+    'xs': 'text-xs',
+    'sm': 'text-sm',
+    'base': 'text-base',
+    'lg': 'text-lg',
+    'xl': 'text-xl',
+    '2xl': 'text-2xl',
+    '3xl': 'text-3xl',
+    '4xl': 'text-4xl'
+  };
+  return sizeMap[size] || 'text-xl';
+};
+
+const getFontFamilyClass = (font: string): string => {
+  const fontMap: Record<string, string> = {
+    'default': '',
+    'sans': 'font-sans',
+    'serif': 'font-serif',
+    'mono': 'font-mono'
+  };
+  return fontMap[font] || '';
+};
+
 const BrandBooking = () => {
   const navigate = useNavigate();
   const { studioId, studioSlug } = useParams<{ studioId?: string; studioSlug?: string }>();
@@ -74,7 +99,13 @@ const BrandBooking = () => {
     brandColorSecondary: '#ffffff',
     termsConditionsType: 'none' as 'none' | 'text' | 'pdf',
     termsConditionsText: '',
-    termsConditionsPdf: ''
+    termsConditionsPdf: '',
+    bookingTitleText: 'Tempahan Studio',
+    bookingSubtitleText: 'Isi maklumat dan buat pembayaran untuk tempahan slot anda.',
+    bookingTitleFont: 'default',
+    bookingTitleSize: 'xl',
+    bookingSubtitleFont: 'default',
+    bookingSubtitleSize: 'base'
   });
 
   const layout = layouts.find((l) => l.id === selectedLayout) || null;
@@ -144,7 +175,13 @@ const BrandBooking = () => {
           brandColorSecondary: studioData.brand_color_secondary || '#ffffff',
           termsConditionsType: ((studioData as any).terms_conditions_type || 'none') as 'none' | 'text' | 'pdf',
           termsConditionsText: (studioData as any).terms_conditions_text || '',
-          termsConditionsPdf: (studioData as any).terms_conditions_pdf || ''
+          termsConditionsPdf: (studioData as any).terms_conditions_pdf || '',
+          bookingTitleText: (studioData as any).booking_title_text || 'Tempahan Studio',
+          bookingSubtitleText: (studioData as any).booking_subtitle_text || 'Isi maklumat dan buat pembayaran untuk tempahan slot anda.',
+          bookingTitleFont: (studioData as any).booking_title_font || 'default',
+          bookingTitleSize: (studioData as any).booking_title_size || 'xl',
+          bookingSubtitleFont: (studioData as any).booking_subtitle_font || 'default',
+          bookingSubtitleSize: (studioData as any).booking_subtitle_size || 'base'
         });
 
         // Load studio layouts
@@ -171,6 +208,7 @@ const BrandBooking = () => {
             capacity: layout.capacity,
             pricePerHour: Number(layout.price_per_hour),
             image: layout.image,
+            thumbnail_photo: layout.thumbnail_photo,
             amenities: layout.amenities || [],
           }));
           setLayouts(formattedLayouts);
@@ -317,6 +355,10 @@ const BrandBooking = () => {
           aboutEnabled={customization.headerAboutEnabled}
           portfolioEnabled={customization.headerPortfolioEnabled}
           contactEnabled={customization.headerContactEnabled}
+          homeUrl={customization.headerHomeUrl}
+          aboutUrl={customization.headerAboutUrl}
+          portfolioUrl={customization.headerPortfolioUrl}
+          contactUrl={customization.headerContactUrl}
           brandColorPrimary={customization.brandColorPrimary}
           brandColorSecondary={customization.brandColorSecondary}
         />
@@ -344,10 +386,19 @@ const BrandBooking = () => {
               )}
             </div>
 
-            <h1 className="text-xl font-bold mb-2">Tempahan Studio</h1>
-            <p className="text-muted-foreground">
-              Isi maklumat dan buat pembayaran untuk tempahan slot anda.
-            </p>
+            {/* Customizable Booking Title */}
+            <div className="text-center space-y-2">
+              <h1
+                className={`font-bold mb-2 ${getFontSizeClass(customization.bookingTitleSize)} ${getFontFamilyClass(customization.bookingTitleFont)}`}
+              >
+                {customization.bookingTitleText}
+              </h1>
+              <p
+                className={`text-muted-foreground ${getFontSizeClass(customization.bookingSubtitleSize)} ${getFontFamilyClass(customization.bookingSubtitleFont)}`}
+              >
+                {customization.bookingSubtitleText}
+              </p>
+            </div>
           </div>
 
           <div className="space-y-6">

@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -27,6 +28,7 @@ import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIco
 import { loadStudioSettings, saveStudioSettings, updateStudioLayouts, saveGoogleCredentials, initiateGoogleAuth, exchangeGoogleCode, loadStudioPortfolioPhotos, deleteStudioPortfolioPhoto } from '@/services/studioSettings';
 import { uploadLogo, uploadTermsPdf } from '@/services/fileUploadService';
 import BookingFormPreview, { PreviewSettings } from '@/components/booking/preview/BookingFormPreview';
+import { BookingTitleCustomization } from '@/components/admin/BookingTitleCustomization';
 import { supabase } from '@/lib/supabase';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
@@ -103,7 +105,14 @@ const AdminSettings = () => {
     footerTrademark: '',
     whatsappMessage: 'Hubungi kami',
     brandColorPrimary: '#000000',
-    brandColorSecondary: '#ffffff'
+    brandColorSecondary: '#ffffff',
+    // Booking form title customization
+    bookingTitleText: 'Tempahan Studio',
+    bookingSubtitleText: 'Isi maklumat dan buat pembayaran untuk tempahan slot anda.',
+    bookingTitleFont: 'default',
+    bookingTitleSize: 'xl',
+    bookingSubtitleFont: 'default',
+    bookingSubtitleSize: 'base'
   });
 
   const [layouts, setLayouts] = useState<StudioLayout[]>([]);
@@ -126,6 +135,13 @@ const AdminSettings = () => {
     capacity: 1,
     price_per_hour: 100
   });
+
+  // Layout photos management state
+  const [uploadingLayoutPhoto, setUploadingLayoutPhoto] = useState<{ [layoutId: string]: boolean }>({});
+  const [deletingLayoutPhoto, setDeletingLayoutPhoto] = useState<{ [key: string]: boolean }>({});
+
+  // Add layout dialog state
+  const [isAddLayoutDialogOpen, setIsAddLayoutDialogOpen] = useState(false);
 
   // Helper functions
   const getInitials = (name: string | undefined) => {
@@ -194,7 +210,13 @@ const AdminSettings = () => {
             footerTrademark: data.footerTrademark || '',
             whatsappMessage: data.whatsappMessage || 'Hubungi kami',
             brandColorPrimary: data.brandColorPrimary || '#000000',
-            brandColorSecondary: data.brandColorSecondary || '#ffffff'
+            brandColorSecondary: data.brandColorSecondary || '#ffffff',
+            bookingTitleText: data.bookingTitleText || 'Tempahan Studio',
+            bookingSubtitleText: data.bookingSubtitleText || 'Isi maklumat dan buat pembayaran untuk tempahan slot anda.',
+            bookingTitleFont: data.bookingTitleFont || 'default',
+            bookingTitleSize: data.bookingTitleSize || 'xl',
+            bookingSubtitleFont: data.bookingSubtitleFont || 'default',
+            bookingSubtitleSize: data.bookingSubtitleSize || 'base'
           });
           setLayouts(data.layouts);
         }
@@ -528,12 +550,134 @@ const AdminSettings = () => {
         capacity: 1,
         price_per_hour: 100
       });
+      setIsAddLayoutDialogOpen(false);
+      toast({
+        title: "Layout ditambah",
+        description: "Layout baru telah ditambah. Jangan lupa untuk simpan tetapan.",
+      });
+    } else {
+      toast({
+        title: "Maklumat tidak lengkap",
+        description: "Sila isi nama dan perihal layout",
+        variant: "destructive",
+      });
     }
   };
 
   const removeLayout = (index: number) => {
     setLayouts(prev => prev.filter((_, i) => i !== index));
   };
+
+  // Handle layout photo upload
+  const handleUploadLayoutPhoto = async (layoutIndex: number, file: File) => {
+    const layout = layouts[layoutIndex];
+    if (!layout || !effectiveStudioId) return;
+
+    // Check if already have 5 photos
+    const currentPhotos = layout.layout_photos || [];
+    if (currentPhotos.length >= 5) {
+      toast({
+        title: "Maximum photos reached",
+        description: "You can only upload up to 5 photos per layout",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadingLayoutPhoto(prev => ({ ...prev, [layout.id]: true }));
+    try {
+      const { uploadLayoutPhoto } = await import('@/services/fileUploadService');
+      const result = await uploadLayoutPhoto(file, layout.id, effectiveStudioId);
+
+      if (result.success && result.url) {
+        // Update layout with new photo
+        const updatedPhotos = [...currentPhotos, result.url];
+        handleLayoutChange(layoutIndex, 'layout_photos', updatedPhotos);
+
+        // If this is the first photo, set it as thumbnail
+        if (!layout.thumbnail_photo) {
+          handleLayoutChange(layoutIndex, 'thumbnail_photo', result.url);
+        }
+
+        toast({
+          title: "Photo uploaded",
+          description: "Layout photo uploaded successfully",
+        });
+      } else {
+        toast({
+          title: "Upload failed",
+          description: result.error || "Failed to upload photo",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Layout photo upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: "Unexpected error while uploading photo",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingLayoutPhoto(prev => ({ ...prev, [layout.id]: false }));
+    }
+  };
+
+  // Handle layout photo delete
+  const handleDeleteLayoutPhoto = async (layoutIndex: number, photoUrl: string) => {
+    const layout = layouts[layoutIndex];
+    if (!layout) return;
+
+    const deleteKey = `${layout.id}-${photoUrl}`;
+    setDeletingLayoutPhoto(prev => ({ ...prev, [deleteKey]: true }));
+
+    try {
+      const { deleteLayoutPhoto } = await import('@/services/fileUploadService');
+      const result = await deleteLayoutPhoto(photoUrl);
+
+      if (result.success) {
+        // Remove photo from layout
+        const currentPhotos = layout.layout_photos || [];
+        const updatedPhotos = currentPhotos.filter(url => url !== photoUrl);
+        handleLayoutChange(layoutIndex, 'layout_photos', updatedPhotos);
+
+        // If deleted photo was the thumbnail, set a new thumbnail
+        if (layout.thumbnail_photo === photoUrl) {
+          const newThumbnail = updatedPhotos.length > 0 ? updatedPhotos[0] : null;
+          handleLayoutChange(layoutIndex, 'thumbnail_photo', newThumbnail);
+        }
+
+        toast({
+          title: "Photo deleted",
+          description: "Layout photo deleted successfully",
+        });
+      } else {
+        toast({
+          title: "Delete failed",
+          description: result.error || "Failed to delete photo",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Layout photo delete error:', error);
+      toast({
+        title: "Delete failed",
+        description: "Unexpected error while deleting photo",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingLayoutPhoto(prev => ({ ...prev, [deleteKey]: false }));
+    }
+  };
+
+  // Handle setting thumbnail photo
+  const handleSetThumbnail = (layoutIndex: number, photoUrl: string) => {
+    handleLayoutChange(layoutIndex, 'thumbnail_photo', photoUrl);
+    toast({
+      title: "Thumbnail updated",
+      description: "Thumbnail photo updated successfully",
+    });
+  };
+
 
   const saveSettings = async () => {
     setIsSaving(true);
@@ -1157,6 +1301,19 @@ const AdminSettings = () => {
               </CardContent>
             </Card>
 
+            {/* Booking Title Customization */}
+            <BookingTitleCustomization
+              settings={{
+                bookingTitleText: settings.bookingTitleText,
+                bookingSubtitleText: settings.bookingSubtitleText,
+                bookingTitleFont: settings.bookingTitleFont,
+                bookingTitleSize: settings.bookingTitleSize,
+                bookingSubtitleFont: settings.bookingSubtitleFont,
+                bookingSubtitleSize: settings.bookingSubtitleSize
+              }}
+              onSettingChange={handleSettingChange}
+            />
+
             {/* Save Button */}
             <div className="pb-6">
               <Button onClick={saveSettings} size="lg" className="w-full" disabled={isSaving}>
@@ -1649,10 +1806,10 @@ const AdminSettings = () => {
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {/* Existing Layouts */}
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       <h4 className="font-medium">Layout Semasa</h4>
                       {layouts.map((layout, index) => (
-                        <div key={layout.id} className="border rounded-lg p-4 space-y-4">
+                        <div key={layout.id} className="border-2 rounded-lg p-6 space-y-4 bg-muted/30 shadow-sm">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <Switch
@@ -1667,7 +1824,7 @@ const AdminSettings = () => {
                               onClick={() => removeLayout(index)}
                               className="text-destructive hover:text-destructive"
                             >
-                              <X className="h-4 w-4" />
+                              <Trash className="h-4 w-4" />
                             </Button>
                           </div>
 
@@ -1721,57 +1878,222 @@ const AdminSettings = () => {
                               placeholder="Huraian Layout"
                             />
                           </div>
+
+                          {/* Layout Photos Section */}
+                          <Separator />
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <Label className="text-base">Foto Layout</Label>
+                                <p className="text-sm text-muted-foreground">
+                                  Muat naik sehingga 5 gambar untuk layout ini. Pilih satu sebagai thumbnail.
+                                </p>
+                              </div>
+                              <Badge variant="secondary">
+                                {(layout.layout_photos || []).length} / 5
+                              </Badge>
+                            </div>
+
+                            {/* Upload Button */}
+                            {(layout.layout_photos || []).length < 5 && (
+                              <div>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  id={`layout-photo-${layout.id}`}
+                                  className="hidden"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      await handleUploadLayoutPhoto(index, file);
+                                      e.target.value = '';
+                                    }
+                                  }}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={uploadingLayoutPhoto[layout.id]}
+                                  onClick={() => document.getElementById(`layout-photo-${layout.id}`)?.click()}
+                                >
+                                  {uploadingLayoutPhoto[layout.id] ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Memuat naik...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Upload className="h-4 w-4 mr-2" />
+                                      Muat Naik Foto
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+
+                            {/* Photos Grid */}
+                            {(layout.layout_photos || []).length > 0 && (
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                                {(layout.layout_photos || []).map((photoUrl, photoIndex) => {
+                                  const isThumbnail = layout.thumbnail_photo === photoUrl;
+                                  const deleteKey = `${layout.id}-${photoUrl}`;
+                                  return (
+                                    <div
+                                      key={`${photoUrl}-${photoIndex}`}
+                                      className={cn(
+                                        "relative overflow-hidden rounded-md border aspect-square group",
+                                        isThumbnail && "ring-2 ring-primary"
+                                      )}
+                                    >
+                                      <img
+                                        src={photoUrl}
+                                        alt={`Layout photo ${photoIndex + 1}`}
+                                        className="h-full w-full object-cover"
+                                        loading="lazy"
+                                      />
+
+                                      {/* Thumbnail Badge */}
+                                      {isThumbnail && (
+                                        <div className="absolute top-1 left-1">
+                                          <Badge variant="default" className="text-xs">
+                                            Thumbnail
+                                          </Badge>
+                                        </div>
+                                      )}
+
+                                      {/* Action Buttons */}
+                                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                        {!isThumbnail && (
+                                          <Button
+                                            size="icon"
+                                            variant="secondary"
+                                            className="h-8 w-8"
+                                            onClick={() => handleSetThumbnail(index, photoUrl)}
+                                            title="Set as thumbnail"
+                                          >
+                                            <ImageIcon className="h-4 w-4" />
+                                          </Button>
+                                        )}
+                                        <Button
+                                          size="icon"
+                                          variant="destructive"
+                                          className="h-8 w-8"
+                                          disabled={deletingLayoutPhoto[deleteKey]}
+                                          onClick={() => handleDeleteLayoutPhoto(index, photoUrl)}
+                                          title="Delete photo"
+                                        >
+                                          {deletingLayoutPhoto[deleteKey] ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                            <Trash className="h-4 w-4" />
+                                          )}
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
 
-                    {/* Add New Layout */}
+                    {/* Add New Layout Button */}
                     <Separator />
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Tambah Pilihan Layout</h4>
+                    <div className="flex justify-center">
+                      <Dialog open={isAddLayoutDialogOpen} onOpenChange={setIsAddLayoutDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button size="lg" className="w-full md:w-auto">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Tambah Pilihan Layout
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Tambah Layout Baru</DialogTitle>
+                            <DialogDescription>
+                              Isi maklumat layout studio dan muat naik foto-foto
+                            </DialogDescription>
+                          </DialogHeader>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Nama Layout</Label>
-                          <Input
-                            value={newLayout.name}
-                            onChange={(e) => setNewLayout(prev => ({ ...prev, name: e.target.value }))}
-                            placeholder="Nama Layout"
-                          />
-                        </div>
+                          <div className="space-y-4 py-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="new-layout-name">Nama Layout *</Label>
+                                <Input
+                                  id="new-layout-name"
+                                  value={newLayout.name}
+                                  onChange={(e) => setNewLayout(prev => ({ ...prev, name: e.target.value }))}
+                                  placeholder="Contoh: Studio Minimalist"
+                                />
+                              </div>
 
-                        <div className="space-y-2">
-                          <Label>Kapasiti</Label>
-                          <Input
-                            type="number"
-                            value={newLayout.capacity}
-                            onChange={(e) => setNewLayout(prev => ({ ...prev, capacity: parseInt(e.target.value) }))}
-                          />
-                        </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="new-layout-capacity">Kapasiti (orang)</Label>
+                                <Input
+                                  id="new-layout-capacity"
+                                  type="number"
+                                  min="1"
+                                  value={newLayout.capacity}
+                                  onChange={(e) => setNewLayout(prev => ({ ...prev, capacity: parseInt(e.target.value) || 1 }))}
+                                />
+                              </div>
 
-                        <div className="space-y-2">
-                          <Label>Harga per Jam (RM)</Label>
-                          <Input
-                            type="number"
-                            value={newLayout.price_per_hour}
-                            onChange={(e) => setNewLayout(prev => ({ ...prev, price_per_hour: parseInt(e.target.value) }))}
-                          />
-                        </div>
-                      </div>
+                              <div className="space-y-2 md:col-span-2">
+                                <Label htmlFor="new-layout-price">Harga per Jam (RM)</Label>
+                                <Input
+                                  id="new-layout-price"
+                                  type="number"
+                                  min="0"
+                                  step="10"
+                                  value={newLayout.price_per_hour}
+                                  onChange={(e) => setNewLayout(prev => ({ ...prev, price_per_hour: parseInt(e.target.value) || 0 }))}
+                                />
+                              </div>
+                            </div>
 
-                      <div className="space-y-2">
-                        <Label>Perihal</Label>
-                        <Textarea
-                          value={newLayout.description}
-                          onChange={(e) => setNewLayout(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="Huraian Layout"
-                        />
-                      </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="new-layout-description">Perihal *</Label>
+                              <Textarea
+                                id="new-layout-description"
+                                value={newLayout.description}
+                                onChange={(e) => setNewLayout(prev => ({ ...prev, description: e.target.value }))}
+                                placeholder="Huraian tentang layout ini..."
+                                rows={4}
+                              />
+                            </div>
 
-                      <Button onClick={addNewLayout} className="w-full">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Tambah Pilihan Layout
-                      </Button>
+                            <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                              <p className="font-medium mb-1">💡 Nota:</p>
+                              <p>Foto layout boleh dimuat naik selepas layout ditambah. Klik "Tambah" dahulu, kemudian edit layout untuk muat naik foto.</p>
+                            </div>
+                          </div>
+
+                          <DialogFooter>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setIsAddLayoutDialogOpen(false);
+                                setNewLayout({
+                                  name: '',
+                                  description: '',
+                                  capacity: 1,
+                                  price_per_hour: 100
+                                });
+                              }}
+                            >
+                              Batal
+                            </Button>
+                            <Button type="button" onClick={addNewLayout}>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Tambah Layout
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   </CardContent>
                 </Card>
@@ -1794,6 +2116,18 @@ const AdminSettings = () => {
               {/* Tab 4: Booking Form */}
               <TabsContent value="booking-form" className="space-y-6 mt-6">
 
+                {/* Booking Title Customization */}
+                <BookingTitleCustomization
+                  settings={{
+                    bookingTitleText: settings.bookingTitleText,
+                    bookingSubtitleText: settings.bookingSubtitleText,
+                    bookingTitleFont: settings.bookingTitleFont,
+                    bookingTitleSize: settings.bookingTitleSize,
+                    bookingSubtitleFont: settings.bookingSubtitleFont,
+                    bookingSubtitleSize: settings.bookingSubtitleSize
+                  }}
+                  onSettingChange={handleSettingChange}
+                />
 
                 {/* Terms and Conditions Settings */}
                 <Card>

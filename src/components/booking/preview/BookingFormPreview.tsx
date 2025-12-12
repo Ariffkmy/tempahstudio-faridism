@@ -36,11 +36,42 @@ export interface PreviewSettings {
   whatsappPhoneNumber: string;
   brandColorPrimary: string;
   brandColorSecondary: string;
+  bookingTitleText?: string;
+  bookingSubtitleText?: string;
+  bookingTitleFont?: string;
+  bookingTitleSize?: string;
+  bookingSubtitleFont?: string;
+  bookingSubtitleSize?: string;
 }
 
 interface BookingFormPreviewProps {
   settings: PreviewSettings;
 }
+
+// Helper functions for font styling
+const getFontSizeClass = (size: string): string => {
+  const sizeMap: Record<string, string> = {
+    'xs': 'text-xs',
+    'sm': 'text-sm',
+    'base': 'text-base',
+    'lg': 'text-lg',
+    'xl': 'text-xl',
+    '2xl': 'text-2xl',
+    '3xl': 'text-3xl',
+    '4xl': 'text-4xl'
+  };
+  return sizeMap[size || 'xl'] || 'text-xl';
+};
+
+const getFontFamilyClass = (font: string): string => {
+  const fontMap: Record<string, string> = {
+    'default': '',
+    'sans': 'font-sans',
+    'serif': 'font-serif',
+    'mono': 'font-mono'
+  };
+  return fontMap[font || 'default'] || '';
+};
 
 const BookingFormPreview = ({ settings }: BookingFormPreviewProps) => {
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
@@ -123,10 +154,19 @@ const BookingFormPreview = ({ settings }: BookingFormPreviewProps) => {
                 )}
               </div>
 
-              <h1 className="text-xl font-bold mb-2">Tempahan Studio</h1>
-              <p className="text-muted-foreground mb-6 text-sm">
-                Isi maklumat dan buat pembayaran untuk tempahan slot anda.
-              </p>
+              {/* Customizable Booking Title */}
+              <div className="text-center space-y-2 mb-6">
+                <h1
+                  className={`font-bold mb-2 ${getFontSizeClass(settings.bookingTitleSize || 'xl')} ${getFontFamilyClass(settings.bookingTitleFont || 'default')}`}
+                >
+                  {settings.bookingTitleText || 'Tempahan Studio'}
+                </h1>
+                <p
+                  className={`text-muted-foreground ${getFontSizeClass(settings.bookingSubtitleSize || 'base')} ${getFontFamilyClass(settings.bookingSubtitleFont || 'default')}`}
+                >
+                  {settings.bookingSubtitleText || 'Isi maklumat dan buat pembayaran untuk tempahan slot anda.'}
+                </p>
+              </div>
 
               <div className="space-y-6">
                 {/* Layout Selection */}

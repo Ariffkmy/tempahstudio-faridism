@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Clock, MapPin, Star, Mail, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import { motion } from "framer-motion";
 import { HeroHighlight, Highlight } from "@/components/ui/hero-highlight";
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -14,24 +15,54 @@ export function Hero() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      navigate('/admin');
+    }
+  }, [isAuthenticated, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!email.trim() || !password.trim()) {
+      toast({
+        title: 'Ralat',
+        description: 'Sila masukkan emel dan kata laluan',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const result = await login({ email, password });
       if (result.success) {
-        // Redirect to admin dashboard or show success message
-        window.location.href = '/admin';
+        toast({
+          title: 'Selamat kembali!',
+          description: 'Mengalihkan ke papan pemuka...',
+        });
+        // Let the useEffect handle the redirect after auth state updates
       } else {
-        alert(result.error || 'Login failed');
+        toast({
+          title: 'Log Masuk Gagal',
+          description: result.error || 'Emel atau kata laluan tidak sah',
+          variant: 'destructive',
+        });
+        setIsLoading(false);
       }
     } catch (error) {
-      alert('An error occurred. Please try again.');
-    } finally {
+      toast({
+        title: 'Ralat',
+        description: 'Ralat tidak dijangka berlaku. Sila cuba lagi.',
+        variant: 'destructive',
+      });
       setIsLoading(false);
     }
   };
@@ -49,7 +80,7 @@ export function Hero() {
     >
       {/* Overlay gradient */}
       <div className="absolute inset-0 -z-10" style={{ background: "linear-gradient(to bottom right, rgba(0,126,110,0.4), rgba(115,175,111,0.3), rgba(215,192,151,0.2), rgba(203,243,187,0.4))" }} />
-      
+
       {/* Subtle pattern */}
       <div className="absolute inset-0 opacity-[0.015] -z-10" style={{
         backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
@@ -126,7 +157,7 @@ export function Hero() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="password">Kata Laluan</Label>
                     <div className="relative">
@@ -142,16 +173,16 @@ export function Hero() {
                       />
                     </div>
                   </div>
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
+
+                  <Button
+                    type="submit"
+                    className="w-full"
                     size="lg"
                     disabled={isLoading}
                   >
                     {isLoading ? 'Sila tunggu...' : 'Masuk'}
                   </Button>
-                  
+
                   <div className="text-center pt-4">
                     <p className="text-sm text-muted-foreground mb-2">
                       Belum mempunyai akaun?

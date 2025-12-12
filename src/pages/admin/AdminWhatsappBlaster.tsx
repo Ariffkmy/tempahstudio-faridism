@@ -11,13 +11,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveStudioId } from '@/contexts/StudioContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Link } from 'react-router-dom';
-import { getStudioBookingsWithDetails } from '@/services/bookingService';
+import { getStudioBookingsWithDetails, updateBookingStatus } from '@/services/bookingService';
 import { Booking } from '@/types/booking';
+import { useToast } from '@/hooks/use-toast';
 
 const AdminWhatsappBlaster = () => {
   const { isSuperAdmin } = useAuth();
   const effectiveStudioId = useEffectiveStudioId();
   const isMobile = useIsMobile();
+  const { toast } = useToast();
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [bookingsData, setBookingsData] = useState<{
     'complete-photoshoot': Booking[];
@@ -119,19 +121,57 @@ const AdminWhatsappBlaster = () => {
     e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleDrop = (e: React.DragEvent, targetColumn: string) => {
+  const handleDrop = async (e: React.DragEvent, targetColumn: string) => {
     e.preventDefault();
     if (!draggedBooking || draggedBooking.sourceColumn === targetColumn) return;
 
     const { booking, sourceColumn } = draggedBooking;
-    setBookingsData(prev => {
-      const newData = { ...prev };
-      // Remove from source column
-      newData[sourceColumn] = newData[sourceColumn].filter(b => b.id !== booking.id);
-      // Add to target column
-      newData[targetColumn] = [...newData[targetColumn], booking];
-      return newData;
-    });
+
+    // Map column names to booking statuses
+    const columnToStatus: Record<string, Booking['status']> = {
+      'complete-photoshoot': 'done-photoshoot',
+      'editing-in-progress': 'start-editing',
+      'ready-for-delivery': 'ready-for-delivery'
+    };
+
+    const newStatus = columnToStatus[targetColumn];
+
+    // Update status in database
+    try {
+      const result = await updateBookingStatus(booking.id, newStatus);
+
+      if (result.success) {
+        // Update local state only if database update succeeds
+        setBookingsData(prev => {
+          const newData = { ...prev };
+          // Remove from source column
+          newData[sourceColumn] = newData[sourceColumn].filter(b => b.id !== booking.id);
+          // Add to target column with updated status
+          const updatedBooking = { ...booking, status: newStatus };
+          newData[targetColumn] = [...newData[targetColumn], updatedBooking];
+          return newData;
+        });
+
+        toast({
+          title: 'Status Dikemaskini',
+          description: 'Status tempahan berjaya dikemaskini',
+        });
+      } else {
+        toast({
+          title: 'Ralat',
+          description: result.error || 'Gagal mengemaskini status',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error updating booking status:', error);
+      toast({
+        title: 'Ralat',
+        description: 'Gagal mengemaskini status tempahan',
+        variant: 'destructive',
+      });
+    }
+
     setDraggedBooking(null);
   };
 

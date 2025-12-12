@@ -102,15 +102,6 @@ const AdminRegister = () => {
     }
   };
 
-  // Show loading while checking auth
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-8">
       <div className="w-full max-w-md">

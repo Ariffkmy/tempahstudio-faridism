@@ -166,6 +166,48 @@ In production environments:
 
 ## Files Modified
 - `src/components/landing/Hero.tsx`
+- `src/pages/admin/AdminLogin.tsx`
+- `src/pages/admin/AdminRegister.tsx`
+
+## Additional Fix: Blank Page Delays on Public Pages
+
+### Problem
+In production, navigating to admin login or registration pages showed a blank page with loading spinner for several seconds before displaying the form. This was caused by:
+
+1. **AuthContext initialization**: On app load, AuthContext checks for existing session
+2. **Loading state blocking**: Login/Register components waited for `authLoading` to complete before rendering
+3. **Network latency**: In production, the auth check took longer due to network latency
+4. **Poor UX**: Users saw blank pages instead of forms
+
+### Solution
+Removed the loading spinner checks from public pages (AdminLogin and AdminRegister):
+
+**Before (PROBLEMATIC):**
+```tsx
+// Show loading while checking auth
+if (authLoading) {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>
+  );
+}
+```
+
+**After (FIXED):**
+```tsx
+// Removed the loading check - page renders immediately
+// The useEffect will still redirect if authenticated, but happens in background
+```
+
+### Benefits
+- ✅ **Instant page load**: Forms appear immediately, no blank page
+- ✅ **Background auth check**: Authentication still verified, redirect happens if needed
+- ✅ **Better UX**: Users can start interacting with the form immediately
+- ✅ **Production ready**: Works well even with network latency
+
+### Note on Protected Routes
+Protected routes (like `/admin` dashboard) still use the `ProtectedRoute` component which properly handles loading states. This fix only applies to public authentication pages.
 
 ## Related Files (No Changes Needed)
 - `src/contexts/AuthContext.tsx` - Already handles auth state properly

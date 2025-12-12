@@ -1,4 +1,12 @@
-export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no-show';
+export type BookingStatus =
+  | 'done-payment'
+  | 'done-photoshoot'
+  | 'start-editing'
+  | 'ready-for-delivery'
+  | 'completed'
+  | 'rescheduled'
+  | 'no-show'
+  | 'cancelled';
 
 export interface StudioLayout {
   id: string;

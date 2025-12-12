@@ -21,7 +21,7 @@ import type { AdminUser, Customer } from '@/types/database';
 import { getPaymentGatewaySettings, updatePaymentGatewaySettings } from '@/services/paymentGatewayService';
 
 const navigation = [
-  { name: 'Papan Pemuka', href: '/admin', icon: Home },
+  { name: 'Dashboard', href: '/admin', icon: Home },
   { name: 'Tempahan', href: '/admin/bookings', icon: CalendarDays },
   { name: 'Laporan', href: '/admin/reports', icon: BarChart3 },
   { name: 'Pengurusan', href: '/admin/management', icon: Users },
@@ -43,7 +43,7 @@ const NotificationConfigItem = ({
   const [saving, setSaving] = useState(false);
 
   const hasChanges = isEnabled !== notification.is_enabled ||
-                    selectedTemplateId !== (notification.email_template_id || '');
+    selectedTemplateId !== (notification.email_template_id || '');
 
   const handleSave = async () => {
     setSaving(true);
@@ -791,16 +791,14 @@ const AdminSuperSettings = () => {
                                   <td className="py-3 px-4 text-sm">{admin.email}</td>
                                   <td className="py-3 px-4 text-sm">{admin.phone || '-'}</td>
                                   <td className="py-3 px-4">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      admin.role === 'super_admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
-                                    }`}>
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${admin.role === 'super_admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                                      }`}>
                                       {admin.role?.replace('_', ' ').toUpperCase()}
                                     </span>
                                   </td>
                                   <td className="py-3 px-4">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      admin.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                    }`}>
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${admin.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                      }`}>
                                       {admin.is_active ? 'Active' : 'Inactive'}
                                     </span>
                                   </td>
@@ -1021,311 +1019,311 @@ const AdminSuperSettings = () => {
               </Card>
             </TabsContent>
 
-              <TabsContent value="sendgrid" className="space-y-4">
-                {/* SendGrid API Key Settings */}
+            <TabsContent value="sendgrid" className="space-y-4">
+              {/* SendGrid API Key Settings */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Mail className="h-5 w-5" />
+                    SendGrid API Key
+                  </CardTitle>
+                  <CardDescription className="text-sm">
+                    Tetapan API untuk integrasi email melalui SendGrid
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="sendgridApiKey" className="text-sm">API Key</Label>
+                    <Input
+                      id="sendgridApiKey"
+                      type="password"
+                      value={settings.sendgridApiKey}
+                      onChange={(e) => handleSettingChange('sendgridApiKey', e.target.value)}
+                      placeholder="SG.xxxxxxxx-xxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      className="font-mono text-xs"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Dapat dari SendGrid Dashboard → Settings → API Keys
+                    </p>
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <Button
+                      onClick={saveSettings}
+                      disabled={isLoading}
+                      className="w-full"
+                    >
+                      {isLoading ? 'Menyimpan...' : 'Simpan Tetapan'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Side by side Email Notifications and SendGrid Templates */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Email Notification Configuration */}
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Mail className="h-5 w-5" />
-                      SendGrid API Key
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      Email Notifications
                     </CardTitle>
-                    <CardDescription className="text-sm">
-                      Tetapan API untuk integrasi email melalui SendGrid
+                    <CardDescription className="text-xs">
+                      Configure email templates for user actions
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="sendgridApiKey" className="text-sm">API Key</Label>
-                      <Input
-                        id="sendgridApiKey"
-                        type="password"
-                        value={settings.sendgridApiKey}
-                        onChange={(e) => handleSettingChange('sendgridApiKey', e.target.value)}
-                        placeholder="SG.xxxxxxxx-xxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                        className="font-mono text-xs"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Dapat dari SendGrid Dashboard → Settings → API Keys
-                      </p>
+                    <div className="text-xs text-muted-foreground bg-blue-50 border border-blue-200 rounded-lg p-2">
+                      Map user actions to SendGrid templates
                     </div>
 
-                    <div className="pt-4 border-t">
-                      <Button
-                        onClick={saveSettings}
-                        disabled={isLoading}
-                        className="w-full"
-                      >
-                        {isLoading ? 'Menyimpan...' : 'Simpan Tetapan'}
-                      </Button>
-                    </div>
+                    {emailLoading ? (
+                      <div className="text-center py-6">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                        <p className="text-xs text-muted-foreground mt-1">Loading...</p>
+                      </div>
+                    ) : emailNotifications.length === 0 ? (
+                      <div className="text-center py-6 text-muted-foreground">
+                        <Mail className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-xs">No notifications</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 max-h-64 overflow-y-auto">
+                        {emailNotifications.map((notification) => (
+                          <NotificationConfigItem
+                            key={notification.id}
+                            notification={notification}
+                            availableTemplates={availableTemplates}
+                            onUpdate={saveEmailNotification}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
 
-                {/* Side by side Email Notifications and SendGrid Templates */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Email Notification Configuration */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        Email Notifications
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        Configure email templates for user actions
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="text-xs text-muted-foreground bg-blue-50 border border-blue-200 rounded-lg p-2">
-                        Map user actions to SendGrid templates
-                      </div>
-
-                      {emailLoading ? (
-                        <div className="text-center py-6">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                          <p className="text-xs text-muted-foreground mt-1">Loading...</p>
-                        </div>
-                      ) : emailNotifications.length === 0 ? (
-                        <div className="text-center py-6 text-muted-foreground">
-                          <Mail className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                          <p className="text-xs">No notifications</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-3 max-h-64 overflow-y-auto">
-                          {emailNotifications.map((notification) => (
-                            <NotificationConfigItem
-                              key={notification.id}
-                              notification={notification}
-                              availableTemplates={availableTemplates}
-                              onUpdate={saveEmailNotification}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* SendGrid Templates Section */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        Templates
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        Manage email templates
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="text-xs text-muted-foreground bg-amber-50 border border-amber-200 rounded-lg p-2">
-                        Templates for notifications
-                      </div>
-
-                      {/* Existing Templates */}
-                      {availableTemplates.length > 0 && (
-                        <div className="space-y-2 max-h-48 overflow-y-auto">
-                          {availableTemplates.map((template) => {
-                            const isEditing = editingTemplate === template.id;
-                            return (
-                              <div key={template.id} className="border rounded-md p-3">
-                                {isEditing ? (
-                                  <div className="space-y-3">
-                                    <div className="grid grid-cols-1 gap-3">
-                                      <div className="space-y-1">
-                                        <Label className="text-xs">Template Name</Label>
-                                        <Input
-                                          value={editTemplateData.name}
-                                          onChange={(e) => setEditTemplateData(prev => ({ ...prev, name: e.target.value }))}
-                                          placeholder="e.g., Booking Confirmation"
-                                          className="text-xs h-8"
-                                        />
-                                      </div>
-                                      <div className="space-y-1">
-                                        <Label className="text-xs">Template ID</Label>
-                                        <Input
-                                          value={editTemplateData.template_id}
-                                          onChange={(e) => setEditTemplateData(prev => ({ ...prev, template_id: e.target.value }))}
-                                          placeholder="e.g., d-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                                          className="font-mono text-xs h-8"
-                                        />
-                                      </div>
-                                    </div>
-                                    <div className="flex justify-end gap-1">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={cancelEditTemplate}
-                                        className="text-xs h-7 px-2"
-                                      >
-                                        <RotateCcw className="h-3 w-3 mr-1" />
-                                        Cancel
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        onClick={saveEditTemplate}
-                                        disabled={!editTemplateData.name || !editTemplateData.template_id}
-                                        className="text-xs h-7 px-2"
-                                      >
-                                        <Check className="h-3 w-3 mr-1" />
-                                        Save
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center justify-between">
-                                    <div className="min-w-0 flex-1">
-                                      <p className="font-medium text-xs truncate">{template.name}</p>
-                                      <p className="text-xs text-muted-foreground font-mono truncate">{template.template_id}</p>
-                                    </div>
-                                    <div className="flex gap-1 ml-2">
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => startEditTemplate(template)}
-                                        className="text-xs h-6 w-6 p-0"
-                                      >
-                                        <Edit className="h-3 w-3" />
-                                      </Button>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => removeTemplate(template.id)}
-                                        className="text-destructive hover:text-destructive text-xs h-6 w-6 p-0"
-                                      >
-                                        <X className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {availableTemplates.length === 0 && (
-                        <div className="text-center py-4 text-muted-foreground">
-                          <FileText className="h-6 w-6 mx-auto mb-2 opacity-50" />
-                          <p className="text-xs">No templates</p>
-                        </div>
-                      )}
-
-                      {/* Add New Template */}
-                      <div className="space-y-3 border-t pt-3">
-                        <h5 className="font-medium text-sm">Add Template</h5>
-                        <div className="space-y-2">
-                          <div className="space-y-1">
-                            <Label className="text-xs">Template Name</Label>
-                            <Input
-                              value={newTemplate.name}
-                              onChange={(e) => setNewTemplate(prev => ({ ...prev, name: e.target.value }))}
-                              placeholder="e.g., Booking Confirmation"
-                              className="text-xs h-8"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs">Template ID</Label>
-                            <Input
-                              value={newTemplate.template_id}
-                              onChange={(e) => setNewTemplate(prev => ({ ...prev, template_id: e.target.value }))}
-                              placeholder="e.g., d-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                              className="font-mono text-xs h-8"
-                            />
-                          </div>
-                          <Button
-                            onClick={addTemplate}
-                            disabled={!newTemplate.name || !newTemplate.template_id}
-                            className="w-full text-xs h-8"
-                            size="sm"
-                          >
-                            <Plus className="h-3 w-3 mr-1" />
-                            Add Template
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Save Button for SendGrid tab */}
-                <div className="pt-4 border-t">
-                  <Button
-                    onClick={saveSettings}
-                    disabled={isLoading}
-                    className="w-full"
-                  >
-                    {isLoading ? 'Menyimpan...' : 'Simpan Tetapan SendGrid'}
-                  </Button>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="twilio" className="space-y-4">
-                {/* Twilio WhatsApp Settings */}
+                {/* SendGrid Templates Section */}
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Phone className="h-5 w-5" />
-                      Twilio WhatsApp Configuration
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Templates
                     </CardTitle>
-                    <CardDescription className="text-sm">
-                      Tetapan untuk integrasi WhatsApp melalui Twilio
+                    <CardDescription className="text-xs">
+                      Manage email templates
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="twilioSidMobile" className="text-sm">Twilio SID</Label>
-                      <Input
-                        id="twilioSidMobile"
-                        value={twilioSettings.twilioSid}
-                        onChange={(e) => handleTwilioChange('twilioSid', e.target.value)}
-                        placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                        className="font-mono text-xs"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Dapat dari Twilio Console → Project Settings → SID
-                      </p>
+                    <div className="text-xs text-muted-foreground bg-amber-50 border border-amber-200 rounded-lg p-2">
+                      Templates for notifications
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="twilioAuthTokenMobile" className="text-sm">Auth Token</Label>
-                      <Input
-                        id="twilioAuthTokenMobile"
-                        type="password"
-                        value={twilioSettings.twilioAuthToken}
-                        onChange={(e) => handleTwilioChange('twilioAuthToken', e.target.value)}
-                        placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                        className="font-mono text-xs"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Rahsia auth token dari Twilio
-                      </p>
-                    </div>
+                    {/* Existing Templates */}
+                    {availableTemplates.length > 0 && (
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {availableTemplates.map((template) => {
+                          const isEditing = editingTemplate === template.id;
+                          return (
+                            <div key={template.id} className="border rounded-md p-3">
+                              {isEditing ? (
+                                <div className="space-y-3">
+                                  <div className="grid grid-cols-1 gap-3">
+                                    <div className="space-y-1">
+                                      <Label className="text-xs">Template Name</Label>
+                                      <Input
+                                        value={editTemplateData.name}
+                                        onChange={(e) => setEditTemplateData(prev => ({ ...prev, name: e.target.value }))}
+                                        placeholder="e.g., Booking Confirmation"
+                                        className="text-xs h-8"
+                                      />
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-xs">Template ID</Label>
+                                      <Input
+                                        value={editTemplateData.template_id}
+                                        onChange={(e) => setEditTemplateData(prev => ({ ...prev, template_id: e.target.value }))}
+                                        placeholder="e.g., d-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                                        className="font-mono text-xs h-8"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="flex justify-end gap-1">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={cancelEditTemplate}
+                                      className="text-xs h-7 px-2"
+                                    >
+                                      <RotateCcw className="h-3 w-3 mr-1" />
+                                      Cancel
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      onClick={saveEditTemplate}
+                                      disabled={!editTemplateData.name || !editTemplateData.template_id}
+                                      className="text-xs h-7 px-2"
+                                    >
+                                      <Check className="h-3 w-3 mr-1" />
+                                      Save
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-between">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="font-medium text-xs truncate">{template.name}</p>
+                                    <p className="text-xs text-muted-foreground font-mono truncate">{template.template_id}</p>
+                                  </div>
+                                  <div className="flex gap-1 ml-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => startEditTemplate(template)}
+                                      className="text-xs h-6 w-6 p-0"
+                                    >
+                                      <Edit className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => removeTemplate(template.id)}
+                                      className="text-destructive hover:text-destructive text-xs h-6 w-6 p-0"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
 
-                    <div className="space-y-2">
-                      <Label htmlFor="twilioWhatsappNumberMobile" className="text-sm">WhatsApp Number</Label>
-                      <Input
-                        id="twilioWhatsappNumberMobile"
-                        value={twilioSettings.twilioWhatsappNumber}
-                        onChange={(e) => handleTwilioChange('twilioWhatsappNumber', e.target.value)}
-                        placeholder="+1234567890"
-                        className="text-xs"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Nombor WhatsApp yang didaftarkan dengan Twilio
-                      </p>
-                    </div>
+                    {availableTemplates.length === 0 && (
+                      <div className="text-center py-4 text-muted-foreground">
+                        <FileText className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                        <p className="text-xs">No templates</p>
+                      </div>
+                    )}
 
-                    <div className="pt-4 border-t">
-                      <Button
-                        onClick={saveSettings}
-                        disabled={isLoading}
-                        className="w-full"
-                      >
-                        {isLoading ? 'Menyimpan...' : 'Simpan Tetapan Twilio'}
-                      </Button>
+                    {/* Add New Template */}
+                    <div className="space-y-3 border-t pt-3">
+                      <h5 className="font-medium text-sm">Add Template</h5>
+                      <div className="space-y-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Template Name</Label>
+                          <Input
+                            value={newTemplate.name}
+                            onChange={(e) => setNewTemplate(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder="e.g., Booking Confirmation"
+                            className="text-xs h-8"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Template ID</Label>
+                          <Input
+                            value={newTemplate.template_id}
+                            onChange={(e) => setNewTemplate(prev => ({ ...prev, template_id: e.target.value }))}
+                            placeholder="e.g., d-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                            className="font-mono text-xs h-8"
+                          />
+                        </div>
+                        <Button
+                          onClick={addTemplate}
+                          disabled={!newTemplate.name || !newTemplate.template_id}
+                          className="w-full text-xs h-8"
+                          size="sm"
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add Template
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              </div>
+
+              {/* Save Button for SendGrid tab */}
+              <div className="pt-4 border-t">
+                <Button
+                  onClick={saveSettings}
+                  disabled={isLoading}
+                  className="w-full"
+                >
+                  {isLoading ? 'Menyimpan...' : 'Simpan Tetapan SendGrid'}
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="twilio" className="space-y-4">
+              {/* Twilio WhatsApp Settings */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Phone className="h-5 w-5" />
+                    Twilio WhatsApp Configuration
+                  </CardTitle>
+                  <CardDescription className="text-sm">
+                    Tetapan untuk integrasi WhatsApp melalui Twilio
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="twilioSidMobile" className="text-sm">Twilio SID</Label>
+                    <Input
+                      id="twilioSidMobile"
+                      value={twilioSettings.twilioSid}
+                      onChange={(e) => handleTwilioChange('twilioSid', e.target.value)}
+                      placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      className="font-mono text-xs"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Dapat dari Twilio Console → Project Settings → SID
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="twilioAuthTokenMobile" className="text-sm">Auth Token</Label>
+                    <Input
+                      id="twilioAuthTokenMobile"
+                      type="password"
+                      value={twilioSettings.twilioAuthToken}
+                      onChange={(e) => handleTwilioChange('twilioAuthToken', e.target.value)}
+                      placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      className="font-mono text-xs"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Rahsia auth token dari Twilio
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="twilioWhatsappNumberMobile" className="text-sm">WhatsApp Number</Label>
+                    <Input
+                      id="twilioWhatsappNumberMobile"
+                      value={twilioSettings.twilioWhatsappNumber}
+                      onChange={(e) => handleTwilioChange('twilioWhatsappNumber', e.target.value)}
+                      placeholder="+1234567890"
+                      className="text-xs"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Nombor WhatsApp yang didaftarkan dengan Twilio
+                    </p>
+                  </div>
+
+                  <div className="pt-4 border-t">
+                    <Button
+                      onClick={saveSettings}
+                      disabled={isLoading}
+                      className="w-full"
+                    >
+                      {isLoading ? 'Menyimpan...' : 'Simpan Tetapan Twilio'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </main>
 
@@ -1471,221 +1469,219 @@ const AdminSuperSettings = () => {
               <p className="text-muted-foreground">Konfigurasi sistem untuk super admin</p>
             </div>
 
-          {/* Settings Tabs */}
-          <Tabs defaultValue="users" className="w-full max-w-6xl">
-            <div className="border-b border-border">
-              <TabsList className="grid w-full grid-cols-5 md:flex md:w-auto h-auto p-0 bg-transparent justify-start">
-                <TabsTrigger value="users" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
-                  <User className="h-4 w-4 mr-2" />
-                  Users
-                </TabsTrigger>
-                <TabsTrigger value="google-calendar" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
-                  <CalendarDays className="h-4 w-4 mr-2" />
-                  Google Calendar
-                </TabsTrigger>
-                <TabsTrigger value="payment-gateway" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
-                  <Key className="h-4 w-4 mr-2" />
-                  Payment Gateway
-                </TabsTrigger>
-                <TabsTrigger value="sendgrid" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
-                  <Mail className="h-4 w-4 mr-2" />
-                  SendGrid
-                </TabsTrigger>
-                <TabsTrigger value="twilio" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
-                  <Phone className="h-4 w-4 mr-2" />
-                  Twilio WhatsApp
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
-            {/* Users Tab Content */}
-            <TabsContent value="users" className="space-y-6 mt-6">
-              {/* Sub-tabs for User Types */}
-              <Tabs defaultValue="system-users" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="system-users" className="text-sm">
-                    <UserCheck className="h-4 w-4 mr-2" />
-                    System Users
-                  </TabsTrigger>
-                  <TabsTrigger value="client-users" className="text-sm">
+            {/* Settings Tabs */}
+            <Tabs defaultValue="users" className="w-full max-w-6xl">
+              <div className="border-b border-border">
+                <TabsList className="grid w-full grid-cols-5 md:flex md:w-auto h-auto p-0 bg-transparent justify-start">
+                  <TabsTrigger value="users" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
                     <User className="h-4 w-4 mr-2" />
-                    Client Users
+                    Users
+                  </TabsTrigger>
+                  <TabsTrigger value="google-calendar" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                    <CalendarDays className="h-4 w-4 mr-2" />
+                    Google Calendar
+                  </TabsTrigger>
+                  <TabsTrigger value="payment-gateway" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                    <Key className="h-4 w-4 mr-2" />
+                    Payment Gateway
+                  </TabsTrigger>
+                  <TabsTrigger value="sendgrid" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                    <Mail className="h-4 w-4 mr-2" />
+                    SendGrid
+                  </TabsTrigger>
+                  <TabsTrigger value="twilio" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                    <Phone className="h-4 w-4 mr-2" />
+                    Twilio WhatsApp
                   </TabsTrigger>
                 </TabsList>
+              </div>
 
-                {/* System Users (Admin Users) Table */}
-                <TabsContent value="system-users" className="space-y-4 mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <UserCheck className="h-5 w-5" />
-                        System Users
-                      </CardTitle>
-                      <CardDescription>
-                        Manage administrator and super admin accounts in the system
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {usersLoading ? (
-                        <div className="text-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                          <p className="text-sm text-muted-foreground mt-2">Loading system users...</p>
-                        </div>
-                      ) : adminUsers.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <UserCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>No system users found</p>
-                        </div>
-                      ) : (
-                        <div className="overflow-x-auto">
-                          <table className="w-full border-collapse">
-                            <thead>
-                              <tr className="border-b">
-                                <th className="text-left py-3 px-4 font-medium text-sm">Name</th>
-                                <th className="text-left py-3 px-4 font-medium text-sm">Email</th>
-                                <th className="text-left py-3 px-4 font-medium text-sm">Phone</th>
-                                <th className="text-left py-3 px-4 font-medium text-sm">Role</th>
-                                <th className="text-left py-3 px-4 font-medium text-sm">Status</th>
-                                <th className="text-left py-3 px-4 font-medium text-sm">Created</th>
-                                <th className="text-left py-3 px-4 font-medium text-sm">Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {adminUsers.map((admin) => (
-                                <tr key={admin.id} className="border-b hover:bg-muted/50">
-                                  <td className="py-3 px-4">
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-8 h-8 rounded-full bg-purple-100 border border-purple-300 flex items-center justify-center">
-                                        <span className="text-xs font-medium text-purple-800">
-                                          {getInitials(admin.full_name)}
-                                        </span>
-                                      </div>
-                                      <span className="font-medium">{admin.full_name}</span>
-                                    </div>
-                                  </td>
-                                  <td className="py-3 px-4 text-sm">{admin.email}</td>
-                                  <td className="py-3 px-4 text-sm">{admin.phone || '-'}</td>
-                                  <td className="py-3 px-4">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      admin.role === 'super_admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
-                                    }`}>
-                                      {admin.role?.replace('_', ' ').toUpperCase()}
-                                    </span>
-                                  </td>
-                                  <td className="py-3 px-4">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                      admin.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                    }`}>
-                                      {admin.is_active ? 'Active' : 'Inactive'}
-                                    </span>
-                                  </td>
-                                  <td className="py-3 px-4 text-sm">
-                                    {admin.created_at ? new Date(admin.created_at).toLocaleDateString() : '-'}
-                                  </td>
-                                  <td className="py-3 px-4">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => openEditUser(admin)}
-                                    >
-                                      <Edit className="h-3 w-3 mr-1" />
-                                      Edit
-                                    </Button>
-                                  </td>
+              {/* Users Tab Content */}
+              <TabsContent value="users" className="space-y-6 mt-6">
+                {/* Sub-tabs for User Types */}
+                <Tabs defaultValue="system-users" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="system-users" className="text-sm">
+                      <UserCheck className="h-4 w-4 mr-2" />
+                      System Users
+                    </TabsTrigger>
+                    <TabsTrigger value="client-users" className="text-sm">
+                      <User className="h-4 w-4 mr-2" />
+                      Client Users
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* System Users (Admin Users) Table */}
+                  <TabsContent value="system-users" className="space-y-4 mt-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <UserCheck className="h-5 w-5" />
+                          System Users
+                        </CardTitle>
+                        <CardDescription>
+                          Manage administrator and super admin accounts in the system
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {usersLoading ? (
+                          <div className="text-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                            <p className="text-sm text-muted-foreground mt-2">Loading system users...</p>
+                          </div>
+                        ) : adminUsers.length === 0 ? (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <UserCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No system users found</p>
+                          </div>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full border-collapse">
+                              <thead>
+                                <tr className="border-b">
+                                  <th className="text-left py-3 px-4 font-medium text-sm">Name</th>
+                                  <th className="text-left py-3 px-4 font-medium text-sm">Email</th>
+                                  <th className="text-left py-3 px-4 font-medium text-sm">Phone</th>
+                                  <th className="text-left py-3 px-4 font-medium text-sm">Role</th>
+                                  <th className="text-left py-3 px-4 font-medium text-sm">Status</th>
+                                  <th className="text-left py-3 px-4 font-medium text-sm">Created</th>
+                                  <th className="text-left py-3 px-4 font-medium text-sm">Actions</th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-
-                {/* Client Users (Customers) Table */}
-                <TabsContent value="client-users" className="space-y-4 mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <User className="h-5 w-5" />
-                        Client Users
-                      </CardTitle>
-                      <CardDescription>
-                        Manage customer accounts and bookings
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      {usersLoading ? (
-                        <div className="text-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                          <p className="text-sm text-muted-foreground mt-2">Loading client users...</p>
-                        </div>
-                      ) : customers.length === 0 ? (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>No client users found</p>
-                        </div>
-                      ) : (
-                        <div className="overflow-x-auto">
-                          <table className="w-full border-collapse">
-                            <thead>
-                              <tr className="border-b">
-                                <th className="text-left py-3 px-4 font-medium text-sm">Name</th>
-                                <th className="text-left py-3 px-4 font-medium text-sm">Email</th>
-                                <th className="text-left py-3 px-4 font-medium text-sm">Phone</th>
-                                <th className="text-left py-3 px-4 font-medium text-sm">Type</th>
-                                <th className="text-left py-3 px-4 font-medium text-sm">Created</th>
-                                <th className="text-left py-3 px-4 font-medium text-sm">Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {customers.map((customer) => (
-                                <tr key={customer.id} className="border-b hover:bg-muted/50">
-                                  <td className="py-3 px-4">
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-8 h-8 rounded-full bg-green-100 border border-green-300 flex items-center justify-center">
-                                        <span className="text-xs font-medium text-green-800">
-                                          {getInitials(customer.name)}
-                                        </span>
+                              </thead>
+                              <tbody>
+                                {adminUsers.map((admin) => (
+                                  <tr key={admin.id} className="border-b hover:bg-muted/50">
+                                    <td className="py-3 px-4">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-purple-100 border border-purple-300 flex items-center justify-center">
+                                          <span className="text-xs font-medium text-purple-800">
+                                            {getInitials(admin.full_name)}
+                                          </span>
+                                        </div>
+                                        <span className="font-medium">{admin.full_name}</span>
                                       </div>
-                                      <span className="font-medium">{customer.name || 'Unnamed Customer'}</span>
-                                    </div>
-                                  </td>
-                                  <td className="py-3 px-4 text-sm">{customer.email}</td>
-                                  <td className="py-3 px-4 text-sm">{customer.phone || '-'}</td>
-                                  <td className="py-3 px-4">
-                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                      Client
-                                    </span>
-                                  </td>
-                                  <td className="py-3 px-4 text-sm">
-                                    {customer.created_at ? new Date(customer.created_at).toLocaleDateString() : '-'}
-                                  </td>
-                                  <td className="py-3 px-4">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => openEditUser(customer)}
-                                    >
-                                      <Edit className="h-3 w-3 mr-1" />
-                                      Edit
-                                    </Button>
-                                  </td>
+                                    </td>
+                                    <td className="py-3 px-4 text-sm">{admin.email}</td>
+                                    <td className="py-3 px-4 text-sm">{admin.phone || '-'}</td>
+                                    <td className="py-3 px-4">
+                                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${admin.role === 'super_admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                                        }`}>
+                                        {admin.role?.replace('_', ' ').toUpperCase()}
+                                      </span>
+                                    </td>
+                                    <td className="py-3 px-4">
+                                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${admin.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                        }`}>
+                                        {admin.is_active ? 'Active' : 'Inactive'}
+                                      </span>
+                                    </td>
+                                    <td className="py-3 px-4 text-sm">
+                                      {admin.created_at ? new Date(admin.created_at).toLocaleDateString() : '-'}
+                                    </td>
+                                    <td className="py-3 px-4">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => openEditUser(admin)}
+                                      >
+                                        <Edit className="h-3 w-3 mr-1" />
+                                        Edit
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Client Users (Customers) Table */}
+                  <TabsContent value="client-users" className="space-y-4 mt-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <User className="h-5 w-5" />
+                          Client Users
+                        </CardTitle>
+                        <CardDescription>
+                          Manage customer accounts and bookings
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {usersLoading ? (
+                          <div className="text-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                            <p className="text-sm text-muted-foreground mt-2">Loading client users...</p>
+                          </div>
+                        ) : customers.length === 0 ? (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No client users found</p>
+                          </div>
+                        ) : (
+                          <div className="overflow-x-auto">
+                            <table className="w-full border-collapse">
+                              <thead>
+                                <tr className="border-b">
+                                  <th className="text-left py-3 px-4 font-medium text-sm">Name</th>
+                                  <th className="text-left py-3 px-4 font-medium text-sm">Email</th>
+                                  <th className="text-left py-3 px-4 font-medium text-sm">Phone</th>
+                                  <th className="text-left py-3 px-4 font-medium text-sm">Type</th>
+                                  <th className="text-left py-3 px-4 font-medium text-sm">Created</th>
+                                  <th className="text-left py-3 px-4 font-medium text-sm">Actions</th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </TabsContent>
+                              </thead>
+                              <tbody>
+                                {customers.map((customer) => (
+                                  <tr key={customer.id} className="border-b hover:bg-muted/50">
+                                    <td className="py-3 px-4">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-full bg-green-100 border border-green-300 flex items-center justify-center">
+                                          <span className="text-xs font-medium text-green-800">
+                                            {getInitials(customer.name)}
+                                          </span>
+                                        </div>
+                                        <span className="font-medium">{customer.name || 'Unnamed Customer'}</span>
+                                      </div>
+                                    </td>
+                                    <td className="py-3 px-4 text-sm">{customer.email}</td>
+                                    <td className="py-3 px-4 text-sm">{customer.phone || '-'}</td>
+                                    <td className="py-3 px-4">
+                                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        Client
+                                      </span>
+                                    </td>
+                                    <td className="py-3 px-4 text-sm">
+                                      {customer.created_at ? new Date(customer.created_at).toLocaleDateString() : '-'}
+                                    </td>
+                                    <td className="py-3 px-4">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => openEditUser(customer)}
+                                      >
+                                        <Edit className="h-3 w-3 mr-1" />
+                                        Edit
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </TabsContent>
 
 
 
-            <TabsContent value="google-calendar" className="space-y-6 mt-6">
+              <TabsContent value="google-calendar" className="space-y-6 mt-6">
                 {/* Google Calendar Settings */}
                 <Card>
                   <CardHeader>

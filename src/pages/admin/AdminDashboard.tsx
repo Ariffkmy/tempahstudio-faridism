@@ -3,6 +3,7 @@ import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { StudioSelector } from '@/components/admin/StudioSelector';
 import { StatsCard } from '@/components/admin/StatsCard';
 import { BookingTable } from '@/components/admin/BookingTable';
+import { BookingDetailModal } from '@/components/admin/BookingDetailModal';
 import { Calendar, DollarSign, Users, TrendingUp, Menu, Home, BarChart3, BookOpen, Cog, LogOut, Building2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveStudioId } from '@/contexts/StudioContext';
@@ -18,7 +19,7 @@ import type { Booking } from '@/types/booking';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const navigation = [
-  { name: 'Papan Pemuka', href: '/admin', icon: Home },
+  { name: 'Dashboard', href: '/admin', icon: Home },
   { name: 'Tempahan', href: '/admin/bookings', icon: Calendar },
   { name: 'Laporan', href: '/admin/reports', icon: BarChart3 },
   { name: 'Tetapan', href: '/admin/settings', icon: Cog },
@@ -44,6 +45,8 @@ const AdminDashboard = () => {
   });
   const [recentBookings, setRecentBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Fetch real data from database
   useEffect(() => {
@@ -100,8 +103,8 @@ const AdminDashboard = () => {
   }, [effectiveStudioId]);
 
   const handleViewBooking = (booking: Booking) => {
-    console.log('View booking:', booking);
-    // TODO: Open booking detail modal
+    setSelectedBooking(booking);
+    setIsModalOpen(true);
   };
 
   // Format currency
@@ -329,6 +332,13 @@ const AdminDashboard = () => {
             )}
           </div>
         </main>
+
+        {/* Booking Detail Modal */}
+        <BookingDetailModal
+          booking={selectedBooking}
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+        />
       </div>
     );
   } else {
@@ -420,6 +430,13 @@ const AdminDashboard = () => {
             </div>
           </div>
         </main>
+
+        {/* Booking Detail Modal */}
+        <BookingDetailModal
+          booking={selectedBooking}
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+        />
       </div>
     );
   }

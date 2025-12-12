@@ -3,6 +3,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { StudioSelector } from '@/components/admin/StudioSelector';
 import { BookingTable } from '@/components/admin/BookingTable';
+import { BookingDetailModal } from '@/components/admin/BookingDetailModal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -21,11 +22,18 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Search, Download, CalendarDays, List, Clock, User, Plus, Copy, ExternalLink, Menu, Home, BarChart3, Cog, LogOut, Building2, Send } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Search, Download, CalendarDays, List, Clock, User, Plus, Copy, ExternalLink, Menu, Home, BarChart3, Cog, LogOut, Building2, Send, MoreHorizontal, Eye } from 'lucide-react';
 import { Booking } from '@/types/booking';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveStudioId } from '@/contexts/StudioContext';
-import { getStudioBookingsWithDetails } from '@/services/bookingService';
+import { getStudioBookingsWithDetails, updateBookingStatus } from '@/services/bookingService';
 import { loadStudioSettings } from '@/services/studioSettings';
 import type { BookingWithDetails } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
@@ -36,7 +44,7 @@ import { ms } from 'date-fns/locale';
 import { supabase } from '@/lib/supabase';
 
 const navigation = [
-  { name: 'Papan Pemuka', href: '/admin', icon: Home },
+  { name: 'Dashboard', href: '/admin', icon: Home },
   { name: 'Tempahan', href: '/admin/bookings', icon: CalendarDays },
   { name: 'Whatsapp Blaster', href: '/admin/whatsapp-blaster', icon: Send },
   { name: 'Laporan', href: '/admin/reports', icon: BarChart3 },
@@ -50,8 +58,6 @@ const AdminBookings = () => {
   const location = useLocation();
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedDayBookings, setSelectedDayBookings] = useState<Booking[]>([]);
 
@@ -60,6 +66,8 @@ const AdminBookings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [bookingLink, setBookingLink] = useState('');
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Helper functions
   const getInitials = (name: string | undefined) => {
@@ -143,19 +151,112 @@ const AdminBookings = () => {
     fetchData();
   }, [effectiveStudioId]);
 
-  const filteredBookings = bookings.filter((booking) => {
-    const matchesSearch =
-      booking.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.reference.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.customerEmail.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
 
   const handleViewBooking = (booking: Booking) => {
-    console.log('View booking:', booking);
+    setSelectedBooking(booking);
+    setIsModalOpen(true);
+  };
+
+  const handleExportCSV = () => {
+    // Prepare CSV headers
+    const headers = ['Rujukan', 'Nama Pelanggan', 'Email', 'Telefon', 'Tarikh', 'Masa Mula', 'Masa Tamat', 'Tempoh (Jam)', 'Layout', 'Jumlah (RM)', 'Status', 'Catatan'];
+
+    // Prepare CSV rows
+    const rows = bookings.map(booking => [
+      booking.reference,
+      booking.customerName,
+      booking.customerEmail,
+      booking.customerPhone || '-',
+      new Date(booking.date).toLocaleDateString('ms-MY'),
+      booking.startTime,
+      booking.endTime,
+      booking.duration.toString(),
+      booking.layoutName,
+      booking.totalPrice.toFixed(2),
+      booking.status === 'done-payment' ? 'Bayaran Selesai' :
+        booking.status === 'done-photoshoot' ? 'Photoshoot Selesai' :
+          booking.status === 'start-editing' ? 'Mula Edit' :
+            booking.status === 'ready-for-delivery' ? 'Sedia Hantar' :
+              booking.status === 'completed' ? 'Selesai' :
+                booking.status === 'rescheduled' ? 'Dijadual Semula' :
+                  booking.status === 'no-show' ? 'Tidak Hadir' :
+                    booking.status === 'cancelled' ? 'Dibatalkan' : booking.status,
+      booking.notes || '-'
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `tempahan_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: 'Eksport Berjaya',
+      description: `${bookings.length} tempahan telah dieksport ke CSV`,
+    });
+  };
+
+  const handleStatusUpdate = async (bookingId: string, newStatus: Booking['status']) => {
+    try {
+      const result = await updateBookingStatus(bookingId, newStatus);
+
+      if (result.success) {
+        // Refresh bookings list
+        const bookingsData = await getStudioBookingsWithDetails(effectiveStudioId!);
+        const formattedBookings: Booking[] = bookingsData.map((b: any) => ({
+          id: b.id,
+          reference: b.reference,
+          customerName: b.customer_name,
+          customerEmail: b.customer_email,
+          customerPhone: b.customer_phone,
+          date: b.booking_date,
+          startTime: b.start_time,
+          endTime: b.end_time,
+          duration: b.duration,
+          layoutName: b.layout?.name || 'Unknown Layout',
+          totalPrice: b.total_price,
+          status: b.status,
+          notes: b.notes,
+          customerId: b.customer_id,
+          companyId: b.company_id,
+          studioId: b.studio_id,
+          layoutId: b.layout_id
+        }));
+        setBookings(formattedBookings);
+
+        toast({
+          title: 'Status Dikemaskini',
+          description: 'Status tempahan berjaya dikemaskini',
+        });
+      } else {
+        toast({
+          title: 'Ralat',
+          description: result.error || 'Gagal mengemaskini status',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast({
+        title: 'Ralat',
+        description: 'Gagal mengemaskini status tempahan',
+        variant: 'destructive',
+      });
+    }
   };
 
   // Get current month info
@@ -332,30 +433,7 @@ const AdminBookings = () => {
             </div>
           )}
 
-          {/* Filters */}
-          <div className="flex flex-col gap-3 mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Cari mengikut nama, emel, atau rujukan..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Tapis mengikut status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Status</SelectItem>
-                <SelectItem value="pending">Menunggu</SelectItem>
-                <SelectItem value="confirmed">Disahkan</SelectItem>
-                <SelectItem value="cancelled">Dibatalkan</SelectItem>
-                <SelectItem value="completed">Selesai</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+
 
           {/* Tabs */}
           <Tabs defaultValue="list" className="space-y-4">
@@ -375,17 +453,30 @@ const AdminBookings = () => {
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                 </div>
-              ) : filteredBookings.length > 0 ? (
+              ) : bookings.length > 0 ? (
                 <div className="space-y-3">
-                  {filteredBookings.slice(0, 10).map((booking) => (
+                  {bookings.slice(0, 10).map((booking) => (
                     <div key={booking.id} className="bg-card border border-border rounded-lg p-3">
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <p className="text-sm font-medium">{booking.customerName}</p>
                           <p className="text-xs text-muted-foreground">{booking.layoutName}</p>
                         </div>
-                        <Badge variant={booking.status === 'confirmed' ? 'default' : booking.status === 'pending' ? 'secondary' : 'outline'}>
-                          {booking.status === 'confirmed' ? 'Disahkan' : booking.status === 'pending' ? 'Menunggu' : booking.status}
+                        <Badge variant={
+                          booking.status === 'done-payment' ? 'default' :
+                            booking.status === 'done-photoshoot' ? 'secondary' :
+                              booking.status === 'completed' ? 'default' :
+                                booking.status === 'cancelled' ? 'destructive' :
+                                  booking.status === 'no-show' ? 'destructive' : 'secondary'
+                        }>
+                          {booking.status === 'done-payment' ? 'Bayaran Selesai' :
+                            booking.status === 'done-photoshoot' ? 'Photoshoot Selesai' :
+                              booking.status === 'start-editing' ? 'Mula Edit' :
+                                booking.status === 'ready-for-delivery' ? 'Sedia Hantar' :
+                                  booking.status === 'completed' ? 'Selesai' :
+                                    booking.status === 'rescheduled' ? 'Dijadual Semula' :
+                                      booking.status === 'no-show' ? 'Tidak Hadir' :
+                                        booking.status === 'cancelled' ? 'Dibatalkan' : booking.status}
                         </Badge>
                       </div>
                       <div className="flex justify-between items-center text-xs text-muted-foreground mb-2">
@@ -396,6 +487,29 @@ const AdminBookings = () => {
                         <span>{booking.reference}</span>
                         <span className="font-medium">RM {booking.totalPrice.toFixed(2)}</span>
                       </div>
+
+                      {/* Status Update Dropdown */}
+                      <div className="pt-2 border-t mt-2">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="w-full h-7 text-xs">
+                              <MoreHorizontal className="h-3 w-3 mr-1" />
+                              Tukar Status
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewBooking(booking)}>
+                              <Eye className="h-3 w-3 mr-2" />
+                              Lihat Butiran
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem>Photoshoot Selesai</DropdownMenuItem>
+                            <DropdownMenuItem>Dijadual Semula</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive">Tidak Hadir</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive">Dibatalkan</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -404,9 +518,7 @@ const AdminBookings = () => {
                   <CalendarDays className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                   <h3 className="text-sm font-medium mb-1">Tiada Tempahan</h3>
                   <p className="text-muted-foreground text-xs">
-                    {searchQuery || statusFilter !== 'all'
-                      ? 'Tiada tempahan yang sepadan dengan carian anda.'
-                      : 'Belum ada tempahan untuk studio anda.'}
+                    Belum ada tempahan untuk studio anda.
                   </p>
                 </div>
               )}
@@ -423,15 +535,15 @@ const AdminBookings = () => {
                   </div>
 
                   {/* Calendar Grid */}
-                  <div className="grid grid-cols-7 gap-0.5 mb-3">
+                  <div className="grid grid-cols-7 gap-1 mb-4">
                     {['Ahd', 'Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab'].map((day) => (
-                      <div key={day} className="p-1 text-center text-xs font-medium text-muted-foreground">
+                      <div key={day} className="p-2 text-center text-sm font-semibold text-muted-foreground">
                         {day.substring(0, 2)}
                       </div>
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-7 gap-0.5">
+                  <div className="grid grid-cols-7 gap-1">
                     {/* Empty cells for days before the 1st */}
                     {Array.from({ length: firstDayOfMonth }).map((_, i) => (
                       <div key={`empty-${i}`} className="aspect-square"></div>
@@ -450,15 +562,15 @@ const AdminBookings = () => {
                         <div
                           key={dayNumber}
                           onClick={() => hasBookings && handleDayClick(dayNumber)}
-                          className={`aspect-square border rounded p-0.5 text-xs relative cursor-pointer ${hasBookings
-                              ? 'bg-primary/10 border-primary/20 text-primary'
-                              : 'border-border hover:bg-muted/50'
+                          className={`aspect-square border rounded-md p-2 text-sm relative cursor-pointer transition-colors ${hasBookings
+                            ? 'bg-primary/10 border-primary/30 text-primary font-semibold hover:bg-primary/20'
+                            : 'border-border hover:bg-muted/50'
                             }`}
                         >
                           <div className="text-center font-medium">{dayNumber}</div>
                           {hasBookings && (
-                            <div className="absolute -bottom-1 left-0 right-0">
-                              <div className="text-[8px] bg-primary text-primary-foreground rounded px-0.5 text-center">
+                            <div className="absolute bottom-1 left-0 right-0">
+                              <div className="text-[10px] bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center mx-auto font-bold">
                                 {bookingsOnThisDay.length}
                               </div>
                             </div>
@@ -495,13 +607,23 @@ const AdminBookings = () => {
                           <span className="text-xs font-medium">{booking.customerName}</span>
                         </div>
                         <Badge variant={
-                          booking.status === 'confirmed' ? 'default' :
-                            booking.status === 'pending' ? 'secondary' :
-                              booking.status === 'cancelled' ? 'destructive' : 'outline'
+                          booking.status === 'done-payment' ? 'default' :
+                            booking.status === 'done-photoshoot' ? 'secondary' :
+                              booking.status === 'start-editing' ? 'secondary' :
+                                booking.status === 'ready-for-delivery' ? 'default' :
+                                  booking.status === 'completed' ? 'default' :
+                                    booking.status === 'rescheduled' ? 'secondary' :
+                                      booking.status === 'no-show' ? 'destructive' :
+                                        booking.status === 'cancelled' ? 'destructive' : 'outline'
                         } className="text-xs">
-                          {booking.status === 'confirmed' ? 'Disahkan' :
-                            booking.status === 'pending' ? 'Menunggu' :
-                              booking.status === 'cancelled' ? 'Dibatalkan' : 'Selesai'}
+                          {booking.status === 'done-payment' ? 'Bayaran Selesai' :
+                            booking.status === 'done-photoshoot' ? 'Photoshoot Selesai' :
+                              booking.status === 'start-editing' ? 'Mula Edit' :
+                                booking.status === 'ready-for-delivery' ? 'Sedia Hantar' :
+                                  booking.status === 'completed' ? 'Selesai' :
+                                    booking.status === 'rescheduled' ? 'Dijadual Semula' :
+                                      booking.status === 'no-show' ? 'Tidak Hadir' :
+                                        booking.status === 'cancelled' ? 'Dibatalkan' : booking.status}
                         </Badge>
                       </div>
 
@@ -522,6 +644,29 @@ const AdminBookings = () => {
 
                       <div className="text-xs text-muted-foreground">
                         <span className="font-medium">Jumlah:</span> RM {booking.totalPrice.toFixed(2)}
+                      </div>
+
+                      {/* Status Update Dropdown */}
+                      <div className="pt-2 border-t">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="w-full h-7 text-xs">
+                              <MoreHorizontal className="h-3 w-3 mr-1" />
+                              Tukar Status
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewBooking(booking)}>
+                              <Eye className="h-3 w-3 mr-2" />
+                              Lihat Butiran
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'done-photoshoot')}>Photoshoot Selesai</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'rescheduled')}>Dijadual Semula</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'no-show')}>Tidak Hadir</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'cancelled')}>Dibatalkan</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   ))
@@ -554,7 +699,7 @@ const AdminBookings = () => {
                   <Plus className="h-4 w-4 mr-2" />
                   Tambah Tempahan
                 </Button>
-                <Button variant="outline">
+                <Button variant="outline" onClick={handleExportCSV}>
                   <Download className="h-4 w-4 mr-2" />
                   Eksport CSV
                 </Button>
@@ -610,30 +755,7 @@ const AdminBookings = () => {
               </div>
             )}
 
-            {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Cari mengikut nama, emel, atau rujukan..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Tapis mengikut status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Status</SelectItem>
-                  <SelectItem value="pending">Menunggu</SelectItem>
-                  <SelectItem value="confirmed">Disahkan</SelectItem>
-                  <SelectItem value="cancelled">Dibatalkan</SelectItem>
-                  <SelectItem value="completed">Selesai</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+
 
             {/* Tabs */}
             <Tabs defaultValue="list" className="space-y-4">
@@ -653,9 +775,9 @@ const AdminBookings = () => {
                   <div className="flex items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                   </div>
-                ) : filteredBookings.length > 0 ? (
+                ) : bookings.length > 0 ? (
                   <BookingTable
-                    bookings={filteredBookings}
+                    bookings={bookings}
                     onViewBooking={handleViewBooking}
                   />
                 ) : (
@@ -663,9 +785,7 @@ const AdminBookings = () => {
                     <CalendarDays className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <h3 className="text-lg font-medium mb-2">Tiada Tempahan</h3>
                     <p className="text-muted-foreground">
-                      {searchQuery || statusFilter !== 'all'
-                        ? 'Tiada tempahan yang sepadan dengan carian anda.'
-                        : 'Belum ada tempahan untuk studio anda.'}
+                      Belum ada tempahan untuk studio anda.
                     </p>
                   </div>
                 )}
@@ -710,8 +830,8 @@ const AdminBookings = () => {
                             key={dayNumber}
                             onClick={() => hasBookings && handleDayClick(dayNumber)}
                             className={`aspect-square border rounded-lg p-1 text-sm relative cursor-pointer ${hasBookings
-                                ? 'bg-primary/10 border-primary/20 text-primary hover:bg-primary/20'
-                                : 'border-border hover:bg-muted/50'
+                              ? 'bg-primary/10 border-primary/20 text-primary hover:bg-primary/20'
+                              : 'border-border hover:bg-muted/50'
                               }`}
                           >
                             <div className="text-center font-medium">{dayNumber}</div>
@@ -762,13 +882,23 @@ const AdminBookings = () => {
                             <span className="font-medium">{booking.customerName}</span>
                           </div>
                           <Badge variant={
-                            booking.status === 'confirmed' ? 'default' :
-                              booking.status === 'pending' ? 'secondary' :
-                                booking.status === 'cancelled' ? 'destructive' : 'outline'
-                          } className="capitalize">
-                            {booking.status === 'confirmed' ? 'Disahkan' :
-                              booking.status === 'pending' ? 'Menunggu' :
-                                booking.status === 'cancelled' ? 'Dibatalkan' : 'Selesai'}
+                            booking.status === 'done-payment' ? 'default' :
+                              booking.status === 'done-photoshoot' ? 'secondary' :
+                                booking.status === 'start-editing' ? 'secondary' :
+                                  booking.status === 'ready-for-delivery' ? 'default' :
+                                    booking.status === 'completed' ? 'default' :
+                                      booking.status === 'rescheduled' ? 'secondary' :
+                                        booking.status === 'no-show' ? 'destructive' :
+                                          booking.status === 'cancelled' ? 'destructive' : 'outline'
+                          }>
+                            {booking.status === 'done-payment' ? 'Bayaran Selesai' :
+                              booking.status === 'done-photoshoot' ? 'Photoshoot Selesai' :
+                                booking.status === 'start-editing' ? 'Mula Edit' :
+                                  booking.status === 'ready-for-delivery' ? 'Sedia Hantar' :
+                                    booking.status === 'completed' ? 'Selesai' :
+                                      booking.status === 'rescheduled' ? 'Dijadual Semula' :
+                                        booking.status === 'no-show' ? 'Tidak Hadir' :
+                                          booking.status === 'cancelled' ? 'Dibatalkan' : booking.status}
                           </Badge>
                         </div>
 
@@ -800,6 +930,29 @@ const AdminBookings = () => {
                         <div className="text-sm text-muted-foreground">
                           <span className="font-medium">Jumlah:</span> RM {booking.totalPrice.toFixed(2)}
                         </div>
+
+                        {/* Status Update Dropdown */}
+                        <div className="pt-3 border-t mt-3">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="w-full">
+                                <MoreHorizontal className="h-4 w-4 mr-2" />
+                                Tukar Status
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewBooking(booking)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Lihat Butiran
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem>Photoshoot Selesai</DropdownMenuItem>
+                              <DropdownMenuItem>Dijadual Semula</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive">Tidak Hadir</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive">Dibatalkan</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                     ))
                   ) : (
@@ -812,6 +965,13 @@ const AdminBookings = () => {
             </Dialog>
           </div>
         </main>
+
+        {/* Booking Detail Modal */}
+        <BookingDetailModal
+          booking={selectedBooking}
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+        />
       </div>
     );
   }

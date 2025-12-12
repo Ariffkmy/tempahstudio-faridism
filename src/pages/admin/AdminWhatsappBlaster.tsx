@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { StudioSelector } from '@/components/admin/StudioSelector';
 import { Button } from '@/components/ui/button';
@@ -8,140 +8,87 @@ import { Send, Calendar, Clock, User, Phone, Mail, ChevronDown, ChevronUp } from
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEffectiveStudioId } from '@/contexts/StudioContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Link } from 'react-router-dom';
-
-// Dummy booking data for Kanban board
-const dummyBookings = {
-  'complete-photoshoot': [
-    {
-      id: '1',
-      reference: 'RAYA-001',
-      customerName: 'Ahmad Abdullah',
-      customerPhone: '+601129947089',
-      customerEmail: 'ahmad@email.com',
-      date: '2025-12-15',
-      startTime: '10:00',
-      endTime: '12:00',
-      layoutName: 'Studio Room A',
-      package: 'Photography Set A',
-      photographer: 'Siti Nur',
-      status: 'completed'
-    },
-    {
-      id: '2',
-      reference: 'RAYA-002',
-      customerName: 'Fatimah Hassan',
-      customerPhone: '+60198765432',
-      customerEmail: 'fatimah@email.com',
-      date: '2025-12-12',
-      startTime: '14:00',
-      endTime: '16:00',
-      layoutName: 'Outdoor Set',
-      package: 'Outdoor Photography',
-      photographer: 'Ahmad Razak',
-      status: 'completed'
-    }
-  ],
-  'editing-in-progress': [
-    {
-      id: '3',
-      reference: 'RAYA-003',
-      customerName: 'Mohammad Ali',
-      customerPhone: '+60145678901',
-      customerEmail: 'ali@email.com',
-      date: '2025-12-10',
-      startTime: '16:00',
-      endTime: '18:00',
-      layoutName: 'Studio Room B',
-      package: 'Portrait Session',
-      editor: 'Nur Maya',
-      editingProgress: 75
-    },
-    {
-      id: '4',
-      reference: 'RAYA-004',
-      customerName: 'Zara Ibrahim',
-      customerPhone: '+60156789012',
-      customerEmail: 'zara@email.com',
-      date: '2025-12-13',
-      startTime: '11:00',
-      endTime: '13:00',
-      layoutName: 'Family Studio',
-      package: 'Family Photoshoot',
-      editor: 'Syarif Rahman',
-      editingProgress: 90
-    }
-  ],
-  'ready-for-delivery': [
-    {
-      id: '5',
-      reference: 'RAYA-005',
-      customerName: 'Ariff Hakimi',
-      customerPhone: '+601129947089',
-      customerEmail: 'sarah@email.com',
-      date: '2025-12-08',
-      startTime: '09:00',
-      endTime: '11:00',
-      layoutName: 'Studio Room A',
-      package: 'Wedding Photography',
-      photographer: 'Lin Chen',
-      editor: 'Maya Sari',
-      status: 'ready',
-      link: 'https://example.com/wedding-album'
-    },
-    {
-      id: '6',
-      reference: 'RAYA-006',
-      customerName: 'Atiqah Baiduri',
-      customerPhone: '+60189797496',
-      customerEmail: 'david@email.com',
-      date: '2025-12-11',
-      startTime: '13:00',
-      endTime: '15:00',
-      layoutName: 'Outdoor Set',
-      package: 'Graduation Shoot',
-      photographer: 'Aminah Fauzi',
-      editor: 'Rizal Hashim',
-      status: 'ready',
-      link: ''
-    },
-    {
-      id: '7',
-      reference: 'RAYA-007',
-      customerName: 'Atiqah Baiduri',
-      customerPhone: '+60189797496',
-      customerEmail: 'puteri@email.com',
-      date: '2025-12-14',
-      startTime: '15:00',
-      endTime: '17:00',
-      layoutName: 'Studio Room C',
-      package: 'Maternity Shoot',
-      photographer: 'Farah Nadia',
-      editor: 'Wan Ahmad',
-      status: 'ready',
-      link: 'https://drive.google.com/albums'
-    }
-  ]
-};
+import { getStudioBookingsWithDetails } from '@/services/bookingService';
+import { Booking } from '@/types/booking';
 
 const AdminWhatsappBlaster = () => {
   const { isSuperAdmin } = useAuth();
+  const effectiveStudioId = useEffectiveStudioId();
   const isMobile = useIsMobile();
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
-  const [bookingsData, setBookingsData] = useState(dummyBookings);
+  const [bookingsData, setBookingsData] = useState<{
+    'complete-photoshoot': Booking[];
+    'editing-in-progress': Booking[];
+    'ready-for-delivery': Booking[];
+  }>({
+    'complete-photoshoot': [],
+    'editing-in-progress': [],
+    'ready-for-delivery': []
+  });
   const [draggedBooking, setDraggedBooking] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize booking links with data from dummyBookings
+  // Initialize booking links
   const initialLinks: Record<string, string> = {};
-  dummyBookings['ready-for-delivery'].forEach(b => initialLinks[b.id] = b.link || '');
   const [bookingLinks, setBookingLinks] = useState<Record<string, string>>(initialLinks);
 
   const [isBlastDialogOpen, setIsBlastDialogOpen] = useState(false);
   const defaultMessage = "Assalammualaikum {{name}} , ini adalah link gambar raya ye. Terima kasih kerana memilih Raya Studio. Selamat Hari Raya, Maaf Zahir Batin";
   const [blastMessage, setBlastMessage] = useState(defaultMessage);
 
-  const readyWithLinks = dummyBookings['ready-for-delivery'].filter(b => bookingLinks[b.id]);
+  // Fetch bookings from database
+  useEffect(() => {
+    const fetchBookings = async () => {
+      if (!effectiveStudioId) {
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const bookingsData = await getStudioBookingsWithDetails(effectiveStudioId);
+
+        // Convert database bookings to the format expected by the component
+        const bookings: Booking[] = bookingsData.map((b: any) => ({
+          id: b.id,
+          reference: b.reference,
+          customerName: b.customer_name,
+          customerEmail: b.customer_email,
+          customerPhone: b.customer_phone,
+          date: b.booking_date,
+          startTime: b.start_time,
+          endTime: b.end_time,
+          duration: b.duration,
+          layoutName: b.layout?.name || 'Unknown Layout',
+          totalPrice: b.total_price,
+          status: b.status,
+          notes: b.notes
+        }));
+
+        // Filter bookings by status
+        const donePhotoshoot = bookings.filter(b => b.status === 'done-photoshoot');
+        const startEditing = bookings.filter(b => b.status === 'start-editing');
+        const readyForDelivery = bookings.filter(b => b.status === 'ready-for-delivery');
+
+        setBookingsData({
+          'complete-photoshoot': donePhotoshoot,
+          'editing-in-progress': startEditing,
+          'ready-for-delivery': readyForDelivery
+        });
+      } catch (error) {
+        console.error('Error fetching bookings:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, [effectiveStudioId]);
+
+  const readyWithLinks = bookingsData['ready-for-delivery'].filter(b => bookingLinks[b.id]);
 
   const toggleCardExpansion = (bookingId: string) => {
     setExpandedCards(prev => {
@@ -299,10 +246,10 @@ const AdminWhatsappBlaster = () => {
               <h3 className="font-medium mb-3 flex items-center gap-2">
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                 Done photoshoot
-                <Badge variant="secondary" className="text-xs">{dummyBookings['complete-photoshoot'].length}</Badge>
+                <Badge variant="secondary" className="text-xs">{bookingsData['complete-photoshoot'].length}</Badge>
               </h3>
               <div className="space-y-3">
-                {dummyBookings['complete-photoshoot'].map((booking) => (
+                {bookingsData['complete-photoshoot'].map((booking) => (
                   <Card key={booking.id} className="cursor-pointer hover:shadow-md transition-shadow">
                     <CardContent className="p-3">
                       <div className="space-y-2">
@@ -336,10 +283,10 @@ const AdminWhatsappBlaster = () => {
               <h3 className="font-medium mb-3 flex items-center gap-2">
                 <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                 Editing in Progress
-                <Badge variant="secondary" className="text-xs">{dummyBookings['editing-in-progress'].length}</Badge>
+                <Badge variant="secondary" className="text-xs">{bookingsData['editing-in-progress'].length}</Badge>
               </h3>
               <div className="space-y-3">
-                {dummyBookings['editing-in-progress'].map((booking) => (
+                {bookingsData['editing-in-progress'].map((booking) => (
                   <Card key={booking.id} className="cursor-pointer hover:shadow-md transition-shadow">
                     <CardContent className="p-3">
                       <div className="space-y-2">
@@ -370,7 +317,7 @@ const AdminWhatsappBlaster = () => {
                 <h3 className="font-medium flex items-center gap-2">
                   <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                   Ready for Delivery
-                  <Badge variant="secondary" className="text-xs">{dummyBookings['ready-for-delivery'].length}</Badge>
+                  <Badge variant="secondary" className="text-xs">{bookingsData['ready-for-delivery'].length}</Badge>
                 </h3>
                 <Button
                   onClick={handleWhatsAppBlast}
@@ -382,14 +329,14 @@ const AdminWhatsappBlaster = () => {
                 </Button>
               </div>
               <div className="space-y-3">
-                {dummyBookings['ready-for-delivery'].map((booking) => (
+                {bookingsData['ready-for-delivery'].map((booking) => (
                   <Card key={booking.id} className="cursor-pointer hover:shadow-md transition-shadow">
                     <CardContent className="p-3">
                       <div className="space-y-2">
                         <div className="flex justify-between items-start">
                           <span className="font-medium text-sm">{booking.reference}</span>
                           <div className="flex items-center gap-1">
-            <Badge className={`text-xs ${bookingLinks[booking.id] ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'}`}>{bookingLinks[booking.id] ? 'Ready' : 'Pending'}</Badge>
+                            <Badge className={`text-xs ${bookingLinks[booking.id] ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'}`}>{bookingLinks[booking.id] ? 'Ready' : 'Pending'}</Badge>
                             <Badge variant="outline" className="text-xs">{bookingLinks[booking.id] ? 'Link Added ✔️' : 'Link Not Added ⏳'}</Badge>
                           </div>
                         </div>
@@ -660,7 +607,7 @@ const AdminWhatsappBlaster = () => {
                                 <div className="text-xs text-muted-foreground">{booking.customerName}</div>
                               </div>
                               <div className="flex items-center gap-2">
-                <Badge className={`text-xs ${bookingLinks[booking.id] ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'}`}>{bookingLinks[booking.id] ? 'Ready' : 'Pending'}</Badge>
+                                <Badge className={`text-xs ${bookingLinks[booking.id] ? 'bg-green-500 text-white' : 'bg-orange-500 text-white'}`}>{bookingLinks[booking.id] ? 'Ready' : 'Pending'}</Badge>
                                 <Badge variant="outline" className="text-xs">{bookingLinks[booking.id] ? 'Link Added ✔️' : 'Link Not Added ⏳'}</Badge>
                                 {isExpanded ?
                                   <ChevronUp className="w-4 h-4 text-muted-foreground" /> :

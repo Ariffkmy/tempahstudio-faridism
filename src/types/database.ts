@@ -3,7 +3,15 @@
 // =============================================
 
 export type AdminRole = 'super_admin' | 'admin' | 'staff';
-export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no-show';
+export type BookingStatus =
+  | 'done-payment'
+  | 'done-photoshoot'
+  | 'start-editing'
+  | 'ready-for-delivery'
+  | 'completed'
+  | 'rescheduled'
+  | 'no-show'
+  | 'cancelled';
 
 // Opening Hours type used across tables
 export interface OpeningHours {

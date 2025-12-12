@@ -16,7 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 const navigation = [
-  { name: 'Papan Pemuka', href: '/admin', icon: LayoutDashboard },
+  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Tempahan', href: '/admin/bookings', icon: Calendar },
   { name: 'Whatsapp Blaster', href: '/admin/whatsapp-blaster', icon: Send },
   { name: 'Laporan', href: '/admin/reports', icon: FileText },
@@ -59,7 +59,7 @@ export function AdminSidebar() {
             <p className="text-xs text-muted-foreground">Portal Admin</p>
           </div>
         </Link>
-        
+
         {/* Current Studio Badge */}
         {studio && (
           <div className="flex items-center gap-2 px-2 py-1.5 bg-muted/50 rounded-md">
@@ -145,9 +145,9 @@ export function AdminSidebar() {
             </p>
           </div>
         </div>
-        <Button 
-          variant="ghost" 
-          className="w-full justify-start text-muted-foreground hover:text-destructive" 
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-muted-foreground hover:text-destructive"
           size="sm"
           onClick={handleLogout}
         >

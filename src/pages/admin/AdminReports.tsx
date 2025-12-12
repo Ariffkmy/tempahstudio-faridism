@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import type { BookingWithDetails } from '@/types/database';
 
 const navigation = [
-  { name: 'Papan Pemuka', href: '/admin', icon: Home },
+  { name: 'Dashboard', href: '/admin', icon: Home },
   { name: 'Tempahan', href: '/admin/bookings', icon: Calendar },
   { name: 'Laporan', href: '/admin/reports', icon: BarChart3 },
   { name: 'Tetapan', href: '/admin/settings', icon: Cog },
@@ -254,7 +254,7 @@ const AdminReports = () => {
         </header>
 
         <main className="p-4">
-        
+
           {/* Header */}
           <div className="mb-6">
             <h1 className="text-xl font-bold">Laporan test</h1>
@@ -327,10 +327,9 @@ const AdminReports = () => {
                 {statusData.slice(0, 3).map((item, itemIndex) => (
                   <div key={itemIndex} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        item.color === 'text-green-600' ? 'bg-green-500' :
-                        item.color === 'text-yellow-600' ? 'bg-yellow-500' : 'bg-gray-500'
-                      }`} />
+                      <div className={`w-2 h-2 rounded-full ${item.color === 'text-green-600' ? 'bg-green-500' :
+                          item.color === 'text-yellow-600' ? 'bg-yellow-500' : 'bg-gray-500'
+                        }`} />
                       <span className="text-xs font-medium">{item.label}</span>
                     </div>
                     <div className="text-sm font-semibold">{item.count}</div>
@@ -376,18 +375,16 @@ const AdminReports = () => {
                 {timeSlotData.slice(0, 3).map((item, itemIndex) => (
                   <div key={itemIndex} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        item.popularity === 'Tinggi' ? 'bg-green-500' :
-                        item.popularity === 'Sederhana' ? 'bg-yellow-500' : 'bg-red-500'
-                      }`} />
+                      <div className={`w-2 h-2 rounded-full ${item.popularity === 'Tinggi' ? 'bg-green-500' :
+                          item.popularity === 'Sederhana' ? 'bg-yellow-500' : 'bg-red-500'
+                        }`} />
                       <span className="text-xs font-medium">{item.time}</span>
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-semibold">{item.count}</div>
-                      <Badge variant="outline" className={`text-xs ml-2 ${
-                        item.popularity === 'Tinggi' ? 'text-green-600' :
-                        item.popularity === 'Sederhana' ? 'text-yellow-600' : 'text-red-600'
-                      }`}>
+                      <Badge variant="outline" className={`text-xs ml-2 ${item.popularity === 'Tinggi' ? 'text-green-600' :
+                          item.popularity === 'Sederhana' ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
                         {item.popularity}
                       </Badge>
                     </div>
@@ -457,7 +454,7 @@ const AdminReports = () => {
 
         <main className="pl-64">
           <div className="p-8">
-          
+
 
             {/* Header */}
             <div className="mb-8">
@@ -465,7 +462,7 @@ const AdminReports = () => {
               <p className="text-muted-foreground">Analisis perniagaan dan prestasi studio</p>
             </div>
 
-              {/* Super Admin Studio Selector */}
+            {/* Super Admin Studio Selector */}
             {isSuperAdmin && (
               <div className="mb-6">
                 <StudioSelector />
@@ -586,10 +583,9 @@ const AdminReports = () => {
                         </div>
                         <div className="text-right">
                           <div className="text-lg font-semibold">{item.count}</div>
-                          <Badge variant="outline" className={`text-xs ${
-                            item.popularity === 'Tinggi' ? 'text-green-600' :
-                            item.popularity === 'Sederhana' ? 'text-yellow-600' : 'text-red-600'
-                          }`}>
+                          <Badge variant="outline" className={`text-xs ${item.popularity === 'Tinggi' ? 'text-green-600' :
+                              item.popularity === 'Sederhana' ? 'text-yellow-600' : 'text-red-600'
+                            }`}>
                             {item.popularity}
                           </Badge>
                         </div>

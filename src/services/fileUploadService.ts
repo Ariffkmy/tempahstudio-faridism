@@ -8,9 +8,11 @@ import { supabase } from '@/lib/supabase';
 const LOGO_BUCKET = 'studio-logos';
 const PORTFOLIO_BUCKET = 'studio-portfolio';
 const TERMS_PDF_BUCKET = 'studio-terms-pdfs';
+const LAYOUT_PHOTOS_BUCKET = 'studio-layout-photos';
 const MAX_LOGO_SIZE = 2 * 1024 * 1024; // 2MB
 const MAX_PORTFOLIO_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_PDF_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_LAYOUT_PHOTO_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
 const ALLOWED_PDF_TYPES = ['application/pdf'];
 
@@ -329,3 +331,84 @@ export async function uploadTermsPdf(file: File, studioId: string): Promise<Uplo
   }
 }
 
+/**
+ * Upload layout photo to Supabase Storage
+ */
+export async function uploadLayoutPhoto(file: File, layoutId: string, studioId: string): Promise<UploadResult> {
+  try {
+    // Validate file
+    const validation = validateFile(file, MAX_LAYOUT_PHOTO_SIZE);
+    if (!validation.valid) {
+      return { success: false, error: validation.error };
+    }
+
+    // Create unique filename with layout ID and timestamp
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${layoutId}_${Date.now()}.${fileExt}`;
+    const filePath = `${studioId}/${layoutId}/${fileName}`;
+
+    // Debug authentication status
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('Current auth session:', { user: session?.user?.id, sessionValid: !!session?.user });
+
+    // Upload file
+    const { data, error } = await supabase.storage
+      .from(LAYOUT_PHOTOS_BUCKET)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true
+      });
+
+    if (error) {
+      console.error('Layout photo upload error:', error);
+      return { success: false, error: 'Failed to upload layout photo' };
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from(LAYOUT_PHOTOS_BUCKET)
+      .getPublicUrl(filePath);
+
+    return { success: true, url: publicUrl };
+  } catch (error) {
+    console.error('Unexpected error during layout photo upload:', error);
+    return { success: false, error: 'Unexpected error occurred' };
+  }
+}
+
+/**
+ * Delete layout photo from Supabase Storage
+ */
+export async function deleteLayoutPhoto(url: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Extract file path from URL
+    // URL format: https://{project}.supabase.co/storage/v1/object/public/studio-layout-photos/{path}
+    const urlParts = url.split('/storage/v1/object/public/');
+    if (urlParts.length < 2) {
+      return { success: false, error: 'Invalid URL format' };
+    }
+
+    const fullPath = urlParts[1];
+    const pathParts = fullPath.split('/');
+    if (pathParts[0] !== LAYOUT_PHOTOS_BUCKET) {
+      return { success: false, error: 'Invalid bucket' };
+    }
+
+    const filePath = pathParts.slice(1).join('/');
+
+    // Delete file
+    const { error } = await supabase.storage
+      .from(LAYOUT_PHOTOS_BUCKET)
+      .remove([filePath]);
+
+    if (error) {
+      console.error('Delete layout photo error:', error);
+      return { success: false, error: 'Failed to delete layout photo' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Unexpected error during layout photo deletion:', error);
+    return { success: false, error: 'Unexpected error occurred' };
+  }
+}

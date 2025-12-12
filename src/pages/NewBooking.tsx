@@ -72,13 +72,13 @@ const NewBooking = () => {
           .from('studios')
           .select('*')
           .eq('is_active', true);
-        
+
         if (studioId) {
           query = query.eq('id', studioId);
         } else if (studioSlug) {
           query = query.eq('slug', studioSlug);
         }
-        
+
         const { data: studioData, error: studioError } = await query.single();
 
         if (studioError || !studioData) {
@@ -92,7 +92,7 @@ const NewBooking = () => {
         }
 
         setStudio(studioData);
-        
+
         const actualStudioId = studioData.id;
 
         // Load studio settings
@@ -130,6 +130,7 @@ const NewBooking = () => {
             capacity: layout.capacity,
             pricePerHour: Number(layout.price_per_hour),
             image: layout.image,
+            thumbnail_photo: layout.thumbnail_photo,
             amenities: layout.amenities || [],
           }));
           setLayouts(formattedLayouts);
@@ -162,8 +163,8 @@ const NewBooking = () => {
     formData.email.trim() &&
     formData.phone.trim() &&
     (selectedPayment === 'cash' ||
-     (selectedPayment === 'qr' && uploadedFiles.receipt) ||
-     (selectedPayment === 'bank' && uploadedFiles.proof))
+      (selectedPayment === 'qr' && uploadedFiles.receipt) ||
+      (selectedPayment === 'bank' && uploadedFiles.proof))
   );
 
   const handleFormChange = (field: string, value: string) => {
@@ -382,8 +383,8 @@ const NewBooking = () => {
                     <span className="text-muted-foreground">Kaedah Pembayaran:</span>
                     <span className="font-medium">
                       {selectedPayment === 'cash' ? 'Bayar melalui cash/QR di studio' :
-                       selectedPayment === 'qr' ? 'Bayar melalui QR sekarang' :
-                       selectedPayment === 'bank' ? 'Pemindahan Bank' : '-'}
+                        selectedPayment === 'qr' ? 'Bayar melalui QR sekarang' :
+                          selectedPayment === 'bank' ? 'Pemindahan Bank' : '-'}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">

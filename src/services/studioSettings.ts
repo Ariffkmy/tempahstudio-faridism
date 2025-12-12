@@ -68,6 +68,14 @@ export interface StudioSettings {
   enablePortfolioPhotoUpload: boolean;
   portfolioUploadInstructions: string;
   portfolioMaxFileSize: number;
+
+  // Booking form title customization
+  bookingTitleText: string;
+  bookingSubtitleText: string;
+  bookingTitleFont: string;
+  bookingTitleSize: string;
+  bookingSubtitleFont: string;
+  bookingSubtitleSize: string;
 }
 
 export interface StudioSettingsWithLayouts extends StudioSettings {
@@ -206,6 +214,12 @@ export async function loadStudioSettings(studioId?: string): Promise<StudioSetti
       enablePortfolioPhotoUpload: (studio as any).enable_portfolio_photo_upload || false,
       portfolioUploadInstructions: (studio as any).portfolio_upload_instructions || 'Upload your photos for your portfolio session. Maximum 20 photos, each file up to 10MB.',
       portfolioMaxFileSize: (studio as any).portfolio_max_file_size || 10,
+      bookingTitleText: (studio as any).booking_title_text || 'Tempahan Studio',
+      bookingSubtitleText: (studio as any).booking_subtitle_text || 'Isi maklumat dan buat pembayaran untuk tempahan slot anda.',
+      bookingTitleFont: (studio as any).booking_title_font || 'default',
+      bookingTitleSize: (studio as any).booking_title_size || 'xl',
+      bookingSubtitleFont: (studio as any).booking_subtitle_font || 'default',
+      bookingSubtitleSize: (studio as any).booking_subtitle_size || 'base',
       layouts: layouts || []
     };
 
@@ -328,6 +342,12 @@ export async function saveStudioSettings(
         enable_portfolio_photo_upload: settings.enablePortfolioPhotoUpload,
         portfolio_upload_instructions: settings.portfolioUploadInstructions,
         portfolio_max_file_size: settings.portfolioMaxFileSize,
+        booking_title_text: settings.bookingTitleText,
+        booking_subtitle_text: settings.bookingSubtitleText,
+        booking_title_font: settings.bookingTitleFont,
+        booking_title_size: settings.bookingTitleSize,
+        booking_subtitle_font: settings.bookingSubtitleFont,
+        booking_subtitle_size: settings.bookingSubtitleSize,
         updated_at: new Date().toISOString()
       })
       .eq('id', targetStudioId)
@@ -401,41 +421,85 @@ export async function updateStudioLayouts(layouts: StudioLayout[], studioId?: st
       targetStudioId = adminUser.studio_id;
     }
 
-    // For simplicity, delete all existing layouts and insert new ones
-    // In a production app, you'd want to do proper diffing
-
-    // Delete existing layouts
-    const { error: deleteError } = await supabase
+    // Get existing layouts from database
+    const { data: existingLayouts, error: fetchError } = await supabase
       .from('studio_layouts')
-      .delete()
+      .select('id')
       .eq('studio_id', targetStudioId);
 
-    if (deleteError) {
-      console.error('Failed to delete existing layouts:', deleteError);
-      return { success: false, error: 'Failed to update layouts' };
+    if (fetchError) {
+      console.error('Failed to fetch existing layouts:', fetchError);
+      return { success: false, error: 'Failed to fetch existing layouts' };
+    }
+
+    const existingIds = new Set((existingLayouts || []).map(l => l.id));
+    const incomingIds = new Set(layouts.filter(l => !l.id.startsWith('layout-')).map(l => l.id));
+
+    // Delete layouts that are no longer in the list
+    const idsToDelete = Array.from(existingIds).filter(id => !incomingIds.has(id));
+    if (idsToDelete.length > 0) {
+      const { error: deleteError } = await supabase
+        .from('studio_layouts')
+        .delete()
+        .in('id', idsToDelete);
+
+      if (deleteError) {
+        console.error('Failed to delete removed layouts:', deleteError);
+        return { success: false, error: 'Failed to delete removed layouts' };
+      }
+    }
+
+    // Separate layouts into updates and inserts
+    const layoutsToUpdate = layouts.filter(l => !l.id.startsWith('layout-') && existingIds.has(l.id));
+    const layoutsToInsert = layouts.filter(l => l.id.startsWith('layout-'));
+
+    // Update existing layouts
+    for (const layout of layoutsToUpdate) {
+      const { error: updateError } = await supabase
+        .from('studio_layouts')
+        .update({
+          name: layout.name,
+          description: layout.description,
+          capacity: layout.capacity,
+          price_per_hour: layout.price_per_hour,
+          image: layout.image,
+          layout_photos: layout.layout_photos || [],
+          thumbnail_photo: layout.thumbnail_photo || null,
+          is_active: layout.is_active,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', layout.id);
+
+      if (updateError) {
+        console.error('Failed to update layout:', layout.id, updateError);
+        return { success: false, error: `Failed to update layout: ${layout.name}` };
+      }
     }
 
     // Insert new layouts
-    if (layouts.length > 0) {
-      const layoutsToInsert = layouts.map(layout => ({
-        studio_id: studioId,
+    if (layoutsToInsert.length > 0) {
+      const layoutsData = layoutsToInsert.map(layout => ({
+        studio_id: targetStudioId,
         name: layout.name,
         description: layout.description,
         capacity: layout.capacity,
         price_per_hour: layout.price_per_hour,
         image: layout.image,
+        layout_photos: layout.layout_photos || [],
+        thumbnail_photo: layout.thumbnail_photo || null,
         is_active: layout.is_active
       }));
 
       const { error: insertError } = await supabase
         .from('studio_layouts')
-        .insert(layoutsToInsert);
+        .insert(layoutsData);
 
       if (insertError) {
-        console.error('Failed to insert layouts:', insertError);
-        return { success: false, error: 'Failed to save layouts' };
+        console.error('Failed to insert new layouts:', insertError);
+        return { success: false, error: 'Failed to insert new layouts' };
       }
     }
+
 
     return { success: true };
   } catch (error) {

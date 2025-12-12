@@ -55,17 +55,24 @@ const AdminWhatsappBlaster = () => {
         const bookings: Booking[] = bookingsData.map((b: any) => ({
           id: b.id,
           reference: b.reference,
-          customerName: b.customer_name,
-          customerEmail: b.customer_email,
-          customerPhone: b.customer_phone,
-          date: b.booking_date,
+          customerId: b.customer_id,
+          customerName: b.customer?.name || 'Unknown',
+          customerEmail: b.customer?.email || '',
+          customerPhone: b.customer?.phone || '',
+          companyId: b.company_id,
+          studioId: b.studio_id,
+          layoutId: b.layout_id,
+          layoutName: b.studio_layout?.name || 'Unknown Layout',
+          date: b.date,
           startTime: b.start_time,
           endTime: b.end_time,
           duration: b.duration,
-          layoutName: b.layout?.name || 'Unknown Layout',
-          totalPrice: b.total_price,
+          totalPrice: Number(b.total_price),
           status: b.status,
-          notes: b.notes
+          notes: b.notes || undefined,
+          internalNotes: b.internal_notes || undefined,
+          createdAt: b.created_at,
+          updatedAt: b.updated_at,
         }));
 
         // Filter bookings by status
@@ -263,12 +270,26 @@ const AdminWhatsappBlaster = () => {
                             {booking.customerName}
                           </div>
                           <div className="flex items-center gap-1">
+                            <Phone className="w-3 h-3" />
+                            {booking.customerPhone || 'N/A'}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Mail className="w-3 h-3" />
+                            <span className="truncate">{booking.customerEmail || 'N/A'}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
                             {new Date(booking.date).toLocaleDateString('ms-MY')}
                           </div>
                           <div className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             {booking.startTime} - {booking.endTime}
+                          </div>
+                          <div className="text-xs font-medium mt-1">
+                            Layout: {booking.layoutName}
+                          </div>
+                          <div className="text-xs font-medium text-green-600">
+                            RM {booking.totalPrice.toFixed(2)}
                           </div>
                         </div>
                       </div>
@@ -292,7 +313,7 @@ const AdminWhatsappBlaster = () => {
                       <div className="space-y-2">
                         <div className="flex justify-between items-start">
                           <span className="font-medium text-sm">{booking.reference}</span>
-                          <Badge variant="outline" className="text-xs">{booking.editingProgress}%</Badge>
+                          <Badge variant="outline" className="text-xs">Editing</Badge>
                         </div>
                         <div className="space-y-1 text-xs text-muted-foreground">
                           <div className="flex items-center gap-1">
@@ -300,8 +321,26 @@ const AdminWhatsappBlaster = () => {
                             {booking.customerName}
                           </div>
                           <div className="flex items-center gap-1">
+                            <Phone className="w-3 h-3" />
+                            {booking.customerPhone || 'N/A'}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Mail className="w-3 h-3" />
+                            <span className="truncate">{booking.customerEmail || 'N/A'}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
                             {new Date(booking.date).toLocaleDateString('ms-MY')}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {booking.startTime} - {booking.endTime}
+                          </div>
+                          <div className="text-xs font-medium mt-1">
+                            Layout: {booking.layoutName}
+                          </div>
+                          <div className="text-xs font-medium text-green-600">
+                            RM {booking.totalPrice.toFixed(2)}
                           </div>
                         </div>
                       </div>
@@ -477,6 +516,14 @@ const AdminWhatsappBlaster = () => {
                             {isExpanded && (
                               <div className="space-y-1 text-xs text-muted-foreground border-t pt-2 mt-2">
                                 <div className="flex items-center gap-1">
+                                  <Phone className="w-3 h-3" />
+                                  {booking.customerPhone || 'N/A'}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Mail className="w-3 h-3" />
+                                  <span className="truncate">{booking.customerEmail || 'N/A'}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
                                   <Calendar className="w-3 h-3" />
                                   {new Date(booking.date).toLocaleDateString('ms-MY')}
                                 </div>
@@ -484,9 +531,11 @@ const AdminWhatsappBlaster = () => {
                                   <Clock className="w-3 h-3" />
                                   {booking.startTime} - {booking.endTime}
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  <User className="w-3 h-3" />
-                                  {booking.photographer}
+                                <div className="text-xs font-medium mt-1">
+                                  Layout: {booking.layoutName}
+                                </div>
+                                <div className="text-xs font-medium text-green-600">
+                                  RM {booking.totalPrice.toFixed(2)}
                                 </div>
                               </div>
                             )}
@@ -532,7 +581,7 @@ const AdminWhatsappBlaster = () => {
                                 <div className="text-xs text-muted-foreground">{booking.customerName}</div>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="text-xs">{booking.editingProgress}%</Badge>
+                                <Badge variant="outline" className="text-xs">Editing</Badge>
                                 {isExpanded ?
                                   <ChevronUp className="w-4 h-4 text-muted-foreground" /> :
                                   <ChevronDown className="w-4 h-4 text-muted-foreground" />
@@ -543,6 +592,14 @@ const AdminWhatsappBlaster = () => {
                             {isExpanded && (
                               <div className="space-y-1 text-xs text-muted-foreground border-t pt-2 mt-2">
                                 <div className="flex items-center gap-1">
+                                  <Phone className="w-3 h-3" />
+                                  {booking.customerPhone || 'N/A'}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Mail className="w-3 h-3" />
+                                  <span className="truncate">{booking.customerEmail || 'N/A'}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
                                   <Calendar className="w-3 h-3" />
                                   {new Date(booking.date).toLocaleDateString('ms-MY')}
                                 </div>
@@ -550,9 +607,11 @@ const AdminWhatsappBlaster = () => {
                                   <Clock className="w-3 h-3" />
                                   {booking.startTime} - {booking.endTime}
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  <User className="w-3 h-3" />
-                                  {booking.editor}
+                                <div className="text-xs font-medium mt-1">
+                                  Layout: {booking.layoutName}
+                                </div>
+                                <div className="text-xs font-medium text-green-600">
+                                  RM {booking.totalPrice.toFixed(2)}
                                 </div>
                               </div>
                             )}

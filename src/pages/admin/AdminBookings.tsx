@@ -220,21 +220,24 @@ const AdminBookings = () => {
         const formattedBookings: Booking[] = bookingsData.map((b: any) => ({
           id: b.id,
           reference: b.reference,
-          customerName: b.customer_name,
-          customerEmail: b.customer_email,
-          customerPhone: b.customer_phone,
-          date: b.booking_date,
+          customerName: b.customer?.name || 'Unknown',
+          customerEmail: b.customer?.email || '',
+          customerPhone: b.customer?.phone || '',
+          date: b.date,
           startTime: b.start_time,
           endTime: b.end_time,
           duration: b.duration,
-          layoutName: b.layout?.name || 'Unknown Layout',
-          totalPrice: b.total_price,
+          layoutName: b.studio_layout?.name || 'Unknown Layout',
+          totalPrice: Number(b.total_price),
           status: b.status,
-          notes: b.notes,
+          notes: b.notes || undefined,
+          internalNotes: b.internal_notes || undefined,
           customerId: b.customer_id,
           companyId: b.company_id,
           studioId: b.studio_id,
-          layoutId: b.layout_id
+          layoutId: b.layout_id,
+          createdAt: b.created_at,
+          updatedAt: b.updated_at,
         }));
         setBookings(formattedBookings);
 
@@ -503,10 +506,10 @@ const AdminBookings = () => {
                               Lihat Butiran
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem>Photoshoot Selesai</DropdownMenuItem>
-                            <DropdownMenuItem>Dijadual Semula</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">Tidak Hadir</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">Dibatalkan</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'done-photoshoot')}>Photoshoot Selesai</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'rescheduled')}>Dijadual Semula</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'no-show')}>Tidak Hadir</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'cancelled')}>Dibatalkan</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -779,6 +782,7 @@ const AdminBookings = () => {
                   <BookingTable
                     bookings={bookings}
                     onViewBooking={handleViewBooking}
+                    onStatusUpdate={handleStatusUpdate}
                   />
                 ) : (
                   <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed">
@@ -946,10 +950,10 @@ const AdminBookings = () => {
                                 Lihat Butiran
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem>Photoshoot Selesai</DropdownMenuItem>
-                              <DropdownMenuItem>Dijadual Semula</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive">Tidak Hadir</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive">Dibatalkan</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'done-photoshoot')}>Photoshoot Selesai</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'rescheduled')}>Dijadual Semula</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'no-show')}>Tidak Hadir</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'cancelled')}>Dibatalkan</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>

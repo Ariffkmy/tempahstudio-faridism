@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveStudioId } from '@/contexts/StudioContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Link } from 'react-router-dom';
-import { getStudioBookingsWithDetails, updateBookingStatus } from '@/services/bookingService';
+import { getStudioBookingsWithDetails, updateBookingStatus, updateBookingDeliveryLink } from '@/services/bookingService';
 import { Booking } from '@/types/booking';
 import { useToast } from '@/hooks/use-toast';
 
@@ -73,6 +73,7 @@ const AdminWhatsappBlaster = () => {
           status: b.status,
           notes: b.notes || undefined,
           internalNotes: b.internal_notes || undefined,
+          deliveryLink: b.delivery_link || undefined,
           createdAt: b.created_at,
           updatedAt: b.updated_at,
         }));
@@ -87,6 +88,15 @@ const AdminWhatsappBlaster = () => {
           'editing-in-progress': startEditing,
           'ready-for-delivery': readyForDelivery
         });
+
+        // Load delivery links from bookings
+        const links: Record<string, string> = {};
+        readyForDelivery.forEach(booking => {
+          if (booking.deliveryLink) {
+            links[booking.id] = booking.deliveryLink;
+          }
+        });
+        setBookingLinks(links);
       } catch (error) {
         console.error('Error fetching bookings:', error);
       } finally {
@@ -97,7 +107,7 @@ const AdminWhatsappBlaster = () => {
     fetchBookings();
   }, [effectiveStudioId]);
 
-  const readyWithLinks = bookingsData['ready-for-delivery'].filter(b => bookingLinks[b.id]);
+  const readyWithLinks = bookingsData['ready-for-delivery'].filter(b => b.deliveryLink || bookingLinks[b.id]);
 
   const toggleCardExpansion = (bookingId: string) => {
     setExpandedCards(prev => {
@@ -243,8 +253,32 @@ const AdminWhatsappBlaster = () => {
     }
   };
 
-  const updateBookingLink = (bookingId: string, link: string) => {
+  const updateBookingLink = async (bookingId: string, link: string) => {
+    // Update local state immediately for responsive UI
     setBookingLinks(prev => ({ ...prev, [bookingId]: link }));
+
+    // Debounce database update to avoid excessive calls
+    // Clear any existing timeout for this booking
+    if ((window as any)[`linkTimeout_${bookingId}`]) {
+      clearTimeout((window as any)[`linkTimeout_${bookingId}`]);
+    }
+
+    // Set new timeout to save after user stops typing
+    (window as any)[`linkTimeout_${bookingId}`] = setTimeout(async () => {
+      try {
+        const result = await updateBookingDeliveryLink(bookingId, link);
+
+        if (!result.success) {
+          toast({
+            title: 'Ralat',
+            description: result.error || 'Gagal menyimpan pautan',
+            variant: 'destructive',
+          });
+        }
+      } catch (error) {
+        console.error('Error saving delivery link:', error);
+      }
+    }, 1000); // Wait 1 second after user stops typing
   };
 
   if (isMobile) {

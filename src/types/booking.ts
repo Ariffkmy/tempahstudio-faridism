@@ -44,6 +44,7 @@ export interface Booking {
   status: BookingStatus;
   notes?: string;
   internalNotes?: string;
+  deliveryLink?: string;
   createdAt: string;
   updatedAt: string;
 }

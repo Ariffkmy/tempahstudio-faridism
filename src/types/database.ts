@@ -217,6 +217,7 @@ export interface Booking {
   status: BookingStatus;
   notes?: string | null;
   internal_notes?: string | null;
+  delivery_link?: string | null;
   created_at: string;
   updated_at: string;
 }

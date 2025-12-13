@@ -50,12 +50,17 @@ export interface StudioSettings {
   headerLogo: string;
   headerHomeEnabled: boolean;
   headerHomeUrl: string;
+  headerHomeText: string;
   headerAboutEnabled: boolean;
   headerAboutUrl: string;
+  headerAboutText: string;
   headerPortfolioEnabled: boolean;
   headerPortfolioUrl: string;
   headerContactEnabled: boolean;
   headerContactUrl: string;
+  headerContactAddress: string;
+  headerContactPhone: string;
+  headerContactEmail: string;
   footerWhatsappLink: string;
   footerFacebookLink: string;
   footerInstagramLink: string;
@@ -198,12 +203,17 @@ export async function loadStudioSettings(studioId?: string): Promise<StudioSetti
       headerLogo: studio.header_logo || '',
       headerHomeEnabled: studio.header_home_enabled || false,
       headerHomeUrl: studio.header_home_url || '',
+      headerHomeText: (studio as any).header_home_text || '',
       headerAboutEnabled: studio.header_about_enabled || false,
       headerAboutUrl: studio.header_about_url || '',
+      headerAboutText: (studio as any).header_about_text || '',
       headerPortfolioEnabled: studio.header_portfolio_enabled || false,
       headerPortfolioUrl: studio.header_portfolio_url || '',
       headerContactEnabled: studio.header_contact_enabled || false,
       headerContactUrl: studio.header_contact_url || '',
+      headerContactAddress: (studio as any).header_contact_address || '',
+      headerContactPhone: (studio as any).header_contact_phone || '',
+      headerContactEmail: (studio as any).header_contact_email || '',
       footerWhatsappLink: studio.footer_whatsapp_link || '',
       footerFacebookLink: studio.footer_facebook_link || '',
       footerInstagramLink: studio.footer_instagram_link || '',
@@ -326,12 +336,17 @@ export async function saveStudioSettings(
         header_logo: settings.headerLogo,
         header_home_enabled: settings.headerHomeEnabled,
         header_home_url: settings.headerHomeUrl,
+        header_home_text: settings.headerHomeText,
         header_about_enabled: settings.headerAboutEnabled,
         header_about_url: settings.headerAboutUrl,
+        header_about_text: settings.headerAboutText,
         header_portfolio_enabled: settings.headerPortfolioEnabled,
         header_portfolio_url: settings.headerPortfolioUrl,
         header_contact_enabled: settings.headerContactEnabled,
         header_contact_url: settings.headerContactUrl,
+        header_contact_address: settings.headerContactAddress,
+        header_contact_phone: settings.headerContactPhone,
+        header_contact_email: settings.headerContactEmail,
         footer_whatsapp_link: settings.footerWhatsappLink,
         footer_facebook_link: settings.footerFacebookLink,
         footer_instagram_link: settings.footerInstagramLink,

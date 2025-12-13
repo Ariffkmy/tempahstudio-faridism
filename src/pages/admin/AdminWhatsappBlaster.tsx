@@ -575,7 +575,7 @@ const AdminWhatsappBlaster = () => {
               </div>
               {/* Done Delivery Column */}
               <div
-                className="bg-muted/30 rounded-lg p-4 min-h-[500px]"
+                className="bg-muted/30 rounded-lg p-4 min-h-[500px] min-w-[320px] flex-shrink-0"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'done-delivery')}
               >
@@ -808,10 +808,10 @@ const AdminWhatsappBlaster = () => {
             )}
 
             {/* Kanban Board */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="flex gap-6 overflow-x-auto pb-4">
               {/* Ready for Editing Column */}
               <div
-                className="bg-muted/30 rounded-lg p-4 min-h-[500px]"
+                className="bg-muted/30 rounded-lg p-4 min-h-[500px] min-w-[320px] flex-shrink-0"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'complete-photoshoot')}
               >
@@ -887,7 +887,7 @@ const AdminWhatsappBlaster = () => {
 
               {/* Editing in Progress Column */}
               <div
-                className="bg-muted/30 rounded-lg p-4 min-h-[500px]"
+                className="bg-muted/30 rounded-lg p-4 min-h-[500px] min-w-[320px] flex-shrink-0"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'editing-in-progress')}
               >
@@ -963,7 +963,7 @@ const AdminWhatsappBlaster = () => {
 
               {/* Ready for Delivery Column */}
               <div
-                className="bg-muted/30 rounded-lg p-4 min-h-[500px]"
+                className="bg-muted/30 rounded-lg p-4 min-h-[500px] min-w-[320px] flex-shrink-0"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'ready-for-delivery')}
               >
@@ -1132,7 +1132,7 @@ const AdminWhatsappBlaster = () => {
               </div>
               {/* Done Delivery Column */}
               <div
-                className="bg-muted/30 rounded-lg p-4 min-h-[500px]"
+                className="bg-muted/30 rounded-lg p-4 min-h-[500px] min-w-[320px] flex-shrink-0"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'done-delivery')}
               >

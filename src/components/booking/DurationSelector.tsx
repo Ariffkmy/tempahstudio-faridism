@@ -18,7 +18,7 @@ export function DurationSelector({
   return (
     <Card variant="outline" className="p-4">
       <h3 className="font-semibold mb-4">Tempoh</h3>
-      
+
       <div className="flex items-center justify-center gap-4">
         <Button
           variant="outline"
@@ -28,14 +28,14 @@ export function DurationSelector({
         >
           <Minus className="h-4 w-4" />
         </Button>
-        
+
         <div className="text-center min-w-[100px]">
           <span className="text-3xl font-bold">{duration}</span>
           <span className="text-muted-foreground ml-2">
             {duration === 1 ? 'jam' : 'jam'}
           </span>
         </div>
-        
+
         <Button
           variant="outline"
           size="icon"

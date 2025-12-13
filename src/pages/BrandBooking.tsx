@@ -112,12 +112,17 @@ const BrandBooking = () => {
     headerLogo: '',
     headerHomeEnabled: false,
     headerHomeUrl: '',
+    headerHomeText: '',
     headerAboutEnabled: false,
     headerAboutUrl: '',
+    headerAboutText: '',
     headerPortfolioEnabled: false,
     headerPortfolioUrl: '',
     headerContactEnabled: false,
     headerContactUrl: '',
+    headerContactAddress: '',
+    headerContactPhone: '',
+    headerContactEmail: '',
     footerWhatsappLink: '',
     footerFacebookLink: '',
     footerInstagramLink: '',
@@ -195,12 +200,17 @@ const BrandBooking = () => {
           headerLogo: studioData.header_logo || '',
           headerHomeEnabled: studioData.header_home_enabled || false,
           headerHomeUrl: studioData.header_home_url || '',
+          headerHomeText: (studioData as any).header_home_text || '',
           headerAboutEnabled: studioData.header_about_enabled || false,
           headerAboutUrl: studioData.header_about_url || '',
+          headerAboutText: (studioData as any).header_about_text || '',
           headerPortfolioEnabled: studioData.header_portfolio_enabled || false,
           headerPortfolioUrl: studioData.header_portfolio_url || '',
           headerContactEnabled: studioData.header_contact_enabled || false,
           headerContactUrl: studioData.header_contact_url || '',
+          headerContactAddress: (studioData as any).header_contact_address || '',
+          headerContactPhone: (studioData as any).header_contact_phone || '',
+          headerContactEmail: (studioData as any).header_contact_email || '',
           footerWhatsappLink: studioData.footer_whatsapp_link || '',
           footerFacebookLink: studioData.footer_facebook_link || '',
           footerInstagramLink: studioData.footer_instagram_link || '',
@@ -477,6 +487,11 @@ const BrandBooking = () => {
           aboutUrl={customization.headerAboutUrl}
           portfolioUrl={customization.headerPortfolioUrl}
           contactUrl={customization.headerContactUrl}
+          homeText={customization.headerHomeText}
+          aboutText={customization.headerAboutText}
+          contactAddress={customization.headerContactAddress}
+          contactPhone={customization.headerContactPhone}
+          contactEmail={customization.headerContactEmail}
           brandColorPrimary={customization.brandColorPrimary}
           brandColorSecondary={customization.brandColorSecondary}
           onPortfolioClick={() => setPortfolioGalleryOpen(true)}

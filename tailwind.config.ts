@@ -14,7 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["'Plus Jakarta Sans'", "system-ui", "sans-serif"],
+        sans: ["'Montserrat'", "-apple-system", "BlinkMacSystemFont", "system-ui", "sans-serif"],
+        serif: ["'Montserrat'", "Georgia", "serif"],
+        mono: ["'Montserrat'", "Consolas", "Monaco", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",

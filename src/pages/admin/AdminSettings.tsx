@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink, Palette, Image as ImageIcon, Users as UsersIcon, Trash } from 'lucide-react';
+import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink, Palette, Image as ImageIcon, Users as UsersIcon, Trash, MessageCircle, Paintbrush, Layout } from 'lucide-react';
 import { loadStudioSettings, saveStudioSettings, updateStudioLayouts, saveGoogleCredentials, initiateGoogleAuth, exchangeGoogleCode, loadStudioPortfolioPhotos, deleteStudioPortfolioPhoto } from '@/services/studioSettings';
 import { supabase } from '@/lib/supabase';
 import { uploadLogo, uploadTermsPdf } from '@/services/fileUploadService';
@@ -93,12 +93,17 @@ const AdminSettings = () => {
     headerLogo: '',
     headerHomeEnabled: false,
     headerHomeUrl: '',
+    headerHomeText: '',
     headerAboutEnabled: false,
     headerAboutUrl: '',
+    headerAboutText: '',
     headerPortfolioEnabled: false,
     headerPortfolioUrl: '',
     headerContactEnabled: false,
     headerContactUrl: '',
+    headerContactAddress: '',
+    headerContactPhone: '',
+    headerContactEmail: '',
     enablePortfolioPhotoUpload: false,
     portfolioUploadInstructions: 'Upload your photos for your portfolio session. Maximum 20 photos, each file up to 10MB.',
     portfolioMaxFileSize: 10,
@@ -1940,10 +1945,16 @@ const AdminSettings = () => {
               <TabsContent value="pakej" className="space-y-6 mt-6">
                 {/* Nested Tabs for Pakej */}
                 <Tabs defaultValue="layouts" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="layouts">Layout Studio</TabsTrigger>
-                    <TabsTrigger value="addons">Pakej Tambahan</TabsTrigger>
-                  </TabsList>
+                  <div className="bg-muted/30 rounded-lg p-2">
+                    <TabsList className="w-full justify-start h-auto p-1 bg-background/50 rounded-md flex-wrap gap-1">
+                      <TabsTrigger value="layouts" className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                        Layout Studio
+                      </TabsTrigger>
+                      <TabsTrigger value="addons" className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                        Pakej Tambahan
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
 
                   {/* Sub-Tab 1: Studio Layouts */}
                   <TabsContent value="layouts" className="space-y-6 mt-6">
@@ -2416,728 +2427,807 @@ const AdminSettings = () => {
               </TabsContent >
 
               {/* Tab 4: Booking Form */}
-              < TabsContent value="booking-form" className="space-y-6 mt-6" >
+              <TabsContent value="booking-form" className="space-y-6 mt-6">
+                {/* Nested tabs for booking form sections */}
+                <Tabs defaultValue="tajuk-borang" className="w-full">
+                  <div className="bg-muted/30 rounded-lg p-2">
+                    <TabsList className="w-full justify-start h-auto p-1 bg-background/50 rounded-md flex-wrap gap-1">
+                      <TabsTrigger
+                        value="tajuk-borang"
+                        className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                      >
+                        Tajuk Borang Tempahan
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="terma-syarat"
+                        className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                      >
+                        Terma dan Syarat
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="slot-masa"
+                        className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                      >
+                        Konfigurasi Slot Masa
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="logo-studio"
+                        className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                      >
+                        Logo Studio
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="penyesuaian-borang"
+                        className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                      >
+                        Penyesuaian Borang Tempahan
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
 
-                {/* Booking Title Customization */}
-                < BookingTitleCustomization
-                  settings={{
-                    bookingTitleText: settings.bookingTitleText,
-                    bookingSubtitleText: settings.bookingSubtitleText,
-                    bookingTitleFont: settings.bookingTitleFont,
-                    bookingTitleSize: settings.bookingTitleSize,
-                    bookingSubtitleFont: settings.bookingSubtitleFont,
-                    bookingSubtitleSize: settings.bookingSubtitleSize
-                  }}
-                  onSettingChange={handleSettingChange}
-                />
+                  {/* Sub-tab 1: Tajuk Borang Tempahan */}
+                  <TabsContent value="tajuk-borang" className="space-y-6 mt-6">
+                    <BookingTitleCustomization
+                      settings={{
+                        bookingTitleText: settings.bookingTitleText,
+                        bookingSubtitleText: settings.bookingSubtitleText,
+                        bookingTitleFont: settings.bookingTitleFont,
+                        bookingTitleSize: settings.bookingTitleSize,
+                        bookingSubtitleFont: settings.bookingSubtitleFont,
+                        bookingSubtitleSize: settings.bookingSubtitleSize
+                      }}
+                      onSettingChange={handleSettingChange}
+                    />
+                  </TabsContent>
 
-                {/* Terms and Conditions Settings */}
-                < Card >
-                  <CardHeader>
-                    <CardTitle>Terma dan Syarat</CardTitle>
-                    <CardDescription>Tetapkan terma dan syarat yang akan dipaparkan dalam borang tempahan</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                      <Label>Jenis Terma dan Syarat</Label>
-                      <div className="flex flex-col space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="radio"
-                            id="tc-none"
-                            name="termsType"
-                            value="none"
-                            checked={settings.termsConditionsType === 'none'}
-                            onChange={() => handleSettingChange('termsConditionsType', 'none')}
-                            className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
-                          />
-                          <Label htmlFor="tc-none" className="text-sm">Tiada terma dan syarat</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="radio"
-                            id="tc-text"
-                            name="termsType"
-                            value="text"
-                            checked={settings.termsConditionsType === 'text'}
-                            onChange={() => handleSettingChange('termsConditionsType', 'text')}
-                            className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
-                          />
-                          <Label htmlFor="tc-text" className="text-sm">Taipkan teks terma dan syarat</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="radio"
-                            id="tc-pdf"
-                            name="termsType"
-                            value="pdf"
-                            checked={settings.termsConditionsType === 'pdf'}
-                            onChange={() => handleSettingChange('termsConditionsType', 'pdf')}
-                            className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
-                          />
-                          <Label htmlFor="tc-pdf" className="text-sm">Muat naik fail PDF</Label>
-                        </div>
-                      </div>
-                    </div>
-
-                    {settings.termsConditionsType === 'text' && (
-                      <div className="space-y-2">
-                        <Label htmlFor="termsText">Teks Terma dan Syarat</Label>
-                        <Textarea
-                          id="termsText"
-                          value={settings.termsConditionsText}
-                          onChange={(e) => handleSettingChange('termsConditionsText', e.target.value)}
-                          placeholder="Taip terma dan syarat studio anda di sini..."
-                          rows={6}
-                          className="min-h-[120px]"
-                        />
-                      </div>
-                    )}
-
-                    {settings.termsConditionsType === 'pdf' && (
-                      <div className="space-y-2">
-                        <Label htmlFor="termsPdf">Fail PDF Terma dan Syarat</Label>
-                        <Input
-                          id="termsPdf"
-                          type="file"
-                          accept=".pdf"
-                          disabled={isUploadingPdf}
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-
-                            if (!effectiveStudioId) {
-                              toast({
-                                title: "Studio not ready",
-                                description: "Please select a studio before uploading a PDF.",
-                                variant: "destructive",
-                              });
-                              return;
-                            }
-
-                            setIsUploadingPdf(true);
-                            try {
-                              const result = await uploadTermsPdf(file, effectiveStudioId);
-                              if (result.success && result.url) {
-                                handleSettingChange('termsConditionsPdf', result.url);
-                                toast({ title: "PDF uploaded", description: "Terms & Conditions PDF updated successfully." });
-                              } else {
-                                toast({
-                                  title: "Upload failed",
-                                  description: result.error || "Failed to upload PDF",
-                                  variant: "destructive",
-                                });
-                              }
-                            } catch (error) {
-                              console.error('PDF upload error:', error);
-                              toast({
-                                title: "Upload failed",
-                                description: "Unexpected error while uploading PDF",
-                                variant: "destructive",
-                              });
-                            } finally {
-                              setIsUploadingPdf(false);
-                              // Clear the input
-                              e.target.value = '';
-                            }
-                          }}
-                        />
-                        {settings.termsConditionsPdf && (
-                          <div className="space-y-2 p-3 bg-muted rounded-md">
-                            <span className="text-sm block">Fail semasa:</span>
-                            <div className="flex items-center gap-2">
-                              <a
-                                href={settings.termsConditionsPdf}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-primary hover:underline flex items-center gap-1"
-                              >
-                                Lihat PDF
-                                <ExternalLink className="h-3 w-3" />
-                              </a>
-                              {isUploadingPdf && (
-                                <Loader2 className="h-4 w-4 animate-spin text-gray-600" />
-                              )}
+                  {/* Sub-tab 2: Terma dan Syarat */}
+                  <TabsContent value="terma-syarat" className="space-y-6 mt-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Terma dan Syarat</CardTitle>
+                        <CardDescription>Tetapkan terma dan syarat yang akan dipaparkan dalam borang tempahan</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="space-y-3">
+                          <Label>Jenis Terma dan Syarat</Label>
+                          <div className="flex flex-col space-y-2">
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                id="tc-none"
+                                name="termsType"
+                                value="none"
+                                checked={settings.termsConditionsType === 'none'}
+                                onChange={() => handleSettingChange('termsConditionsType', 'none')}
+                                className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
+                              />
+                              <Label htmlFor="tc-none" className="text-sm">Tiada terma dan syarat</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                id="tc-text"
+                                name="termsType"
+                                value="text"
+                                checked={settings.termsConditionsType === 'text'}
+                                onChange={() => handleSettingChange('termsConditionsType', 'text')}
+                                className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
+                              />
+                              <Label htmlFor="tc-text" className="text-sm">Taipkan teks terma dan syarat</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                id="tc-pdf"
+                                name="termsType"
+                                value="pdf"
+                                checked={settings.termsConditionsType === 'pdf'}
+                                onChange={() => handleSettingChange('termsConditionsType', 'pdf')}
+                                className="w-4 h-4 text-primary bg-gray-100 border-gray-300 focus:ring-primary"
+                              />
+                              <Label htmlFor="tc-pdf" className="text-sm">Muat naik fail PDF</Label>
                             </div>
                           </div>
+                        </div>
+
+                        {settings.termsConditionsType === 'text' && (
+                          <div className="space-y-2">
+                            <Label htmlFor="termsText">Teks Terma dan Syarat</Label>
+                            <Textarea
+                              id="termsText"
+                              value={settings.termsConditionsText}
+                              onChange={(e) => handleSettingChange('termsConditionsText', e.target.value)}
+                              placeholder="Taip terma dan syarat studio anda di sini..."
+                              rows={6}
+                              className="min-h-[120px]"
+                            />
+                          </div>
                         )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card >
 
-                {/* Time Slot Configuration */}
-                < Card >
-                  <CardHeader>
-                    <CardTitle>Konfigurasi Slot Masa</CardTitle>
-                    <CardDescription>Tetapkan jarak antara slot masa dalam borang tempahan</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="timeSlotGap">Jarak Slot Masa</Label>
-                      <Select value={settings.timeSlotGap.toString()} onValueChange={(value) => handleSettingChange('timeSlotGap', parseInt(value))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih jarak slot masa" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="15">15 minit</SelectItem>
-                          <SelectItem value="30">30 minit</SelectItem>
-                          <SelectItem value="45">45 minit</SelectItem>
-                          <SelectItem value="60">1 jam</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-sm text-muted-foreground">
-                        Slot masa akan dipaparkan dengan jarak {settings.timeSlotGap} minit antara setiap pilihan.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card >
+                        {settings.termsConditionsType === 'pdf' && (
+                          <div className="space-y-2">
+                            <Label htmlFor="termsPdf">Fail PDF Terma dan Syarat</Label>
+                            <Input
+                              id="termsPdf"
+                              type="file"
+                              accept=".pdf"
+                              disabled={isUploadingPdf}
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
 
-                {/* Studio Logo Upload */}
-                < Card >
-                  <CardHeader>
-                    <CardTitle>Logo Studio</CardTitle>
-                    <CardDescription>Muat naik logo perniagaan studio untuk dipaparkan dalam borang tempahan</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="studioLogo">Logo Studio</Label>
-                      <Input
-                        id="studioLogo"
-                        type="file"
-                        accept="image/*"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
+                                if (!effectiveStudioId) {
+                                  toast({
+                                    title: "Studio not ready",
+                                    description: "Please select a studio before uploading a PDF.",
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
 
-                          if (!effectiveStudioId) {
-                            toast({
-                              title: "Studio not ready",
-                              description: "Please select a studio before uploading a logo.",
-                              variant: "destructive",
-                            });
-                            return;
-                          }
-
-                          setIsUploadingLogo(true);
-                          try {
-                            const result = await uploadLogo(file, effectiveStudioId);
-                            if (result.success && result.url) {
-                              handleSettingChange('studioLogo', result.url);
-                              toast({ title: "Logo uploaded", description: "Logo updated successfully." });
-                            } else {
-                              toast({
-                                title: "Upload failed",
-                                description: result.error || "Failed to upload logo",
-                                variant: "destructive",
-                              });
-                            }
-                          } catch (error) {
-                            console.error('Logo upload error:', error);
-                            toast({
-                              title: "Upload failed",
-                              description: "Unexpected error while uploading logo",
-                              variant: "destructive",
-                            });
-                          } finally {
-                            setIsUploadingLogo(false);
-                          }
-                        }}
-                      />
-                      {settings.studioLogo ? (
-                        <div className="space-y-2 p-3 bg-muted rounded-md">
-                          <span className="text-sm block">Logo semasa:</span>
-                          <div className="relative h-24 w-24 rounded-md border bg-white overflow-hidden flex items-center justify-center">
-                            <img
-                              src={settings.studioLogo}
-                              alt="Studio logo"
-                              className="h-full w-full object-contain"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
+                                setIsUploadingPdf(true);
+                                try {
+                                  const result = await uploadTermsPdf(file, effectiveStudioId);
+                                  if (result.success && result.url) {
+                                    handleSettingChange('termsConditionsPdf', result.url);
+                                    toast({ title: "PDF uploaded", description: "Terms & Conditions PDF updated successfully." });
+                                  } else {
+                                    toast({
+                                      title: "Upload failed",
+                                      description: result.error || "Failed to upload PDF",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                } catch (error) {
+                                  console.error('PDF upload error:', error);
+                                  toast({
+                                    title: "Upload failed",
+                                    description: "Unexpected error while uploading PDF",
+                                    variant: "destructive",
+                                  });
+                                } finally {
+                                  setIsUploadingPdf(false);
+                                  // Clear the input
+                                  e.target.value = '';
+                                }
                               }}
                             />
-                            {isUploadingLogo && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-white/70">
-                                <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
+                            {settings.termsConditionsPdf && (
+                              <div className="space-y-2 p-3 bg-muted rounded-md">
+                                <span className="text-sm block">Fail semasa:</span>
+                                <div className="flex items-center gap-2">
+                                  <a
+                                    href={settings.termsConditionsPdf}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-primary hover:underline flex items-center gap-1"
+                                  >
+                                    Lihat PDF
+                                    <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                  {isUploadingPdf && (
+                                    <Loader2 className="h-4 w-4 animate-spin text-gray-600" />
+                                  )}
+                                </div>
                               </div>
                             )}
                           </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          Jika tiada logo dimuat naik, logo lalai akan digunakan.
-                        </p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card >
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
 
-                {/* Form Customization */}
-                < Card >
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Palette className="h-5 w-5" />
-                      Penyesuaian Borang Tempahan
-                    </CardTitle>
-                    <CardDescription>Sesuaikan penampilan dan fungsi borang tempahan anda</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Portfolio Showcase */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label className="text-base">Enable Portfolio Gallery</Label>
+                  {/* Sub-tab 3: Konfigurasi Slot Masa */}
+                  <TabsContent value="slot-masa" className="space-y-6 mt-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Konfigurasi Slot Masa</CardTitle>
+                        <CardDescription>Tetapkan jarak antara slot masa dalam borang tempahan</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="timeSlotGap">Jarak Slot Masa</Label>
+                          <Select value={settings.timeSlotGap.toString()} onValueChange={(value) => handleSettingChange('timeSlotGap', parseInt(value))}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Pilih jarak slot masa" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="15">15 minit</SelectItem>
+                              <SelectItem value="30">30 minit</SelectItem>
+                              <SelectItem value="45">45 minit</SelectItem>
+                              <SelectItem value="60">1 jam</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <p className="text-sm text-muted-foreground">
-                            Display your portfolio photos gallery on the booking form
+                            Slot masa akan dipaparkan dengan jarak {settings.timeSlotGap} minit antara setiap pilihan.
                           </p>
                         </div>
-                        <Switch
-                          checked={settings.enablePortfolioPhotoUpload}
-                          onCheckedChange={(checked) => handleSettingChange('enablePortfolioPhotoUpload', checked)}
-                        />
-                      </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
 
-                      <div className="space-y-4">
-                        <h4 className="text-sm font-semibold">Portfolio Photos Management</h4>
-                        <p className="text-xs text-muted-foreground">
-                          Upload photos of your previous work to showcase on your booking form
-                        </p>
+                  {/* Sub-tab 4: Logo Studio */}
+                  <TabsContent value="logo-studio" className="space-y-6 mt-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Logo Studio</CardTitle>
+                        <CardDescription>Muat naik logo perniagaan studio untuk dipaparkan dalam borang tempahan</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="studioLogo">Logo Studio</Label>
+                          <Input
+                            id="studioLogo"
+                            type="file"
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
 
-                        {/* Portfolio Photo Upload Interface */}
-                        <Card variant="outline" className="p-4">
-                          <div className="space-y-4">
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-                              <div className="text-center">
-                                <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                                <div className="mt-4">
-                                  <label htmlFor="portfolio-photo-upload" className="cursor-pointer">
-                                    <span className="mt-2 block text-sm font-medium text-gray-900">
-                                      Upload portfolio photos
-                                    </span>
-                                    <span className="mt-1 block text-xs text-gray-500">
-                                      JPEG, PNG, GIF up to 10MB each
-                                    </span>
-                                  </label>
-                                  <input
-                                    id="portfolio-photo-upload"
-                                    name="portfolio-photo-upload"
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    className="sr-only"
-                                    onChange={async (e) => {
-                                      const files = Array.from(e.target.files || []);
-                                      if (files.length === 0) return;
+                              if (!effectiveStudioId) {
+                                toast({
+                                  title: "Studio not ready",
+                                  description: "Please select a studio before uploading a logo.",
+                                  variant: "destructive",
+                                });
+                                return;
+                              }
 
-                                      // Clear the input
-                                      e.target.value = '';
-
-                                      const { toast } = await import('@/hooks/use-toast');
-                                      const { uploadPortfolioPhoto } = await import('@/services/fileUploadService');
-
-                                      for (const file of files) {
-                                        try {
-                                          const result = await uploadPortfolioPhoto(file);
-                                          if (result.success) {
-                                            toast({ title: "Success", description: `${file.name} uploaded successfully` });
-                                            await fetchPortfolioPhotos();
-                                          } else {
-                                            toast({
-                                              title: "Upload failed",
-                                              description: result.error || "Failed to upload photo",
-                                              variant: "destructive"
-                                            });
-                                          }
-                                        } catch (error) {
-                                          toast({
-                                            title: "Upload failed",
-                                            description: "Failed to upload photo",
-                                            variant: "destructive"
-                                          });
-                                        }
-                                      }
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Existing Portfolio Photos */}
-                            <div className="space-y-2">
-                              <Label className="text-xs font-medium">Current Portfolio Photos</Label>
-                              <div className="min-h-[120px] space-y-3">
-                                {isLoadingPortfolio ? (
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    Loading portfolio photos...
-                                  </div>
-                                ) : portfolioPhotos.length === 0 ? (
-                                  <p className="text-xs text-muted-foreground">
-                                    No portfolio photos uploaded yet.
-                                  </p>
-                                ) : (
-                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                                    {portfolioPhotos.map((photoUrl, idx) => (
-                                      <div
-                                        key={`${photoUrl}-${idx}`}
-                                        className="relative overflow-hidden rounded-md border bg-muted/30 aspect-square"
-                                      >
-                                        <img
-                                          src={photoUrl}
-                                          alt={`Portfolio ${idx + 1}`}
-                                          className="h-full w-full object-cover"
-                                          loading="lazy"
-                                        />
-                                        <Button
-                                          size="icon"
-                                          variant="ghost"
-                                          className="absolute top-1 right-1 h-8 w-8 bg-red-600 hover:bg-red-700 text-white"
-                                          disabled={deletingPhotoUrl === photoUrl}
-                                          onClick={() => handleDeletePortfolioPhoto(photoUrl)}
-                                          aria-label="Delete portfolio photo"
-                                        >
-                                          {deletingPhotoUrl === photoUrl ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                          ) : (
-                                            <Trash className="h-4 w-4" />
-                                          )}
-                                        </Button>
-                                      </div>
-                                    ))}
+                              setIsUploadingLogo(true);
+                              try {
+                                const result = await uploadLogo(file, effectiveStudioId);
+                                if (result.success && result.url) {
+                                  handleSettingChange('studioLogo', result.url);
+                                  toast({ title: "Logo uploaded", description: "Logo updated successfully." });
+                                } else {
+                                  toast({
+                                    title: "Upload failed",
+                                    description: result.error || "Failed to upload logo",
+                                    variant: "destructive",
+                                  });
+                                }
+                              } catch (error) {
+                                console.error('Logo upload error:', error);
+                                toast({
+                                  title: "Upload failed",
+                                  description: "Unexpected error while uploading logo",
+                                  variant: "destructive",
+                                });
+                              } finally {
+                                setIsUploadingLogo(false);
+                              }
+                            }}
+                          />
+                          {settings.studioLogo ? (
+                            <div className="space-y-2 p-3 bg-muted rounded-md">
+                              <span className="text-sm block">Logo semasa:</span>
+                              <div className="relative h-24 w-24 rounded-md border bg-white overflow-hidden flex items-center justify-center">
+                                <img
+                                  src={settings.studioLogo}
+                                  alt="Studio logo"
+                                  className="h-full w-full object-contain"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                  }}
+                                />
+                                {isUploadingLogo && (
+                                  <div className="absolute inset-0 flex items-center justify-center bg-white/70">
+                                    <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
                                   </div>
                                 )}
                               </div>
                             </div>
-                          </div>
-                        </Card>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Header Customization */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label className="text-base">Enable Custom Header</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Tambah header dengan logo dan navigasi di borang tempahan
-                          </p>
+                          ) : (
+                            <p className="text-sm text-muted-foreground">
+                              Jika tiada logo dimuat naik, logo lalai akan digunakan.
+                            </p>
+                          )}
                         </div>
-                        <Switch
-                          checked={settings.enableCustomHeader}
-                          onCheckedChange={(checked) => handleSettingChange('enableCustomHeader', checked)}
-                        />
-                      </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
 
-                      {/* Show Studio Name */}
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label className="text-base">Show Studio Name</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Paparkan nama studio di bawah logo dalam borang tempahan
-                          </p>
-                        </div>
-                        <Switch
-                          checked={settings.showStudioName}
-                          onCheckedChange={(checked) => handleSettingChange('showStudioName', checked)}
-                        />
-                      </div>
+                  {/* Sub-tab 5: Penyesuaian Borang Tempahan */}
+                  <TabsContent value="penyesuaian-borang" className="space-y-6 mt-6">
 
-                      {settings.enableCustomHeader && (
-                        <div className="pl-4 border-l-2 border-primary/20 space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="headerLogo">Logo Header</Label>
-                            <Input
-                              id="headerLogo"
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  handleSettingChange('headerLogo', file.name);
-                                }
-                              }}
-                            />
-                            {settings.headerLogo && (
-                              <p className="text-xs text-muted-foreground">Logo: {settings.headerLogo}</p>
-                            )}
-                          </div>
-
-                          <Separator />
-                          <Label className="text-sm font-semibold">Navigasi Header</Label>
-
-                          {/* Home Navigation */}
-                          <div className="flex items-start gap-4">
-                            <Switch
-                              checked={settings.headerHomeEnabled}
-                              onCheckedChange={(checked) => handleSettingChange('headerHomeEnabled', checked)}
-                            />
-                            <div className="flex-1 space-y-2">
-                              <Label className="text-sm">Home</Label>
-                              {settings.headerHomeEnabled && (
-                                <Input
-                                  placeholder="https://yourwebsite.com"
-                                  value={settings.headerHomeUrl}
-                                  onChange={(e) => handleSettingChange('headerHomeUrl', e.target.value)}
-                                />
-                              )}
-                            </div>
-                          </div>
-
-                          {/* About Navigation */}
-                          <div className="flex items-start gap-4">
-                            <Switch
-                              checked={settings.headerAboutEnabled}
-                              onCheckedChange={(checked) => handleSettingChange('headerAboutEnabled', checked)}
-                            />
-                            <div className="flex-1 space-y-2">
-                              <Label className="text-sm">About</Label>
-                              {settings.headerAboutEnabled && (
-                                <Input
-                                  placeholder="https://yourwebsite.com/about"
-                                  value={settings.headerAboutUrl}
-                                  onChange={(e) => handleSettingChange('headerAboutUrl', e.target.value)}
-                                />
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Portfolio Navigation */}
-                          <div className="flex items-start gap-4">
-                            <Switch
-                              checked={settings.headerPortfolioEnabled}
-                              onCheckedChange={(checked) => handleSettingChange('headerPortfolioEnabled', checked)}
-                            />
-                            <div className="flex-1 space-y-2">
-                              <Label className="text-sm">Portfolio</Label>
-                              {settings.headerPortfolioEnabled && (
-                                <Input
-                                  placeholder="https://yourwebsite.com/portfolio"
-                                  value={settings.headerPortfolioUrl}
-                                  onChange={(e) => handleSettingChange('headerPortfolioUrl', e.target.value)}
-                                />
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Contact Navigation */}
-                          <div className="flex items-start gap-4">
-                            <Switch
-                              checked={settings.headerContactEnabled}
-                              onCheckedChange={(checked) => handleSettingChange('headerContactEnabled', checked)}
-                            />
-                            <div className="flex-1 space-y-2">
-                              <Label className="text-sm">Contact</Label>
-                              {settings.headerContactEnabled && (
-                                <Input
-                                  placeholder="https://yourwebsite.com/contact"
-                                  value={settings.headerContactUrl}
-                                  onChange={(e) => handleSettingChange('headerContactUrl', e.target.value)}
-                                />
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Footer Customization */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label className="text-base">Enable Custom Footer</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Tambah footer dengan ikon media sosial
-                          </p>
-                        </div>
-                        <Switch
-                          checked={settings.enableCustomFooter}
-                          onCheckedChange={(checked) => handleSettingChange('enableCustomFooter', checked)}
-                        />
-                      </div>
-
-                      {settings.enableCustomFooter && (
-                        <div className="pl-4 border-l-2 border-primary/20 space-y-4">
-                          <Label className="text-sm font-semibold">Pautan Media Sosial</Label>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="footerWhatsapp" className="text-sm">WhatsApp</Label>
-                            <Input
-                              id="footerWhatsapp"
-                              placeholder="https://wa.me/60123456789"
-                              value={settings.footerWhatsappLink}
-                              onChange={(e) => handleSettingChange('footerWhatsappLink', e.target.value)}
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="footerFacebook" className="text-sm">Facebook</Label>
-                            <Input
-                              id="footerFacebook"
-                              placeholder="https://facebook.com/yourstudio"
-                              value={settings.footerFacebookLink}
-                              onChange={(e) => handleSettingChange('footerFacebookLink', e.target.value)}
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="footerInstagram" className="text-sm">Instagram</Label>
-                            <Input
-                              id="footerInstagram"
-                              placeholder="https://instagram.com/yourstudio"
-                              value={settings.footerInstagramLink}
-                              onChange={(e) => handleSettingChange('footerInstagramLink', e.target.value)}
-                            />
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="footerTrademark" className="text-sm">Trademark</Label>
-                            <Input
-                              id="footerTrademark"
-                              placeholder=" 2025 {{BrandName}}. All rights reserved."
-                              value={settings.footerTrademark}
-                              onChange={(e) => handleSettingChange('footerTrademark', e.target.value)}
-                            />
-                            <p className="text-xs text-muted-foreground">Enter your custom trademark text</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <Separator />
-
-                    {/* WhatsApp Float Button */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label className="text-base">Enable WhatsApp Button</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Butang WhatsApp terapung di borang tempahan
-                          </p>
-                        </div>
-                        <Switch
-                          checked={settings.enableWhatsappButton}
-                          onCheckedChange={(checked) => handleSettingChange('enableWhatsappButton', checked)}
-                        />
-                      </div>
-
-                      {settings.enableWhatsappButton && (
-                        <div className="pl-4 border-l-2 border-primary/20 space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="whatsappMessage" className="text-sm">Teks Butang</Label>
-                            <Input
-                              id="whatsappMessage"
-                              placeholder="Hubungi kami"
-                              value={settings.whatsappMessage}
-                              onChange={(e) => handleSettingChange('whatsappMessage', e.target.value)}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="whatsappNumber" className="text-sm">Nombor WhatsApp</Label>
-                            <Input
-                              id="whatsappNumber"
-                              placeholder="+601129947089"
-                              value={settings.ownerPhone}
-                              onChange={(e) => handleSettingChange('ownerPhone', e.target.value)}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Menggunakan nombor telefon dari tetapan pemilik
+                    {/* Header Customization Card */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Layout className="h-5 w-5" />
+                          Custom Header
+                        </CardTitle>
+                        <CardDescription>Tambah header dengan logo dan navigasi di borang tempahan</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label className="text-base">Enable Custom Header</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Aktifkan header tersuai untuk borang tempahan
                             </p>
                           </div>
+                          <Switch
+                            checked={settings.enableCustomHeader}
+                            onCheckedChange={(checked) => handleSettingChange('enableCustomHeader', checked)}
+                          />
                         </div>
-                      )}
-                    </div>
 
-                    <Separator />
+                        {settings.enableCustomHeader && (
+                          <div className="mt-6 p-4 bg-muted/30 rounded-lg space-y-4">
+                            <Label className="text-sm font-semibold">Navigasi Header</Label>
 
-                    {/* Brand Colors */}
-                    <div className="space-y-4">
-                      <Label className="text-base">Warna Jenama</Label>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Pilih warna untuk header, footer, dan butang
-                      </p>
+                            {/* Home Navigation */}
+                            <div className="space-y-4">
+                              <div className="flex items-start gap-4">
+                                <Switch
+                                  checked={settings.headerHomeEnabled}
+                                  onCheckedChange={(checked) => handleSettingChange('headerHomeEnabled', checked)}
+                                />
+                                <div className="flex-1 space-y-2">
+                                  <Label className="text-sm">Home</Label>
+                                </div>
+                              </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="brandColorPrimary" className="text-sm">Warna Utama</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              id="brandColorPrimary"
-                              type="color"
-                              value={settings.brandColorPrimary}
-                              onChange={(e) => handleSettingChange('brandColorPrimary', e.target.value)}
-                              className="w-20 h-10"
-                            />
-                            <Input
-                              type="text"
-                              value={settings.brandColorPrimary}
-                              onChange={(e) => handleSettingChange('brandColorPrimary', e.target.value)}
-                              placeholder="#000000"
-                              className="flex-1"
-                            />
+                              {settings.headerHomeEnabled && (
+                                <div className="pl-8 space-y-2">
+                                  <Label htmlFor="headerHomeText" className="text-xs">Home Description</Label>
+                                  <Textarea
+                                    id="headerHomeText"
+                                    placeholder="Enter text to display when users click on Home..."
+                                    value={settings.headerHomeText}
+                                    onChange={(e) => handleSettingChange('headerHomeText', e.target.value)}
+                                    rows={4}
+                                    className="text-sm"
+                                  />
+                                  <p className="text-xs text-muted-foreground">
+                                    This text will appear in a popup when users click on the Home navigation
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* About Navigation */}
+                            <div className="space-y-4">
+                              <div className="flex items-start gap-4">
+                                <Switch
+                                  checked={settings.headerAboutEnabled}
+                                  onCheckedChange={(checked) => handleSettingChange('headerAboutEnabled', checked)}
+                                />
+                                <div className="flex-1 space-y-2">
+                                  <Label className="text-sm">About</Label>
+                                </div>
+                              </div>
+
+                              {settings.headerAboutEnabled && (
+                                <div className="pl-8 space-y-2">
+                                  <Label htmlFor="headerAboutText" className="text-xs">About Description</Label>
+                                  <Textarea
+                                    id="headerAboutText"
+                                    placeholder="Enter text to display when users click on About..."
+                                    value={settings.headerAboutText}
+                                    onChange={(e) => handleSettingChange('headerAboutText', e.target.value)}
+                                    rows={4}
+                                    className="text-sm"
+                                  />
+                                  <p className="text-xs text-muted-foreground">
+                                    This text will appear in a popup when users click on the About navigation
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Portfolio Navigation */}
+                            <div className="space-y-4">
+                              <div className="flex items-start gap-4">
+                                <Switch
+                                  checked={settings.headerPortfolioEnabled}
+                                  onCheckedChange={(checked) => handleSettingChange('headerPortfolioEnabled', checked)}
+                                />
+                                <div className="flex-1 space-y-2">
+                                  <Label className="text-sm">Portfolio</Label>
+                                </div>
+                              </div>
+
+                              {settings.headerPortfolioEnabled && (
+                                <div className="pl-8 space-y-4">
+                                  <div className="space-y-4">
+                                    <h4 className="text-sm font-semibold">Portfolio Photos Management</h4>
+                                    <p className="text-xs text-muted-foreground">
+                                      Upload photos of your previous work to showcase on your booking form
+                                    </p>
+
+                                    {/* Portfolio Photo Upload Interface */}
+                                    <Card variant="outline" className="p-4">
+                                      <div className="space-y-4">
+                                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                                          <div className="text-center">
+                                            <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                                            <div className="mt-4">
+                                              <label htmlFor="portfolio-photo-upload" className="cursor-pointer">
+                                                <span className="mt-2 block text-sm font-medium text-gray-900">
+                                                  Upload portfolio photos
+                                                </span>
+                                                <span className="mt-1 block text-xs text-gray-500">
+                                                  JPEG, PNG, GIF up to 10MB each
+                                                </span>
+                                              </label>
+                                              <input
+                                                id="portfolio-photo-upload"
+                                                name="portfolio-photo-upload"
+                                                type="file"
+                                                accept="image/*"
+                                                multiple
+                                                className="sr-only"
+                                                onChange={async (e) => {
+                                                  const files = Array.from(e.target.files || []);
+                                                  if (files.length === 0) return;
+
+                                                  // Clear the input
+                                                  e.target.value = '';
+
+                                                  const { toast } = await import('@/hooks/use-toast');
+                                                  const { uploadPortfolioPhoto } = await import('@/services/fileUploadService');
+
+                                                  for (const file of files) {
+                                                    try {
+                                                      const result = await uploadPortfolioPhoto(file);
+                                                      if (result.success) {
+                                                        toast({ title: "Success", description: `${file.name} uploaded successfully` });
+                                                        await fetchPortfolioPhotos();
+                                                      } else {
+                                                        toast({
+                                                          title: "Upload failed",
+                                                          description: result.error || "Failed to upload photo",
+                                                          variant: "destructive"
+                                                        });
+                                                      }
+                                                    } catch (error) {
+                                                      toast({
+                                                        title: "Upload failed",
+                                                        description: "Failed to upload photo",
+                                                        variant: "destructive"
+                                                      });
+                                                    }
+                                                  }
+                                                }}
+                                              />
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        {/* Existing Portfolio Photos */}
+                                        <div className="space-y-2">
+                                          <Label className="text-xs font-medium">Current Portfolio Photos</Label>
+                                          <div className="min-h-[120px] space-y-3">
+                                            {isLoadingPortfolio ? (
+                                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Loading portfolio photos...
+                                              </div>
+                                            ) : portfolioPhotos.length === 0 ? (
+                                              <p className="text-xs text-muted-foreground">
+                                                No portfolio photos uploaded yet.
+                                              </p>
+                                            ) : (
+                                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                                {portfolioPhotos.map((photoUrl, idx) => (
+                                                  <div
+                                                    key={`${photoUrl}-${idx}`}
+                                                    className="relative overflow-hidden rounded-md border bg-muted/30 aspect-square"
+                                                  >
+                                                    <img
+                                                      src={photoUrl}
+                                                      alt={`Portfolio ${idx + 1}`}
+                                                      className="h-full w-full object-cover"
+                                                      loading="lazy"
+                                                    />
+                                                    <Button
+                                                      size="icon"
+                                                      variant="ghost"
+                                                      className="absolute top-1 right-1 h-8 w-8 bg-red-600 hover:bg-red-700 text-white"
+                                                      disabled={deletingPhotoUrl === photoUrl}
+                                                      onClick={() => handleDeletePortfolioPhoto(photoUrl)}
+                                                      aria-label="Delete portfolio photo"
+                                                    >
+                                                      {deletingPhotoUrl === photoUrl ? (
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                      ) : (
+                                                        <Trash className="h-4 w-4" />
+                                                      )}
+                                                    </Button>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </Card>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Contact Navigation */}
+                            <div className="space-y-4">
+                              <div className="flex items-start gap-4">
+                                <Switch
+                                  checked={settings.headerContactEnabled}
+                                  onCheckedChange={(checked) => handleSettingChange('headerContactEnabled', checked)}
+                                />
+                                <div className="flex-1 space-y-2">
+                                  <Label className="text-sm">Contact</Label>
+                                </div>
+                              </div>
+
+                              {settings.headerContactEnabled && (
+                                <div className="pl-8 space-y-4">
+                                  <div className="space-y-2">
+                                    <Label htmlFor="headerContactAddress" className="text-xs">Address</Label>
+                                    <Textarea
+                                      id="headerContactAddress"
+                                      placeholder="Enter your studio address..."
+                                      value={settings.headerContactAddress}
+                                      onChange={(e) => handleSettingChange('headerContactAddress', e.target.value)}
+                                      rows={3}
+                                      className="text-sm"
+                                    />
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <Label htmlFor="headerContactPhone" className="text-xs">Telephone No</Label>
+                                    <Input
+                                      id="headerContactPhone"
+                                      placeholder="+60123456789"
+                                      value={settings.headerContactPhone}
+                                      onChange={(e) => handleSettingChange('headerContactPhone', e.target.value)}
+                                      className="text-sm"
+                                    />
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <Label htmlFor="headerContactEmail" className="text-xs">Email</Label>
+                                    <Input
+                                      id="headerContactEmail"
+                                      type="email"
+                                      placeholder="studio@example.com"
+                                      value={settings.headerContactEmail}
+                                      onChange={(e) => handleSettingChange('headerContactEmail', e.target.value)}
+                                      className="text-sm"
+                                    />
+                                  </div>
+
+                                  <p className="text-xs text-muted-foreground">
+                                    This contact information will appear in a popup when users click on the Contact navigation
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Footer Customization Card */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Layout className="h-5 w-5 rotate-180" />
+                          Custom Footer
+                        </CardTitle>
+                        <CardDescription>Tambah footer dengan ikon media sosial</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label className="text-base">Enable Custom Footer</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Aktifkan footer tersuai untuk borang tempahan
+                            </p>
+                          </div>
+                          <Switch
+                            checked={settings.enableCustomFooter}
+                            onCheckedChange={(checked) => handleSettingChange('enableCustomFooter', checked)}
+                          />
+                        </div>
+
+                        {settings.enableCustomFooter && (
+                          <div className="mt-6 p-4 bg-muted/30 rounded-lg space-y-4">
+                            <Label className="text-sm font-semibold">Pautan Media Sosial</Label>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="footerWhatsapp" className="text-sm">WhatsApp</Label>
+                              <Input
+                                id="footerWhatsapp"
+                                placeholder="https://wa.me/60123456789"
+                                value={settings.footerWhatsappLink}
+                                onChange={(e) => handleSettingChange('footerWhatsappLink', e.target.value)}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="footerFacebook" className="text-sm">Facebook</Label>
+                              <Input
+                                id="footerFacebook"
+                                placeholder="https://facebook.com/yourstudio"
+                                value={settings.footerFacebookLink}
+                                onChange={(e) => handleSettingChange('footerFacebookLink', e.target.value)}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="footerInstagram" className="text-sm">Instagram</Label>
+                              <Input
+                                id="footerInstagram"
+                                placeholder="https://instagram.com/yourstudio"
+                                value={settings.footerInstagramLink}
+                                onChange={(e) => handleSettingChange('footerInstagramLink', e.target.value)}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="footerTrademark" className="text-sm">Trademark</Label>
+                              <Input
+                                id="footerTrademark"
+                                placeholder=" 2025 {{BrandName}}. All rights reserved."
+                                value={settings.footerTrademark}
+                                onChange={(e) => handleSettingChange('footerTrademark', e.target.value)}
+                              />
+                              <p className="text-xs text-muted-foreground">Enter your custom trademark text</p>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* WhatsApp Float Button Card */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <MessageCircle className="h-5 w-5" />
+                          WhatsApp Button
+                        </CardTitle>
+                        <CardDescription>Butang WhatsApp terapung di borang tempahan</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label className="text-base">Enable WhatsApp Button</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Paparkan butang WhatsApp terapung di borang tempahan
+                            </p>
+                          </div>
+                          <Switch
+                            checked={settings.enableWhatsappButton}
+                            onCheckedChange={(checked) => handleSettingChange('enableWhatsappButton', checked)}
+                          />
+                        </div>
+
+                        {settings.enableWhatsappButton && (
+                          <div className="mt-6 p-4 bg-muted/30 rounded-lg space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="whatsappMessage" className="text-sm">Teks Butang</Label>
+                              <Input
+                                id="whatsappMessage"
+                                placeholder="Hubungi kami"
+                                value={settings.whatsappMessage}
+                                onChange={(e) => handleSettingChange('whatsappMessage', e.target.value)}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="whatsappNumber" className="text-sm">Nombor WhatsApp</Label>
+                              <Input
+                                id="whatsappNumber"
+                                placeholder="+601129947089"
+                                value={settings.ownerPhone}
+                                onChange={(e) => handleSettingChange('ownerPhone', e.target.value)}
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Menggunakan nombor telefon dari tetapan pemilik
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Brand Colors Card */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Paintbrush className="h-5 w-5" />
+                          Warna Jenama
+                        </CardTitle>
+                        <CardDescription>Pilih warna untuk header, footer, dan butang</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="brandColorPrimary" className="text-sm">Warna Utama</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                id="brandColorPrimary"
+                                type="color"
+                                value={settings.brandColorPrimary}
+                                onChange={(e) => handleSettingChange('brandColorPrimary', e.target.value)}
+                                className="w-20 h-10"
+                              />
+                              <Input
+                                type="text"
+                                value={settings.brandColorPrimary}
+                                onChange={(e) => handleSettingChange('brandColorPrimary', e.target.value)}
+                                placeholder="#000000"
+                                className="flex-1"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="brandColorSecondary" className="text-sm">Warna Teks</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                id="brandColorSecondary"
+                                type="color"
+                                value={settings.brandColorSecondary}
+                                onChange={(e) => handleSettingChange('brandColorSecondary', e.target.value)}
+                                className="w-20 h-10"
+                              />
+                              <Input
+                                type="text"
+                                value={settings.brandColorSecondary}
+                                onChange={(e) => handleSettingChange('brandColorSecondary', e.target.value)}
+                                placeholder="#ffffff"
+                                className="flex-1"
+                              />
+                            </div>
                           </div>
                         </div>
+                      </CardContent>
+                    </Card>
 
-                        <div className="space-y-2">
-                          <Label htmlFor="brandColorSecondary" className="text-sm">Warna Teks</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              id="brandColorSecondary"
-                              type="color"
-                              value={settings.brandColorSecondary}
-                              onChange={(e) => handleSettingChange('brandColorSecondary', e.target.value)}
-                              className="w-20 h-10"
-                            />
-                            <Input
-                              type="text"
-                              value={settings.brandColorSecondary}
-                              onChange={(e) => handleSettingChange('brandColorSecondary', e.target.value)}
-                              placeholder="#ffffff"
-                              className="flex-1"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    {/* Preview Section Card */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <ImageIcon className="h-5 w-5" />
+                          Pratonton
+                        </CardTitle>
+                        <CardDescription>Lihat pratonton borang tempahan dengan tetapan semasa</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <BookingFormPreview
+                          settings={{
+                            enableCustomHeader: settings.enableCustomHeader,
+                            enableCustomFooter: settings.enableCustomFooter,
+                            enableWhatsappButton: settings.enableWhatsappButton,
+                            headerLogo: settings.headerLogo,
+                            headerHomeEnabled: settings.headerHomeEnabled,
+                            headerHomeUrl: settings.headerHomeUrl,
+                            headerAboutEnabled: settings.headerAboutEnabled,
+                            headerAboutUrl: settings.headerAboutUrl,
+                            headerPortfolioEnabled: settings.headerPortfolioEnabled,
+                            headerPortfolioUrl: settings.headerPortfolioUrl,
+                            headerContactEnabled: settings.headerContactEnabled,
+                            headerContactUrl: settings.headerContactUrl,
+                            footerWhatsappLink: settings.footerWhatsappLink,
+                            footerFacebookLink: settings.footerFacebookLink,
+                            footerInstagramLink: settings.footerInstagramLink,
+                            whatsappMessage: settings.whatsappMessage,
+                            whatsappPhoneNumber: settings.ownerPhone,
+                            brandColorPrimary: settings.brandColorPrimary,
+                            brandColorSecondary: settings.brandColorSecondary
+                          }}
+                        />
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
 
-                    {/* Preview Section */}
-                    <Separator />
-                    <div className="space-y-4">
-                      <Label className="text-base">Pratonton</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Lihat pratonton borang tempahan dengan tetapan semasa
-                      </p>
-                      <BookingFormPreview
-                        settings={{
-                          enableCustomHeader: settings.enableCustomHeader,
-                          enableCustomFooter: settings.enableCustomFooter,
-                          enableWhatsappButton: settings.enableWhatsappButton,
-                          headerLogo: settings.headerLogo,
-                          headerHomeEnabled: settings.headerHomeEnabled,
-                          headerHomeUrl: settings.headerHomeUrl,
-                          headerAboutEnabled: settings.headerAboutEnabled,
-                          headerAboutUrl: settings.headerAboutUrl,
-                          headerPortfolioEnabled: settings.headerPortfolioEnabled,
-                          headerPortfolioUrl: settings.headerPortfolioUrl,
-                          headerContactEnabled: settings.headerContactEnabled,
-                          headerContactUrl: settings.headerContactUrl,
-                          footerWhatsappLink: settings.footerWhatsappLink,
-                          footerFacebookLink: settings.footerFacebookLink,
-                          footerInstagramLink: settings.footerInstagramLink,
-                          whatsappMessage: settings.whatsappMessage,
-                          whatsappPhoneNumber: settings.ownerPhone,
-                          brandColorPrimary: settings.brandColorPrimary,
-                          brandColorSecondary: settings.brandColorSecondary
-                        }}
-                      />
-                    </div>
-                  </CardContent>
-                </Card >
+                </Tabs>
 
                 {/* Save Button for Tab 4 */}
-                < div className="flex justify-end" >
+                <div className="flex justify-end">
                   <Button onClick={saveSettings} size="lg" disabled={isSaving}>
                     {isSaving ? (
                       <>
@@ -3148,8 +3238,8 @@ const AdminSettings = () => {
                       'Simpan Tetapan'
                     )}
                   </Button>
-                </div >
-              </TabsContent >
+                </div>
+              </TabsContent>
 
               {/* Tab 5: Users */}
               < TabsContent value="users" className="space-y-6 mt-6" >

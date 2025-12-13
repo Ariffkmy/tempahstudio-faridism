@@ -7,7 +7,8 @@
 
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Menu, X } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Menu, X, MapPin, Phone, Mail } from 'lucide-react';
 
 interface CustomBookingHeaderProps {
   logo: string;
@@ -19,6 +20,11 @@ interface CustomBookingHeaderProps {
   aboutUrl?: string;
   portfolioUrl?: string;
   contactUrl?: string;
+  homeText?: string;
+  aboutText?: string;
+  contactAddress?: string;
+  contactPhone?: string;
+  contactEmail?: string;
   brandColorPrimary: string;
   brandColorSecondary: string;
   onPortfolioClick?: () => void;
@@ -34,34 +40,77 @@ const CustomBookingHeader = ({
   aboutUrl,
   portfolioUrl,
   contactUrl,
+  homeText,
+  aboutText,
+  contactAddress,
+  contactPhone,
+  contactEmail,
   brandColorPrimary,
   brandColorSecondary,
   onPortfolioClick,
 }: CustomBookingHeaderProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [homeDialogOpen, setHomeDialogOpen] = useState(false);
+  const [aboutDialogOpen, setAboutDialogOpen] = useState(false);
+  const [contactDialogOpen, setContactDialogOpen] = useState(false);
 
   const navItems = [
     { enabled: homeEnabled, label: 'Home', url: homeUrl },
     { enabled: aboutEnabled, label: 'About', url: aboutUrl },
-    { enabled: portfolioEnabled, label: 'Portfolio', url: portfolioUrl },
+    { enabled: portfolioEnabled, label: 'Raya Portfolio', url: portfolioUrl },
     { enabled: contactEnabled, label: 'Contact', url: contactUrl },
   ];
 
   const filteredNavItems = navItems.filter(item => item.enabled);
 
   const handleNavClick = (label: string, url?: string) => {
-    // If it's Portfolio and we have a callback, use that instead of URL
-    if (label === 'Portfolio' && onPortfolioClick) {
-      onPortfolioClick();
-      setMobileMenuOpen(false);
+    // Close mobile menu first
+    setMobileMenuOpen(false);
+
+    // Handle different navigation items
+    if (label === 'Home') {
+      if (homeText) {
+        // Show popup if text is configured
+        setHomeDialogOpen(true);
+      } else if (url) {
+        // Otherwise open URL if provided
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
       return;
     }
 
-    // Otherwise, open the URL if provided
+    if (label === 'About') {
+      if (aboutText) {
+        // Show popup if text is configured
+        setAboutDialogOpen(true);
+      } else if (url) {
+        // Otherwise open URL if provided
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+      return;
+    }
+
+    if (label === 'Raya Portfolio' && onPortfolioClick) {
+      // Use callback for portfolio
+      onPortfolioClick();
+      return;
+    }
+
+    if (label === 'Contact') {
+      if (contactAddress || contactPhone || contactEmail) {
+        // Show popup if contact info is configured
+        setContactDialogOpen(true);
+      } else if (url) {
+        // Otherwise open URL if provided
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+      return;
+    }
+
+    // Default: open URL if provided
     if (url) {
       window.open(url, '_blank', 'noopener,noreferrer');
     }
-    setMobileMenuOpen(false);
   };
 
   return (
@@ -75,7 +124,7 @@ const CustomBookingHeader = ({
         }}
       >
         <div className="container max-w-6xl mx-auto px-4">
-          <div className="flex items-center justify-between py-3">
+          <div className="flex flex-col items-center py-3 gap-3">
             {/* Logo */}
             <div className="flex items-center">
               {logo ? (
@@ -94,7 +143,7 @@ const CustomBookingHeader = ({
 
             {/* Desktop Navigation */}
             {filteredNavItems.length > 0 && (
-              <nav className="flex items-center gap-6">
+              <nav className="flex items-center gap-12">
                 {filteredNavItems.map((item, index) => (
                   <button
                     key={index}
@@ -167,6 +216,81 @@ const CustomBookingHeader = ({
           </Sheet>
         </div>
       )}
+
+      {/* Home Dialog */}
+      <Dialog open={homeDialogOpen} onOpenChange={setHomeDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Home</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <p className="text-base whitespace-pre-wrap leading-relaxed">{homeText}</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* About Dialog */}
+      <Dialog open={aboutDialogOpen} onOpenChange={setAboutDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">About</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <p className="text-base whitespace-pre-wrap leading-relaxed">{aboutText}</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contact Dialog */}
+      <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Contact Us</DialogTitle>
+            <DialogDescription>Get in touch with us</DialogDescription>
+          </DialogHeader>
+          <div className="mt-6 space-y-4">
+            {contactAddress && (
+              <div className="flex items-start gap-3">
+                <MapPin className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm text-muted-foreground mb-1">Address</p>
+                  <p className="text-base whitespace-pre-wrap">{contactAddress}</p>
+                </div>
+              </div>
+            )}
+
+            {contactPhone && (
+              <div className="flex items-start gap-3">
+                <Phone className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm text-muted-foreground mb-1">Phone</p>
+                  <a
+                    href={`tel:${contactPhone}`}
+                    className="text-base hover:underline text-primary"
+                  >
+                    {contactPhone}
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {contactEmail && (
+              <div className="flex items-start gap-3">
+                <Mail className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm text-muted-foreground mb-1">Email</p>
+                  <a
+                    href={`mailto:${contactEmail}`}
+                    className="text-base hover:underline text-primary"
+                  >
+                    {contactEmail}
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

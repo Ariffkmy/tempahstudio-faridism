@@ -100,8 +100,8 @@ export const PortfolioGallery = ({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto rounded-none">
                 <DialogHeader>
-                    <DialogTitle className="text-2xl font-bold">
-                        {studioName} - Portfolio Gallery
+                    <DialogTitle className="text-2xl italic">
+                        Galeri Raya {studioName}
                     </DialogTitle>
                     <p className="text-sm text-muted-foreground">
                         {photos.length} {photos.length === 1 ? 'photo' : 'photos'}

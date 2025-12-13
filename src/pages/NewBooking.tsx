@@ -124,7 +124,7 @@ const NewBooking = () => {
         // Load studio settings
         const studioSettings = await loadStudioSettings(actualStudioId);
         if (studioSettings) {
-          setStudioPortfolioEnabled(studioSettings.enablePortfolioPhotoUpload);
+          setStudioPortfolioEnabled(studioSettings.headerPortfolioEnabled);
         }
 
         // Load portfolio photos

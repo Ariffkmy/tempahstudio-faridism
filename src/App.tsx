@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, ProtectedRoute } from "@/contexts/AuthContext";
 import { StudioProvider } from "@/contexts/StudioContext";
+import { SidebarProvider } from "@/contexts/SidebarContext";
 import Index from "./pages/Index";
 import Studios from "./pages/Studios";
 import StudioSlots from "./pages/StudioSlots";
@@ -34,85 +35,87 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <StudioProvider>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/studios" element={<Studios />} />
-              <Route path="/studios/:studioId/slots" element={<StudioSlots />} />
-              <Route path="/book" element={<Book />} />
-              {/* All booking routes now use BrandBooking with conditional customizations */}
-              <Route path="/book/:studioId" element={<BrandBooking />} />
-              <Route path="/brand/:studioId" element={<BrandBooking />} />
-              <Route path="/booking/confirmation" element={<BookingConfirmation />} />
-              {/* Studio slug-based booking route (e.g., /my-studio-name) */}
-              <Route path="/:studioSlug" element={<BrandBooking />} />
+            <SidebarProvider>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<Index />} />
+                <Route path="/studios" element={<Studios />} />
+                <Route path="/studios/:studioId/slots" element={<StudioSlots />} />
+                <Route path="/book" element={<Book />} />
+                {/* All booking routes now use BrandBooking with conditional customizations */}
+                <Route path="/book/:studioId" element={<BrandBooking />} />
+                <Route path="/brand/:studioId" element={<BrandBooking />} />
+                <Route path="/booking/confirmation" element={<BookingConfirmation />} />
+                {/* Studio slug-based booking route (e.g., /my-studio-name) */}
+                <Route path="/:studioSlug" element={<BrandBooking />} />
 
-              {/* Admin Auth Routes (Public) */}
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin/register" element={<AdminRegister />} />
-              <Route path="/admin/verify-email" element={<VerifyEmail />} />
+                {/* Admin Auth Routes (Public) */}
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin/register" element={<AdminRegister />} />
+                <Route path="/admin/verify-email" element={<VerifyEmail />} />
 
-              {/* Protected Admin Routes */}
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/bookings"
-                element={
-                  <ProtectedRoute>
-                    <AdminBookings />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/whatsapp-blaster"
-                element={
-                  <ProtectedRoute>
-                    <AdminWhatsappBlaster />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/reports"
-                element={
-                  <ProtectedRoute>
-                    <AdminReports />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/settings"
-                element={
-                  <ProtectedRoute>
-                    <AdminSettings />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/management"
-                element={
-                  <ProtectedRoute>
-                    <AdminManagement />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/super-settings"
-                element={
-                  <ProtectedRoute>
-                    <AdminSuperSettings />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Protected Admin Routes */}
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/bookings"
+                  element={
+                    <ProtectedRoute>
+                      <AdminBookings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/whatsapp-blaster"
+                  element={
+                    <ProtectedRoute>
+                      <AdminWhatsappBlaster />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/reports"
+                  element={
+                    <ProtectedRoute>
+                      <AdminReports />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/settings"
+                  element={
+                    <ProtectedRoute>
+                      <AdminSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/management"
+                  element={
+                    <ProtectedRoute>
+                      <AdminManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/super-settings"
+                  element={
+                    <ProtectedRoute>
+                      <AdminSuperSettings />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* 404 */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                {/* 404 */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </SidebarProvider>
           </StudioProvider>
         </AuthProvider>
       </BrowserRouter>

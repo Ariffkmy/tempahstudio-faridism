@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Studio } from '@/types/database';
-import type { StudioLayout } from '@/types/booking';
+import type { StudioLayout, AddonPackage } from '@/types/booking';
 import { createPublicBooking } from '@/services/bookingService';
 import { PortfolioGallery } from '@/components/booking/PortfolioGallery';
 
@@ -98,6 +98,8 @@ const BrandBooking = () => {
   // Studio-specific state
   const [studio, setStudio] = useState<Studio | null>(null);
   const [layouts, setLayouts] = useState<StudioLayout[]>([]);
+  const [addonPackages, setAddonPackages] = useState<AddonPackage[]>([]);
+  const [selectedAddon, setSelectedAddon] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -257,6 +259,19 @@ const BrandBooking = () => {
         const photos = await loadStudioPortfolioPhotos(actualStudioId);
         setPortfolioPhotos(photos);
         console.log('🖼️ Loaded portfolio photos:', photos.length);
+
+        // Load add-on packages
+        const { data: addonData, error: addonError } = await supabase
+          .from('addon_packages')
+          .select('*')
+          .eq('studio_id', actualStudioId)
+          .eq('is_active', true)
+          .order('price');
+
+        if (!addonError && addonData) {
+          setAddonPackages(addonData);
+          console.log('📦 Loaded addon packages:', addonData.length);
+        }
       } catch (error) {
         console.error('Error loading studio data:', error);
         toast({
@@ -380,6 +395,7 @@ const BrandBooking = () => {
         totalPrice: totalPrice,
         notes: formData.notes,
         paymentMethod: selectedPayment,
+        addonPackageId: selectedAddon || undefined,
       };
 
       const result = await createPublicBooking(bookingData);
@@ -535,6 +551,59 @@ const BrandBooking = () => {
               />
             </div>
 
+            {/* Add-on Packages Selection */}
+            {addonPackages.length > 0 && (
+              <Card variant="outline" className="p-4 scroll-animate delay-350">
+                <h3 className="font-semibold mb-4">Pakej Tambahan (Pilihan)</h3>
+                <div className="space-y-3">
+                  {/* No addon option */}
+                  <label
+                    className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${selectedAddon === null
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/50'
+                      }`}
+                  >
+                    <input
+                      type="radio"
+                      name="addon"
+                      checked={selectedAddon === null}
+                      onChange={() => setSelectedAddon(null)}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium">Tiada Pakej Tambahan</div>
+                      <div className="text-sm text-muted-foreground">Tempahan asas sahaja</div>
+                    </div>
+                    <div className="font-semibold text-primary">RM 0</div>
+                  </label>
+
+                  {/* Addon packages */}
+                  {addonPackages.map((pkg) => (
+                    <label
+                      key={pkg.id}
+                      className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${selectedAddon === pkg.id
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/50'
+                        }`}
+                    >
+                      <input
+                        type="radio"
+                        name="addon"
+                        checked={selectedAddon === pkg.id}
+                        onChange={() => setSelectedAddon(pkg.id)}
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium">{pkg.name}</div>
+                        <div className="text-sm text-muted-foreground">{pkg.description}</div>
+                      </div>
+                      <div className="font-semibold text-primary">RM {pkg.price}</div>
+                    </label>
+                  ))}
+                </div>
+              </Card>
+            )}
+
             {/* Payment Selection */}
             <div className="scroll-animate delay-400">
               <PaymentSelector
@@ -591,6 +660,17 @@ const BrandBooking = () => {
                           selectedPayment === 'bank' ? 'Pemindahan Bank' : '-'}
                     </span>
                   </div>
+                  {selectedAddon && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Pakej Tambahan:</span>
+                      <span className="font-medium">
+                        {addonPackages.find(p => p.id === selectedAddon)?.name}
+                        <span className="text-primary ml-2">
+                          +RM {addonPackages.find(p => p.id === selectedAddon)?.price}
+                        </span>
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Pelanggan:</span>
                     <span className="font-medium">{formData.name || '-'}</span>

@@ -17,6 +17,7 @@ import { getDashboardStats, getStudioBookingsWithDetails, type DashboardStats } 
 import type { BookingWithDetails } from '@/types/database';
 import type { Booking } from '@/types/booking';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useSidebar } from '@/contexts/SidebarContext';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: Home },
@@ -27,6 +28,7 @@ const navigation = [
 
 const AdminDashboard = () => {
   const { user, studio, logout, isSuperAdmin } = useAuth();
+  const { isCollapsed } = useSidebar();
   const effectiveStudioId = useEffectiveStudioId();
   const location = useLocation();
   const navigate = useNavigate();
@@ -346,7 +348,7 @@ const AdminDashboard = () => {
       <div className="min-h-screen bg-background">
         <AdminSidebar />
 
-        <main className="pl-64">
+        <main className={cn("transition-all duration-300", isCollapsed ? "pl-16" : "pl-64")}>
           <div className="p-8">
             {/* Header */}
             <div className="mb-8">

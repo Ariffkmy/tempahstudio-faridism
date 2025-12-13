@@ -31,6 +31,7 @@ import {
 interface BookingTableProps {
   bookings: Booking[];
   onViewBooking: (booking: Booking) => void;
+  onStatusUpdate?: (bookingId: string, newStatus: BookingStatus) => void;
 }
 
 const statusVariants: Record<BookingStatus, 'success' | 'warning' | 'destructive' | 'secondary' | 'default'> = {
@@ -55,7 +56,7 @@ const statusLabels: Record<BookingStatus, string> = {
   'cancelled': 'Dibatalkan',
 };
 
-export function BookingTable({ bookings, onViewBooking }: BookingTableProps) {
+export function BookingTable({ bookings, onViewBooking, onStatusUpdate }: BookingTableProps) {
   const [referenceFilter, setReferenceFilter] = useState('');
   const [customerFilter, setCustomerFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
@@ -257,10 +258,10 @@ export function BookingTable({ bookings, onViewBooking }: BookingTableProps) {
                           Lihat Butiran
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>Photoshoot Selesai</DropdownMenuItem>
-                        <DropdownMenuItem>Dijadual Semula</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Tidak Hadir</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Dibatalkan</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onStatusUpdate?.(booking.id, 'done-photoshoot')}>Photoshoot Selesai</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onStatusUpdate?.(booking.id, 'rescheduled')}>Dijadual Semula</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => onStatusUpdate?.(booking.id, 'no-show')}>Tidak Hadir</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => onStatusUpdate?.(booking.id, 'cancelled')}>Dibatalkan</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveStudioId } from '@/contexts/StudioContext';
 import { getDashboardStats, getStudioBookingsWithDetails } from '@/services/bookingService';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useSidebar } from '@/contexts/SidebarContext';
 import { cn } from '@/lib/utils';
 import type { BookingWithDetails } from '@/types/database';
 
@@ -23,6 +24,7 @@ const navigation = [
 
 const AdminReports = () => {
   const { user, studio, logout, isSuperAdmin } = useAuth();
+  const { isCollapsed } = useSidebar();
   const effectiveStudioId = useEffectiveStudioId();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -328,7 +330,7 @@ const AdminReports = () => {
                   <div key={itemIndex} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${item.color === 'text-green-600' ? 'bg-green-500' :
-                          item.color === 'text-yellow-600' ? 'bg-yellow-500' : 'bg-gray-500'
+                        item.color === 'text-yellow-600' ? 'bg-yellow-500' : 'bg-gray-500'
                         }`} />
                       <span className="text-xs font-medium">{item.label}</span>
                     </div>
@@ -376,14 +378,14 @@ const AdminReports = () => {
                   <div key={itemIndex} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${item.popularity === 'Tinggi' ? 'bg-green-500' :
-                          item.popularity === 'Sederhana' ? 'bg-yellow-500' : 'bg-red-500'
+                        item.popularity === 'Sederhana' ? 'bg-yellow-500' : 'bg-red-500'
                         }`} />
                       <span className="text-xs font-medium">{item.time}</span>
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-semibold">{item.count}</div>
                       <Badge variant="outline" className={`text-xs ml-2 ${item.popularity === 'Tinggi' ? 'text-green-600' :
-                          item.popularity === 'Sederhana' ? 'text-yellow-600' : 'text-red-600'
+                        item.popularity === 'Sederhana' ? 'text-yellow-600' : 'text-red-600'
                         }`}>
                         {item.popularity}
                       </Badge>
@@ -452,7 +454,7 @@ const AdminReports = () => {
       <div className="min-h-screen bg-background">
         <AdminSidebar />
 
-        <main className="pl-64">
+        <main className={cn("transition-all duration-300", isCollapsed ? "pl-16" : "pl-64")}>
           <div className="p-8">
 
 
@@ -584,7 +586,7 @@ const AdminReports = () => {
                         <div className="text-right">
                           <div className="text-lg font-semibold">{item.count}</div>
                           <Badge variant="outline" className={`text-xs ${item.popularity === 'Tinggi' ? 'text-green-600' :
-                              item.popularity === 'Sederhana' ? 'text-yellow-600' : 'text-red-600'
+                            item.popularity === 'Sederhana' ? 'text-yellow-600' : 'text-red-600'
                             }`}>
                             {item.popularity}
                           </Badge>

@@ -69,7 +69,7 @@ export async function getStudioBookingsWithDetails(studioId: string): Promise<Bo
  */
 export async function getTodayBookings(studioId: string): Promise<Booking[]> {
   const today = new Date().toISOString().split('T')[0];
-  
+
   try {
     const { data, error } = await supabase
       .from('bookings')
@@ -95,7 +95,7 @@ export async function getTodayBookings(studioId: string): Promise<Booking[]> {
  */
 export async function getUpcomingBookings(studioId: string, limit: number = 10): Promise<Booking[]> {
   const today = new Date().toISOString().split('T')[0];
-  
+
   try {
     const { data, error } = await supabase
       .from('bookings')
@@ -139,22 +139,22 @@ export interface DashboardStats {
 export async function getDashboardStats(studioId: string): Promise<DashboardStats> {
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
-  
+
   // Calculate week start (Monday) and end (Sunday)
   const dayOfWeek = today.getDay();
   const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
   const weekStart = new Date(today);
   weekStart.setDate(today.getDate() + mondayOffset);
   const weekStartStr = weekStart.toISOString().split('T')[0];
-  
+
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
   const weekEndStr = weekEnd.toISOString().split('T')[0];
-  
+
   // Calculate month start
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const monthStartStr = monthStart.toISOString().split('T')[0];
-  
+
   // Tomorrow
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
@@ -309,6 +309,30 @@ export async function updateBookingNotes(
   }
 }
 
+/**
+ * Update delivery link for a booking
+ */
+export async function updateBookingDeliveryLink(
+  bookingId: string,
+  deliveryLink: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from('bookings')
+      .update({ delivery_link: deliveryLink })
+      .eq('id', bookingId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating delivery link:', error);
+    return { success: false, error: 'Gagal mengemaskini pautan penghantaran' };
+  }
+}
+
 // =============================================
 // BOOKING CREATION (Public)
 // =============================================
@@ -331,6 +355,7 @@ export interface CreateBookingData {
   // Optional
   notes?: string;
   paymentMethod?: string;
+  addonPackageId?: string;
 }
 
 /**
@@ -405,6 +430,7 @@ export async function createPublicBooking(bookingData: CreateBookingData): Promi
         total_price: bookingData.totalPrice,
         status: 'pending',
         notes: bookingData.notes || null,
+        addon_package_id: bookingData.addonPackageId || null,
       })
       .select(`
         *,

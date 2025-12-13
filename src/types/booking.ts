@@ -44,8 +44,21 @@ export interface Booking {
   status: BookingStatus;
   notes?: string;
   internalNotes?: string;
+  deliveryLink?: string;
+  addonPackageId?: string; // References addon_packages table
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AddonPackage {
+  id: string;
+  studio_id: string;
+  name: string;
+  description: string;
+  price: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Studio {

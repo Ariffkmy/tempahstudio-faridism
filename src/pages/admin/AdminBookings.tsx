@@ -38,6 +38,7 @@ import { loadStudioSettings } from '@/services/studioSettings';
 import type { BookingWithDetails } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useSidebar } from '@/contexts/SidebarContext';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ms } from 'date-fns/locale';
@@ -56,6 +57,7 @@ const AdminBookings = () => {
   const { studio, user, logout, isSuperAdmin } = useAuth();
   const effectiveStudioId = useEffectiveStudioId();
   const location = useLocation();
+  const { isCollapsed } = useSidebar();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -220,21 +222,24 @@ const AdminBookings = () => {
         const formattedBookings: Booking[] = bookingsData.map((b: any) => ({
           id: b.id,
           reference: b.reference,
-          customerName: b.customer_name,
-          customerEmail: b.customer_email,
-          customerPhone: b.customer_phone,
-          date: b.booking_date,
+          customerName: b.customer?.name || 'Unknown',
+          customerEmail: b.customer?.email || '',
+          customerPhone: b.customer?.phone || '',
+          date: b.date,
           startTime: b.start_time,
           endTime: b.end_time,
           duration: b.duration,
-          layoutName: b.layout?.name || 'Unknown Layout',
-          totalPrice: b.total_price,
+          layoutName: b.studio_layout?.name || 'Unknown Layout',
+          totalPrice: Number(b.total_price),
           status: b.status,
-          notes: b.notes,
+          notes: b.notes || undefined,
+          internalNotes: b.internal_notes || undefined,
           customerId: b.customer_id,
           companyId: b.company_id,
           studioId: b.studio_id,
-          layoutId: b.layout_id
+          layoutId: b.layout_id,
+          createdAt: b.created_at,
+          updatedAt: b.updated_at,
         }));
         setBookings(formattedBookings);
 
@@ -503,10 +508,10 @@ const AdminBookings = () => {
                               Lihat Butiran
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem>Photoshoot Selesai</DropdownMenuItem>
-                            <DropdownMenuItem>Dijadual Semula</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">Tidak Hadir</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">Dibatalkan</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'done-photoshoot')}>Photoshoot Selesai</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'rescheduled')}>Dijadual Semula</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'no-show')}>Tidak Hadir</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'cancelled')}>Dibatalkan</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -686,7 +691,7 @@ const AdminBookings = () => {
       <div className="min-h-screen bg-background">
         <AdminSidebar />
 
-        <main className="pl-64">
+        <main className={cn("transition-all duration-300", isCollapsed ? "pl-16" : "pl-64")}>
           <div className="p-8">
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
@@ -779,6 +784,7 @@ const AdminBookings = () => {
                   <BookingTable
                     bookings={bookings}
                     onViewBooking={handleViewBooking}
+                    onStatusUpdate={handleStatusUpdate}
                   />
                 ) : (
                   <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed">
@@ -946,10 +952,10 @@ const AdminBookings = () => {
                                 Lihat Butiran
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem>Photoshoot Selesai</DropdownMenuItem>
-                              <DropdownMenuItem>Dijadual Semula</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive">Tidak Hadir</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive">Dibatalkan</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'done-photoshoot')}>Photoshoot Selesai</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'rescheduled')}>Dijadual Semula</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'no-show')}>Tidak Hadir</DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'cancelled')}>Dibatalkan</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>

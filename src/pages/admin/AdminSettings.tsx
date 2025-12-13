@@ -26,15 +26,17 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink, Palette, Image as ImageIcon, Users as UsersIcon, Trash } from 'lucide-react';
 import { loadStudioSettings, saveStudioSettings, updateStudioLayouts, saveGoogleCredentials, initiateGoogleAuth, exchangeGoogleCode, loadStudioPortfolioPhotos, deleteStudioPortfolioPhoto } from '@/services/studioSettings';
+import { supabase } from '@/lib/supabase';
 import { uploadLogo, uploadTermsPdf } from '@/services/fileUploadService';
 import BookingFormPreview, { PreviewSettings } from '@/components/booking/preview/BookingFormPreview';
 import { BookingTitleCustomization } from '@/components/admin/BookingTitleCustomization';
-import { supabase } from '@/lib/supabase';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import type { StudioLayout } from '@/types/database';
+import type { AddonPackage } from '@/types/booking';
 import { createStudioUser, getStudioAdmins } from '@/services/adminAuth';
 import type { AdminUser } from '@/types/database';
+import { useSidebar } from '@/contexts/SidebarContext';
 
 
 const navigation = [
@@ -47,6 +49,7 @@ const navigation = [
 const AdminSettings = () => {
   const { user, studio, isSuperAdmin } = useAuth();
   const effectiveStudioId = useEffectiveStudioId();
+  const { isCollapsed } = useSidebar();
   const { toast } = useToast();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -116,6 +119,7 @@ const AdminSettings = () => {
   });
 
   const [layouts, setLayouts] = useState<StudioLayout[]>([]);
+  const [addonPackages, setAddonPackages] = useState<AddonPackage[]>([]);
   const [bookingLink, setBookingLink] = useState('');
 
   // Users management state
@@ -142,6 +146,14 @@ const AdminSettings = () => {
 
   // Add layout dialog state
   const [isAddLayoutDialogOpen, setIsAddLayoutDialogOpen] = useState(false);
+
+  // Add-on package dialog state
+  const [isAddAddonDialogOpen, setIsAddAddonDialogOpen] = useState(false);
+  const [newAddonPackage, setNewAddonPackage] = useState({
+    name: '',
+    description: '',
+    price: 100
+  });
 
   // Helper functions
   const getInitials = (name: string | undefined) => {
@@ -219,6 +231,19 @@ const AdminSettings = () => {
             bookingSubtitleSize: data.bookingSubtitleSize || 'base'
           });
           setLayouts(data.layouts);
+
+          // Load add-on packages from database
+          if (effectiveStudioId) {
+            const { data: addonData, error: addonError } = await supabase
+              .from('addon_packages')
+              .select('*')
+              .eq('studio_id', effectiveStudioId)
+              .order('created_at', { ascending: true });
+
+            if (!addonError && addonData) {
+              setAddonPackages(addonData);
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to load settings:', error);
@@ -568,6 +593,50 @@ const AdminSettings = () => {
     setLayouts(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Add-on package management functions
+  const handleAddonPackageChange = (index: number, field: string, value: string | number | boolean) => {
+    setAddonPackages(prev => prev.map((pkg, i) =>
+      i === index ? { ...pkg, [field]: value } : pkg
+    ));
+  };
+
+  const addNewAddonPackage = () => {
+    if (newAddonPackage.name && newAddonPackage.description) {
+      const addonPackage: AddonPackage = {
+        id: `addon-${Date.now()}`,
+        studio_id: effectiveStudioId || '',
+        name: newAddonPackage.name,
+        description: newAddonPackage.description,
+        price: newAddonPackage.price,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      setAddonPackages(prev => [...prev, addonPackage]);
+      setNewAddonPackage({
+        name: '',
+        description: '',
+        price: 100
+      });
+      setIsAddAddonDialogOpen(false);
+      toast({
+        title: "Pakej ditambah",
+        description: "Pakej tambahan baru telah ditambah. Jangan lupa untuk simpan tetapan.",
+      });
+    } else {
+      toast({
+        title: "Maklumat tidak lengkap",
+        description: "Sila isi nama dan perihal pakej",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const removeAddonPackage = (index: number) => {
+    setAddonPackages(prev => prev.filter((_, i) => i !== index));
+  };
+
   // Handle layout photo upload
   const handleUploadLayoutPhoto = async (layoutIndex: number, file: File) => {
     const layout = layouts[layoutIndex];
@@ -703,6 +772,77 @@ const AdminSettings = () => {
           variant: "destructive",
         });
         return;
+      }
+
+      // Save add-on packages
+      if (effectiveStudioId) {
+        // Delete removed packages
+        const { data: existingPackages } = await supabase
+          .from('addon_packages')
+          .select('id')
+          .eq('studio_id', effectiveStudioId);
+
+        const existingIds = existingPackages?.map(p => p.id) || [];
+        const currentIds = addonPackages.map(p => p.id);
+        const toDelete = existingIds.filter(id => !currentIds.includes(id));
+
+        if (toDelete.length > 0) {
+          await supabase
+            .from('addon_packages')
+            .delete()
+            .in('id', toDelete);
+        }
+
+        // Handle new and existing packages separately
+        if (addonPackages.length > 0) {
+          const newPackages = addonPackages.filter(pkg => pkg.id.startsWith('addon-'));
+          const existingPkgs = addonPackages.filter(pkg => !pkg.id.startsWith('addon-'));
+
+          // Insert new packages only
+          const packagesToSave = newPackages.map(pkg => ({
+            studio_id: effectiveStudioId,
+            name: pkg.name,
+            description: pkg.description,
+            price: pkg.price,
+            is_active: pkg.is_active
+          }));
+
+          const { error: addonError } = await supabase
+            .from('addon_packages')
+            .insert(packagesToSave.map(({ id, created_at, ...pkg }) => pkg));
+
+          if (addonError) {
+            toast({
+              title: "Warning",
+              description: "Settings saved but add-on packages update failed: " + addonError.message,
+              variant: "destructive",
+            });
+            return;
+          }
+
+          // Update existing packages
+          for (const pkg of existingPkgs) {
+            const { error: updateError } = await supabase
+              .from('addon_packages')
+              .update({
+                name: pkg.name,
+                description: pkg.description,
+                price: pkg.price,
+                is_active: pkg.is_active,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', pkg.id);
+
+            if (updateError) {
+              toast({
+                title: "Warning",
+                description: "Add-on package update failed: " + updateError.message,
+                variant: "destructive",
+              });
+              return;
+            }
+          }
+        }
       }
 
       toast({
@@ -1336,7 +1476,7 @@ const AdminSettings = () => {
       <div className="min-h-screen bg-background">
         <AdminSidebar />
 
-        <main className="pl-64">
+        <main className={cn("transition-all duration-300", isCollapsed ? "pl-16" : "pl-64")}>
           <div className="p-8">
             {/* Header */}
             <div className="mb-8">
@@ -1798,308 +1938,470 @@ const AdminSettings = () => {
 
               {/* Tab 3: Pakej */}
               <TabsContent value="pakej" className="space-y-6 mt-6">
-                {/* Studio Layouts */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Layout Studio</CardTitle>
-                    <CardDescription>Urus Layout dan kemudahan studio</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Existing Layouts */}
-                    <div className="space-y-6">
-                      <h4 className="font-medium">Layout Semasa</h4>
-                      {layouts.map((layout, index) => (
-                        <div key={layout.id} className="border-2 rounded-lg p-6 space-y-4 bg-muted/30 shadow-sm">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <Switch
-                                checked={layout.is_active}
-                                onCheckedChange={(checked) => handleLayoutChange(index, 'is_active', checked)}
-                              />
-                              <h5 className="font-medium">{layout.name}</h5>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => removeLayout(index)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash className="h-4 w-4" />
-                            </Button>
-                          </div>
+                {/* Nested Tabs for Pakej */}
+                <Tabs defaultValue="layouts" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="layouts">Layout Studio</TabsTrigger>
+                    <TabsTrigger value="addons">Pakej Tambahan</TabsTrigger>
+                  </TabsList>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>Nama Layout</Label>
-                              <Input
-                                value={layout.name}
-                                onChange={(e) => handleLayoutChange(index, 'name', e.target.value)}
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Kapasiti</Label>
-                              <Input
-                                type="number"
-                                value={layout.capacity}
-                                onChange={(e) => handleLayoutChange(index, 'capacity', parseInt(e.target.value))}
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Harga per Jam (RM)</Label>
-                              <Input
-                                type="number"
-                                value={layout.price_per_hour}
-                                onChange={(e) => handleLayoutChange(index, 'price_per_hour', parseInt(e.target.value))}
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label>Gambar</Label>
-                              <div className="flex gap-2">
-                                <Input
-                                  value={layout.image}
-                                  onChange={(e) => handleLayoutChange(index, 'image', e.target.value)}
-                                  placeholder="URL gambar"
-                                />
-                                <Button variant="outline" size="sm">
-                                  <Upload className="h-4 w-4" />
+                  {/* Sub-Tab 1: Studio Layouts */}
+                  <TabsContent value="layouts" className="space-y-6 mt-6">
+                    {/* Studio Layouts */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Layout Studio</CardTitle>
+                        <CardDescription>Urus Layout dan kemudahan studio</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        {/* Existing Layouts */}
+                        <div className="space-y-6">
+                          <h4 className="font-medium">Layout Semasa</h4>
+                          {layouts.map((layout, index) => (
+                            <div key={layout.id} className="border-2 rounded-lg p-6 space-y-4 bg-muted/30 shadow-sm">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <Switch
+                                    checked={layout.is_active}
+                                    onCheckedChange={(checked) => handleLayoutChange(index, 'is_active', checked)}
+                                  />
+                                  <h5 className="font-medium">{layout.name}</h5>
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => removeLayout(index)}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash className="h-4 w-4" />
                                 </Button>
                               </div>
-                            </div>
-                          </div>
 
-                          <div className="space-y-2">
-                            <Label>Perihal</Label>
-                            <Textarea
-                              value={layout.description}
-                              onChange={(e) => handleLayoutChange(index, 'description', e.target.value)}
-                              placeholder="Huraian Layout"
-                            />
-                          </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label>Nama Layout</Label>
+                                  <Input
+                                    value={layout.name}
+                                    onChange={(e) => handleLayoutChange(index, 'name', e.target.value)}
+                                  />
+                                </div>
 
-                          {/* Layout Photos Section */}
-                          <Separator />
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <Label className="text-base">Foto Layout</Label>
-                                <p className="text-sm text-muted-foreground">
-                                  Muat naik sehingga 5 gambar untuk layout ini. Pilih satu sebagai thumbnail.
-                                </p>
+                                <div className="space-y-2">
+                                  <Label>Kapasiti</Label>
+                                  <Input
+                                    type="number"
+                                    value={layout.capacity}
+                                    onChange={(e) => handleLayoutChange(index, 'capacity', parseInt(e.target.value))}
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label>Harga per Jam (RM)</Label>
+                                  <Input
+                                    type="number"
+                                    value={layout.price_per_hour}
+                                    onChange={(e) => handleLayoutChange(index, 'price_per_hour', parseInt(e.target.value))}
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label>Gambar</Label>
+                                  <div className="flex gap-2">
+                                    <Input
+                                      value={layout.image}
+                                      onChange={(e) => handleLayoutChange(index, 'image', e.target.value)}
+                                      placeholder="URL gambar"
+                                    />
+                                    <Button variant="outline" size="sm">
+                                      <Upload className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
                               </div>
-                              <Badge variant="secondary">
-                                {(layout.layout_photos || []).length} / 5
-                              </Badge>
-                            </div>
 
-                            {/* Upload Button */}
-                            {(layout.layout_photos || []).length < 5 && (
-                              <div>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  id={`layout-photo-${layout.id}`}
-                                  className="hidden"
-                                  onChange={async (e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      await handleUploadLayoutPhoto(index, file);
-                                      e.target.value = '';
-                                    }
-                                  }}
+                              <div className="space-y-2">
+                                <Label>Perihal</Label>
+                                <Textarea
+                                  value={layout.description}
+                                  onChange={(e) => handleLayoutChange(index, 'description', e.target.value)}
+                                  placeholder="Huraian Layout"
                                 />
+                              </div>
+
+                              {/* Layout Photos Section */}
+                              <Separator />
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <Label className="text-base">Foto Layout</Label>
+                                    <p className="text-sm text-muted-foreground">
+                                      Muat naik sehingga 5 gambar untuk layout ini. Pilih satu sebagai thumbnail.
+                                    </p>
+                                  </div>
+                                  <Badge variant="secondary">
+                                    {(layout.layout_photos || []).length} / 5
+                                  </Badge>
+                                </div>
+
+                                {/* Upload Button */}
+                                {(layout.layout_photos || []).length < 5 && (
+                                  <div>
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      id={`layout-photo-${layout.id}`}
+                                      className="hidden"
+                                      onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          await handleUploadLayoutPhoto(index, file);
+                                          e.target.value = '';
+                                        }
+                                      }}
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      disabled={uploadingLayoutPhoto[layout.id]}
+                                      onClick={() => document.getElementById(`layout-photo-${layout.id}`)?.click()}
+                                    >
+                                      {uploadingLayoutPhoto[layout.id] ? (
+                                        <>
+                                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                          Memuat naik...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Upload className="h-4 w-4 mr-2" />
+                                          Muat Naik Foto
+                                        </>
+                                      )}
+                                    </Button>
+                                  </div>
+                                )}
+
+                                {/* Photos Grid */}
+                                {(layout.layout_photos || []).length > 0 && (
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                                    {(layout.layout_photos || []).map((photoUrl, photoIndex) => {
+                                      const isThumbnail = layout.thumbnail_photo === photoUrl;
+                                      const deleteKey = `${layout.id}-${photoUrl}`;
+                                      return (
+                                        <div
+                                          key={`${photoUrl}-${photoIndex}`}
+                                          className={cn(
+                                            "relative overflow-hidden rounded-md border aspect-square group",
+                                            isThumbnail && "ring-2 ring-primary"
+                                          )}
+                                        >
+                                          <img
+                                            src={photoUrl}
+                                            alt={`Layout photo ${photoIndex + 1}`}
+                                            className="h-full w-full object-cover"
+                                            loading="lazy"
+                                          />
+
+                                          {/* Thumbnail Badge */}
+                                          {isThumbnail && (
+                                            <div className="absolute top-1 left-1">
+                                              <Badge variant="default" className="text-xs">
+                                                Thumbnail
+                                              </Badge>
+                                            </div>
+                                          )}
+
+                                          {/* Action Buttons */}
+                                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                            {!isThumbnail && (
+                                              <Button
+                                                size="icon"
+                                                variant="secondary"
+                                                className="h-8 w-8"
+                                                onClick={() => handleSetThumbnail(index, photoUrl)}
+                                                title="Set as thumbnail"
+                                              >
+                                                <ImageIcon className="h-4 w-4" />
+                                              </Button>
+                                            )}
+                                            <Button
+                                              size="icon"
+                                              variant="destructive"
+                                              className="h-8 w-8"
+                                              disabled={deletingLayoutPhoto[deleteKey]}
+                                              onClick={() => handleDeleteLayoutPhoto(index, photoUrl)}
+                                              title="Delete photo"
+                                            >
+                                              {deletingLayoutPhoto[deleteKey] ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                              ) : (
+                                                <Trash className="h-4 w-4" />
+                                              )}
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Add New Layout Button */}
+                        <Separator />
+                        <div className="flex justify-center">
+                          <Dialog open={isAddLayoutDialogOpen} onOpenChange={setIsAddLayoutDialogOpen}>
+                            <DialogTrigger asChild>
+                              <Button size="lg" className="w-full md:w-auto">
+                                <Plus className="h-4 w-4 mr-2" />
+                                Tambah Pilihan Layout
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                              <DialogHeader>
+                                <DialogTitle>Tambah Layout Baru</DialogTitle>
+                                <DialogDescription>
+                                  Isi maklumat layout studio dan muat naik foto-foto
+                                </DialogDescription>
+                              </DialogHeader>
+
+                              <div className="space-y-4 py-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <Label htmlFor="new-layout-name">Nama Layout *</Label>
+                                    <Input
+                                      id="new-layout-name"
+                                      value={newLayout.name}
+                                      onChange={(e) => setNewLayout(prev => ({ ...prev, name: e.target.value }))}
+                                      placeholder="Contoh: Studio Minimalist"
+                                    />
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <Label htmlFor="new-layout-capacity">Kapasiti (orang)</Label>
+                                    <Input
+                                      id="new-layout-capacity"
+                                      type="number"
+                                      min="1"
+                                      value={newLayout.capacity}
+                                      onChange={(e) => setNewLayout(prev => ({ ...prev, capacity: parseInt(e.target.value) || 1 }))}
+                                    />
+                                  </div>
+
+                                  <div className="space-y-2 md:col-span-2">
+                                    <Label htmlFor="new-layout-price">Harga per Jam (RM)</Label>
+                                    <Input
+                                      id="new-layout-price"
+                                      type="number"
+                                      min="0"
+                                      step="10"
+                                      value={newLayout.price_per_hour}
+                                      onChange={(e) => setNewLayout(prev => ({ ...prev, price_per_hour: parseInt(e.target.value) || 0 }))}
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label htmlFor="new-layout-description">Perihal *</Label>
+                                  <Textarea
+                                    id="new-layout-description"
+                                    value={newLayout.description}
+                                    onChange={(e) => setNewLayout(prev => ({ ...prev, description: e.target.value }))}
+                                    placeholder="Huraian tentang layout ini..."
+                                    rows={4}
+                                  />
+                                </div>
+
+                                <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                                  <p className="font-medium mb-1">💡 Nota:</p>
+                                  <p>Foto layout boleh dimuat naik selepas layout ditambah. Klik "Tambah" dahulu, kemudian edit layout untuk muat naik foto.</p>
+                                </div>
+                              </div>
+
+                              <DialogFooter>
                                 <Button
                                   type="button"
                                   variant="outline"
-                                  size="sm"
-                                  disabled={uploadingLayoutPhoto[layout.id]}
-                                  onClick={() => document.getElementById(`layout-photo-${layout.id}`)?.click()}
+                                  onClick={() => {
+                                    setIsAddLayoutDialogOpen(false);
+                                    setNewLayout({
+                                      name: '',
+                                      description: '',
+                                      capacity: 1,
+                                      price_per_hour: 100
+                                    });
+                                  }}
                                 >
-                                  {uploadingLayoutPhoto[layout.id] ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                      Memuat naik...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Upload className="h-4 w-4 mr-2" />
-                                      Muat Naik Foto
-                                    </>
-                                  )}
+                                  Batal
+                                </Button>
+                                <Button type="button" onClick={addNewLayout}>
+                                  <Plus className="h-4 w-4 mr-2" />
+                                  Tambah Layout
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      </CardContent >
+                    </Card >
+                  </TabsContent >
+
+                  {/* Sub-Tab 2: Add-on Packages */}
+                  <TabsContent value="addons" className="space-y-6 mt-6">
+                    {/* Add-on Packages */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Pakej Tambahan (Add-on Packages)</CardTitle>
+                        <CardDescription>Uruskan pakej tambahan yang boleh dipilih pelanggan</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        {/* Existing Packages */}
+                        <div className="space-y-6">
+                          <h4 className="font-medium">Pakej Semasa</h4>
+                          {addonPackages.map((pkg, index) => (
+                            <div key={pkg.id} className="border-2 rounded-lg p-6 space-y-4 bg-muted/30 shadow-sm">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <Switch
+                                    checked={pkg.is_active}
+                                    onCheckedChange={(checked) => handleAddonPackageChange(index, 'is_active', checked)}
+                                  />
+                                  <h5 className="font-medium">{pkg.name}</h5>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeAddonPackage(index)}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash className="h-4 w-4" />
                                 </Button>
                               </div>
-                            )}
 
-                            {/* Photos Grid */}
-                            {(layout.layout_photos || []).length > 0 && (
-                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                                {(layout.layout_photos || []).map((photoUrl, photoIndex) => {
-                                  const isThumbnail = layout.thumbnail_photo === photoUrl;
-                                  const deleteKey = `${layout.id}-${photoUrl}`;
-                                  return (
-                                    <div
-                                      key={`${photoUrl}-${photoIndex}`}
-                                      className={cn(
-                                        "relative overflow-hidden rounded-md border aspect-square group",
-                                        isThumbnail && "ring-2 ring-primary"
-                                      )}
-                                    >
-                                      <img
-                                        src={photoUrl}
-                                        alt={`Layout photo ${photoIndex + 1}`}
-                                        className="h-full w-full object-cover"
-                                        loading="lazy"
-                                      />
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label>Nama Pakej</Label>
+                                  <Input
+                                    value={pkg.name}
+                                    onChange={(e) => handleAddonPackageChange(index, 'name', e.target.value)}
+                                  />
+                                </div>
 
-                                      {/* Thumbnail Badge */}
-                                      {isThumbnail && (
-                                        <div className="absolute top-1 left-1">
-                                          <Badge variant="default" className="text-xs">
-                                            Thumbnail
-                                          </Badge>
-                                        </div>
-                                      )}
-
-                                      {/* Action Buttons */}
-                                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                        {!isThumbnail && (
-                                          <Button
-                                            size="icon"
-                                            variant="secondary"
-                                            className="h-8 w-8"
-                                            onClick={() => handleSetThumbnail(index, photoUrl)}
-                                            title="Set as thumbnail"
-                                          >
-                                            <ImageIcon className="h-4 w-4" />
-                                          </Button>
-                                        )}
-                                        <Button
-                                          size="icon"
-                                          variant="destructive"
-                                          className="h-8 w-8"
-                                          disabled={deletingLayoutPhoto[deleteKey]}
-                                          onClick={() => handleDeleteLayoutPhoto(index, photoUrl)}
-                                          title="Delete photo"
-                                        >
-                                          {deletingLayoutPhoto[deleteKey] ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                          ) : (
-                                            <Trash className="h-4 w-4" />
-                                          )}
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
+                                <div className="space-y-2">
+                                  <Label>Harga (RM)</Label>
+                                  <Input
+                                    type="number"
+                                    value={pkg.price}
+                                    onChange={(e) => handleAddonPackageChange(index, 'price', parseFloat(e.target.value))}
+                                  />
+                                </div>
                               </div>
-                            )}
-                          </div>
+
+                              <div className="space-y-2">
+                                <Label>Perihal</Label>
+                                <Textarea
+                                  value={pkg.description}
+                                  onChange={(e) => handleAddonPackageChange(index, 'description', e.target.value)}
+                                  placeholder="Huraian Pakej"
+                                  rows={3}
+                                />
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
 
-                    {/* Add New Layout Button */}
-                    <Separator />
-                    <div className="flex justify-center">
-                      <Dialog open={isAddLayoutDialogOpen} onOpenChange={setIsAddLayoutDialogOpen}>
-                        <DialogTrigger asChild>
-                          <Button size="lg" className="w-full md:w-auto">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Tambah Pilihan Layout
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle>Tambah Layout Baru</DialogTitle>
-                            <DialogDescription>
-                              Isi maklumat layout studio dan muat naik foto-foto
-                            </DialogDescription>
-                          </DialogHeader>
+                        {/* Add New Package Button */}
+                        <Separator />
+                        <div className="flex justify-center">
+                          <Dialog open={isAddAddonDialogOpen} onOpenChange={setIsAddAddonDialogOpen}>
+                            <DialogTrigger asChild>
+                              <Button size="lg" className="w-full md:w-auto">
+                                <Plus className="h-4 w-4 mr-2" />
+                                Tambah Pakej Tambahan
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>Tambah Pakej Tambahan Baru</DialogTitle>
+                                <DialogDescription>
+                                  Isi maklumat pakej tambahan
+                                </DialogDescription>
+                              </DialogHeader>
 
-                          <div className="space-y-4 py-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="new-layout-name">Nama Layout *</Label>
-                                <Input
-                                  id="new-layout-name"
-                                  value={newLayout.name}
-                                  onChange={(e) => setNewLayout(prev => ({ ...prev, name: e.target.value }))}
-                                  placeholder="Contoh: Studio Minimalist"
-                                />
+                              <div className="space-y-4 py-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <Label htmlFor="new-addon-name">Nama Pakej *</Label>
+                                    <Input
+                                      id="new-addon-name"
+                                      value={newAddonPackage.name}
+                                      onChange={(e) => setNewAddonPackage(prev => ({ ...prev, name: e.target.value }))}
+                                      placeholder="Contoh: Pakej Premium"
+                                    />
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <Label htmlFor="new-addon-price">Harga (RM)</Label>
+                                    <Input
+                                      id="new-addon-price"
+                                      type="number"
+                                      min="0"
+                                      step="10"
+                                      value={newAddonPackage.price}
+                                      onChange={(e) => setNewAddonPackage(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
+                                    />
+                                  </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label htmlFor="new-addon-description">Perihal *</Label>
+                                  <Textarea
+                                    id="new-addon-description"
+                                    value={newAddonPackage.description}
+                                    onChange={(e) => setNewAddonPackage(prev => ({ ...prev, description: e.target.value }))}
+                                    placeholder="Huraian tentang pakej ini..."
+                                    rows={4}
+                                  />
+                                </div>
+
+                                <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                                  <p className="font-medium mb-1">💡 Nota:</p>
+                                  <p>Pakej tambahan akan ditunjukkan kepada pelanggan semasa membuat tempahan. Tempahan dengan pakej tambahan akan dikategorikan secara automatik dalam kolum "Done Delivery" di halaman WhatsApp Blaster.</p>
+                                </div>
                               </div>
 
-                              <div className="space-y-2">
-                                <Label htmlFor="new-layout-capacity">Kapasiti (orang)</Label>
-                                <Input
-                                  id="new-layout-capacity"
-                                  type="number"
-                                  min="1"
-                                  value={newLayout.capacity}
-                                  onChange={(e) => setNewLayout(prev => ({ ...prev, capacity: parseInt(e.target.value) || 1 }))}
-                                />
-                              </div>
-
-                              <div className="space-y-2 md:col-span-2">
-                                <Label htmlFor="new-layout-price">Harga per Jam (RM)</Label>
-                                <Input
-                                  id="new-layout-price"
-                                  type="number"
-                                  min="0"
-                                  step="10"
-                                  value={newLayout.price_per_hour}
-                                  onChange={(e) => setNewLayout(prev => ({ ...prev, price_per_hour: parseInt(e.target.value) || 0 }))}
-                                />
-                              </div>
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="new-layout-description">Perihal *</Label>
-                              <Textarea
-                                id="new-layout-description"
-                                value={newLayout.description}
-                                onChange={(e) => setNewLayout(prev => ({ ...prev, description: e.target.value }))}
-                                placeholder="Huraian tentang layout ini..."
-                                rows={4}
-                              />
-                            </div>
-
-                            <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
-                              <p className="font-medium mb-1">💡 Nota:</p>
-                              <p>Foto layout boleh dimuat naik selepas layout ditambah. Klik "Tambah" dahulu, kemudian edit layout untuk muat naik foto.</p>
-                            </div>
-                          </div>
-
-                          <DialogFooter>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => {
-                                setIsAddLayoutDialogOpen(false);
-                                setNewLayout({
-                                  name: '',
-                                  description: '',
-                                  capacity: 1,
-                                  price_per_hour: 100
-                                });
-                              }}
-                            >
-                              Batal
-                            </Button>
-                            <Button type="button" onClick={addNewLayout}>
-                              <Plus className="h-4 w-4 mr-2" />
-                              Tambah Layout
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  </CardContent>
-                </Card>
+                              <DialogFooter>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setIsAddAddonDialogOpen(false);
+                                    setNewAddonPackage({
+                                      name: '',
+                                      description: '',
+                                      price: 100
+                                    });
+                                  }}
+                                >
+                                  Batal
+                                </Button>
+                                <Button type="button" onClick={addNewAddonPackage}>
+                                  <Plus className="h-4 w-4 mr-2" />
+                                  Tambah Pakej
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                      </CardContent>
+                    </Card >
+                  </TabsContent>
+                </Tabs>
 
                 {/* Save Button for Tab 3 */}
-                <div className="flex justify-end">
+                < div className="flex justify-end" >
                   <Button onClick={saveSettings} size="lg" disabled={isSaving}>
                     {isSaving ? (
                       <>
@@ -2110,14 +2412,14 @@ const AdminSettings = () => {
                       'Simpan Tetapan'
                     )}
                   </Button>
-                </div>
-              </TabsContent>
+                </div >
+              </TabsContent >
 
               {/* Tab 4: Booking Form */}
-              <TabsContent value="booking-form" className="space-y-6 mt-6">
+              < TabsContent value="booking-form" className="space-y-6 mt-6" >
 
                 {/* Booking Title Customization */}
-                <BookingTitleCustomization
+                < BookingTitleCustomization
                   settings={{
                     bookingTitleText: settings.bookingTitleText,
                     bookingSubtitleText: settings.bookingSubtitleText,
@@ -2130,7 +2432,7 @@ const AdminSettings = () => {
                 />
 
                 {/* Terms and Conditions Settings */}
-                <Card>
+                < Card >
                   <CardHeader>
                     <CardTitle>Terma dan Syarat</CardTitle>
                     <CardDescription>Tetapkan terma dan syarat yang akan dipaparkan dalam borang tempahan</CardDescription>
@@ -2262,10 +2564,10 @@ const AdminSettings = () => {
                       </div>
                     )}
                   </CardContent>
-                </Card>
+                </Card >
 
                 {/* Time Slot Configuration */}
-                <Card>
+                < Card >
                   <CardHeader>
                     <CardTitle>Konfigurasi Slot Masa</CardTitle>
                     <CardDescription>Tetapkan jarak antara slot masa dalam borang tempahan</CardDescription>
@@ -2289,10 +2591,10 @@ const AdminSettings = () => {
                       </p>
                     </div>
                   </CardContent>
-                </Card>
+                </Card >
 
                 {/* Studio Logo Upload */}
-                <Card>
+                < Card >
                   <CardHeader>
                     <CardTitle>Logo Studio</CardTitle>
                     <CardDescription>Muat naik logo perniagaan studio untuk dipaparkan dalam borang tempahan</CardDescription>
@@ -2369,10 +2671,10 @@ const AdminSettings = () => {
                       )}
                     </div>
                   </CardContent>
-                </Card>
+                </Card >
 
                 {/* Form Customization */}
-                <Card>
+                < Card >
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Palette className="h-5 w-5" />
@@ -2832,10 +3134,10 @@ const AdminSettings = () => {
                       />
                     </div>
                   </CardContent>
-                </Card>
+                </Card >
 
                 {/* Save Button for Tab 4 */}
-                <div className="flex justify-end">
+                < div className="flex justify-end" >
                   <Button onClick={saveSettings} size="lg" disabled={isSaving}>
                     {isSaving ? (
                       <>
@@ -2846,13 +3148,13 @@ const AdminSettings = () => {
                       'Simpan Tetapan'
                     )}
                   </Button>
-                </div>
-              </TabsContent>
+                </div >
+              </TabsContent >
 
               {/* Tab 5: Users */}
-              <TabsContent value="users" className="space-y-6 mt-6">
+              < TabsContent value="users" className="space-y-6 mt-6" >
                 {/* Add New User Form */}
-                <Card>
+                < Card >
                   <CardHeader>
                     <CardTitle>Add New User</CardTitle>
                     <CardDescription>Create a new admin user for this studio. The user will be able to login immediately without email verification.</CardDescription>
@@ -2934,10 +3236,10 @@ const AdminSettings = () => {
                       </Button>
                     </div>
                   </CardContent>
-                </Card>
+                </Card >
 
                 {/* Existing Users List */}
-                <Card>
+                < Card >
                   <CardHeader>
                     <CardTitle>Studio Users</CardTitle>
                     <CardDescription>Manage users associated with this studio</CardDescription>
@@ -2985,12 +3287,12 @@ const AdminSettings = () => {
                       </Table>
                     )}
                   </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </main>
-      </div>
+                </Card >
+              </TabsContent >
+            </Tabs >
+          </div >
+        </main >
+      </div >
     );
   }
 };

@@ -25,10 +25,12 @@ const AdminWhatsappBlaster = () => {
     'complete-photoshoot': Booking[];
     'editing-in-progress': Booking[];
     'ready-for-delivery': Booking[];
+    'done-delivery': Booking[];
   }>({
     'complete-photoshoot': [],
     'editing-in-progress': [],
-    'ready-for-delivery': []
+    'ready-for-delivery': [],
+    'done-delivery': []
   });
   const [draggedBooking, setDraggedBooking] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,11 +84,13 @@ const AdminWhatsappBlaster = () => {
         const donePhotoshoot = bookings.filter(b => b.status === 'done-photoshoot');
         const startEditing = bookings.filter(b => b.status === 'start-editing');
         const readyForDelivery = bookings.filter(b => b.status === 'ready-for-delivery');
+        const doneDelivery = bookings.filter(b => b.status === 'completed');
 
         setBookingsData({
           'complete-photoshoot': donePhotoshoot,
           'editing-in-progress': startEditing,
-          'ready-for-delivery': readyForDelivery
+          'ready-for-delivery': readyForDelivery,
+          'done-delivery': doneDelivery
         });
 
         // Load delivery links from bookings
@@ -141,7 +145,8 @@ const AdminWhatsappBlaster = () => {
     const columnToStatus: Record<string, Booking['status']> = {
       'complete-photoshoot': 'done-photoshoot',
       'editing-in-progress': 'start-editing',
-      'ready-for-delivery': 'ready-for-delivery'
+      'ready-for-delivery': 'ready-for-delivery',
+      'done-delivery': 'completed'
     };
 
     const newStatus = columnToStatus[targetColumn];

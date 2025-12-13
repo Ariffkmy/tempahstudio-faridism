@@ -38,7 +38,7 @@ const AdminWhatsappBlaster = () => {
   const [bookingLinks, setBookingLinks] = useState<Record<string, string>>(initialLinks);
 
   const [isBlastDialogOpen, setIsBlastDialogOpen] = useState(false);
-  const defaultMessage = "Assalammualaikum {{name}} , ini adalah link gambar raya ye. Terima kasih kerana memilih Raya Studio. Selamat Hari Raya, Maaf Zahir Batin";
+  const defaultMessage = "Assalammualaikum {{name}}, ini adalah link gambar raya ye: {{link}}\n\nTerima kasih kerana memilih Raya Studio. Selamat Hari Raya, Maaf Zahir Batin";
   const [blastMessage, setBlastMessage] = useState(defaultMessage);
 
   // Fetch bookings from database
@@ -194,7 +194,11 @@ const AdminWhatsappBlaster = () => {
       const { sendWhatsAppMessage } = await import('@/services/twilioService');
 
       for (const b of readyWithLinks) {
-        const personalizedMessage = blastMessage.replace('{{name}}', b.customerName).replace('{{studioname}}', 'Raya Studio');
+        const deliveryLink = b.deliveryLink || bookingLinks[b.id] || '[Link tidak tersedia]';
+        const personalizedMessage = blastMessage
+          .replace('{{name}}', b.customerName)
+          .replace('{{studioname}}', 'Raya Studio')
+          .replace('{{link}}', deliveryLink);
         const result = await sendWhatsAppMessage(b.customerPhone, personalizedMessage);
 
         if (!result.success) {
@@ -487,7 +491,10 @@ const AdminWhatsappBlaster = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="font-medium">Mesej:</label>
-                    <Textarea value={blastMessage} onChange={(e) => setBlastMessage(e.target.value)} />
+                    <Textarea value={blastMessage} onChange={(e) => setBlastMessage(e.target.value)} className="min-h-[120px]" />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Gunakan: <code className="bg-muted px-1 rounded">{`{{name}}`}</code>, <code className="bg-muted px-1 rounded">{`{{link}}`}</code>, <code className="bg-muted px-1 rounded">{`{{studioname}}`}</code>
+                    </p>
                   </div>
                   <div>
                     <label className="font-medium">Penerima:</label>
@@ -789,7 +796,10 @@ const AdminWhatsappBlaster = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="font-medium">Mesej:</label>
-                    <Textarea value={blastMessage} onChange={(e) => setBlastMessage(e.target.value)} />
+                    <Textarea value={blastMessage} onChange={(e) => setBlastMessage(e.target.value)} className="min-h-[120px]" />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Gunakan: <code className="bg-muted px-1 rounded">{`{{name}}`}</code>, <code className="bg-muted px-1 rounded">{`{{link}}`}</code>, <code className="bg-muted px-1 rounded">{`{{studioname}}`}</code>
+                    </p>
                   </div>
                   <div>
                     <label className="font-medium">Penerima:</label>

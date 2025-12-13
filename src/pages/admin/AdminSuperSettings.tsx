@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Settings, Menu, Home, Users, CalendarDays, BarChart3, Cog, LogOut, Key, Shield, Mail, Phone, Plus, X, FileText, Edit, Check, RotateCcw, User, UserCheck, Send } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useSidebar } from '@/contexts/SidebarContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
@@ -123,7 +124,8 @@ const NotificationConfigItem = ({
 
 const AdminSuperSettings = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, studio } = useAuth();
+  const { isCollapsed } = useSidebar();
   const location = useLocation();
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -1462,7 +1464,7 @@ const AdminSuperSettings = () => {
       <div className="min-h-screen bg-background">
         <AdminSidebar />
 
-        <main className="pl-64">
+        <main className={cn("transition-all duration-300", isCollapsed ? "pl-16" : "pl-64")}>
           <div className="p-8">
             {/* Header */}
             <div className="mb-8">

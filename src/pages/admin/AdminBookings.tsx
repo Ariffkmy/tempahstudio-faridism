@@ -38,6 +38,7 @@ import { loadStudioSettings } from '@/services/studioSettings';
 import type { BookingWithDetails } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useSidebar } from '@/contexts/SidebarContext';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ms } from 'date-fns/locale';
@@ -56,6 +57,7 @@ const AdminBookings = () => {
   const { studio, user, logout, isSuperAdmin } = useAuth();
   const effectiveStudioId = useEffectiveStudioId();
   const location = useLocation();
+  const { isCollapsed } = useSidebar();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -689,7 +691,7 @@ const AdminBookings = () => {
       <div className="min-h-screen bg-background">
         <AdminSidebar />
 
-        <main className="pl-64">
+        <main className={cn("transition-all duration-300", isCollapsed ? "pl-16" : "pl-64")}>
           <div className="p-8">
             {/* Header */}
             <div className="flex items-center justify-between mb-8">

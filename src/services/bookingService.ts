@@ -355,6 +355,7 @@ export interface CreateBookingData {
   // Optional
   notes?: string;
   paymentMethod?: string;
+  addonPackageId?: string;
 }
 
 /**
@@ -429,6 +430,7 @@ export async function createPublicBooking(bookingData: CreateBookingData): Promi
         total_price: bookingData.totalPrice,
         status: 'pending',
         notes: bookingData.notes || null,
+        addon_package_id: bookingData.addonPackageId || null,
       })
       .select(`
         *,

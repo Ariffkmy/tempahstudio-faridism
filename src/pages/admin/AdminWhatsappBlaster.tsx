@@ -10,13 +10,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveStudioId } from '@/contexts/StudioContext';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useSidebar } from '@/contexts/SidebarContext';
+import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { getStudioBookingsWithDetails, updateBookingStatus, updateBookingDeliveryLink } from '@/services/bookingService';
 import { Booking } from '@/types/booking';
 import { useToast } from '@/hooks/use-toast';
 
 const AdminWhatsappBlaster = () => {
-  const { isSuperAdmin } = useAuth();
+  const { user, studio, isSuperAdmin } = useAuth();
+  const { isCollapsed } = useSidebar();
   const effectiveStudioId = useEffectiveStudioId();
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -76,6 +79,7 @@ const AdminWhatsappBlaster = () => {
           notes: b.notes || undefined,
           internalNotes: b.internal_notes || undefined,
           deliveryLink: b.delivery_link || undefined,
+          addonPackageId: b.addon_package_id || undefined,
           createdAt: b.created_at,
           updatedAt: b.updated_at,
         }));
@@ -441,14 +445,6 @@ const AdminWhatsappBlaster = () => {
                   Ready for Delivery
                   <Badge variant="secondary" className="text-xs">{bookingsData['ready-for-delivery'].length}</Badge>
                 </h3>
-                <Button
-                  onClick={handleWhatsAppBlast}
-                  size="sm"
-                  className="text-xs"
-                >
-                  <Send className="w-3 h-3 mr-1" />
-                  Blast WhatsApp
-                </Button>
               </div>
               <div className="space-y-3">
                 {bookingsData['ready-for-delivery'].map((booking) => (
@@ -485,6 +481,18 @@ const AdminWhatsappBlaster = () => {
                   </Card>
                 ))}
               </div>
+
+              {/* Footer with Blast WhatsApp Button */}
+              <div className="mt-4">
+                <Button
+                  onClick={handleWhatsAppBlast}
+                  size="sm"
+                  className="w-full text-xs"
+                >
+                  <Send className="w-3 h-3 mr-1" />
+                  Blast WhatsApp
+                </Button>
+              </div>
             </div>
             {/* Done Delivery */}
             <div>
@@ -493,17 +501,17 @@ const AdminWhatsappBlaster = () => {
                 Done Delivery
                 <Badge variant="secondary" className="text-xs">{bookingsData['done-delivery'].length}</Badge>
               </h3>
-              
+
               {/* With Add-on Package Sub-section */}
               <div className="mb-4">
                 <h4 className="text-sm font-medium text-muted-foreground mb-2 pl-5">
                   ✨ With Add-on Package
                   <Badge variant="outline" className="text-xs ml-2">
-                    {bookingsData['done-delivery'].filter(b => b.totalPrice > 200).length}
+                    {bookingsData['done-delivery'].filter(b => !!b.addonPackageId).length}
                   </Badge>
                 </h4>
                 <div className="space-y-3">
-                  {bookingsData['done-delivery'].filter(b => b.totalPrice > 200).map((booking) => (
+                  {bookingsData['done-delivery'].filter(b => !!b.addonPackageId).map((booking) => (
                     <Card key={booking.id} className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-purple-500">
                       <CardContent className="p-3">
                         <div className="space-y-2">
@@ -539,11 +547,11 @@ const AdminWhatsappBlaster = () => {
                 <h4 className="text-sm font-medium text-muted-foreground mb-2 pl-5">
                   📦 Without Add-on Package
                   <Badge variant="outline" className="text-xs ml-2">
-                    {bookingsData['done-delivery'].filter(b => b.totalPrice <= 200).length}
+                    {bookingsData['done-delivery'].filter(b => !b.hasAddon).length}
                   </Badge>
                 </h4>
                 <div className="space-y-3">
-                  {bookingsData['done-delivery'].filter(b => b.totalPrice <= 200).map((booking) => (
+                  {bookingsData['done-delivery'].filter(b => !b.addonPackageId).map((booking) => (
                     <Card key={booking.id} className="cursor-pointer hover:shadow-md transition-shadow">
                       <CardContent className="p-3">
                         <div className="space-y-2">
@@ -573,173 +581,11 @@ const AdminWhatsappBlaster = () => {
                   )}
                 </div>
               </div>
-              {/* Done Delivery Column */}
-              <div
-                className="bg-muted/30 rounded-lg p-4 min-h-[500px] min-w-[320px] flex-shrink-0"
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, 'done-delivery')}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                    <h3 className="font-semibold">Done Delivery</h3>
-                  </div>
-                  <Badge variant="secondary">{bookingsData['done-delivery'].length}</Badge>
-                </div>
-                
-                {/* With Add-on Package Sub-section */}
-                <div className="mb-6">
-                  <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-                    ✨ With Add-on Package
-                    <Badge variant="outline" className="text-xs">
-                      {bookingsData['done-delivery'].filter(b => b.totalPrice > 200).length}
-                    </Badge>
-                  </h4>
-                  <div className="space-y-3">
-                    {bookingsData['done-delivery'].filter(b => b.totalPrice > 200).map((booking) => {
-                      const isExpanded = expandedCards.has(booking.id);
-                      return (
-                        <Card
-                          key={booking.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, booking, 'done-delivery')}
-                          className="cursor-move hover:shadow-lg transition-shadow border-l-4 border-l-purple-500"
-                        >
-                          <CardContent className="p-3">
-                            <div className="space-y-2">
-                              <div
-                                className="flex justify-between items-center cursor-pointer"
-                                onClick={() => toggleCardExpansion(booking.id)}
-                              >
-                                <div>
-                                  <span className="font-medium text-sm">{booking.reference}</span>
-                                  <div className="text-xs text-muted-foreground">{booking.customerName}</div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge className="text-xs bg-purple-500 text-white">✨ Add-on</Badge>
-                                  {isExpanded ?
-                                    <ChevronUp className="w-4 h-4 text-muted-foreground" /> :
-                                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                                  }
-                                </div>
-                              </div>
 
-                              {isExpanded && (
-                                <div className="space-y-1 text-xs text-muted-foreground border-t pt-2 mt-2">
-                                  <div className="flex items-center gap-1">
-                                    <Phone className="w-3 h-3" />
-                                    {booking.customerPhone || 'N/A'}
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Mail className="w-3 h-3" />
-                                    <span className="truncate">{booking.customerEmail || 'N/A'}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" />
-                                    {new Date(booking.date).toLocaleDateString('ms-MY')}
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    {booking.startTime} - {booking.endTime}
-                                  </div>
-                                  <div className="text-xs font-medium mt-1">
-                                    Layout: {booking.layoutName}
-                                  </div>
-                                  <div className="text-xs font-medium text-purple-600">
-                                    RM {booking.totalPrice.toFixed(2)}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                    {bookingsData['done-delivery'].filter(b => b.totalPrice > 200).length === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-4">No bookings</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Without Add-on Package Sub-section */}
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-                    📦 Without Add-on Package
-                    <Badge variant="outline" className="text-xs">
-                      {bookingsData['done-delivery'].filter(b => b.totalPrice <= 200).length}
-                    </Badge>
-                  </h4>
-                  <div className="space-y-3">
-                    {bookingsData['done-delivery'].filter(b => b.totalPrice <= 200).map((booking) => {
-                      const isExpanded = expandedCards.has(booking.id);
-                      return (
-                        <Card
-                          key={booking.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, booking, 'done-delivery')}
-                          className="cursor-move hover:shadow-lg transition-shadow"
-                        >
-                          <CardContent className="p-3">
-                            <div className="space-y-2">
-                              <div
-                                className="flex justify-between items-center cursor-pointer"
-                                onClick={() => toggleCardExpansion(booking.id)}
-                              >
-                                <div>
-                                  <span className="font-medium text-sm">{booking.reference}</span>
-                                  <div className="text-xs text-muted-foreground">{booking.customerName}</div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="secondary" className="text-xs">Standard</Badge>
-                                  {isExpanded ?
-                                    <ChevronUp className="w-4 h-4 text-muted-foreground" /> :
-                                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                                  }
-                                </div>
-                              </div>
-
-                              {isExpanded && (
-                                <div className="space-y-1 text-xs text-muted-foreground border-t pt-2 mt-2">
-                                  <div className="flex items-center gap-1">
-                                    <Phone className="w-3 h-3" />
-                                    {booking.customerPhone || 'N/A'}
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Mail className="w-3 h-3" />
-                                    <span className="truncate">{booking.customerEmail || 'N/A'}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" />
-                                    {new Date(booking.date).toLocaleDateString('ms-MY')}
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    {booking.startTime} - {booking.endTime}
-                                  </div>
-                                  <div className="text-xs font-medium mt-1">
-                                    Layout: {booking.layoutName}
-                                  </div>
-                                  <div className="text-xs font-medium text-green-600">
-                                    RM {booking.totalPrice.toFixed(2)}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                    {bookingsData['done-delivery'].filter(b => b.totalPrice <= 200).length === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-4">No bookings</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              </div>
+            </div>
 
 
-              {/* WhatsApp Blast Dialog */}
+            {/* WhatsApp Blast Dialog */}
             <Dialog open={isBlastDialogOpen} onOpenChange={setIsBlastDialogOpen}>
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
@@ -780,7 +626,7 @@ const AdminWhatsappBlaster = () => {
       <div className="min-h-screen bg-background">
         <AdminSidebar />
 
-        <main className="pl-64">
+        <main className={cn("transition-all duration-300", isCollapsed ? "pl-16" : "pl-64")}>
           <div className="p-8">
             {/* Header */}
             <div className="mb-8">
@@ -811,7 +657,7 @@ const AdminWhatsappBlaster = () => {
             <div className="flex gap-6 overflow-x-auto pb-4">
               {/* Ready for Editing Column */}
               <div
-                className="bg-muted/30 rounded-lg p-4 min-h-[500px] min-w-[320px] flex-shrink-0"
+                className="bg-muted/30 rounded-lg p-4 h-[calc(100vh-12rem)] min-w-[400px] flex-shrink-0 flex flex-col"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'complete-photoshoot')}
               >
@@ -822,7 +668,7 @@ const AdminWhatsappBlaster = () => {
                   </div>
                   <Badge variant="secondary">{bookingsData['complete-photoshoot'].length}</Badge>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-3 flex-1 overflow-y-auto">
                   {bookingsData['complete-photoshoot'].map((booking) => {
                     const isExpanded = expandedCards.has(booking.id);
                     return (
@@ -887,7 +733,7 @@ const AdminWhatsappBlaster = () => {
 
               {/* Editing in Progress Column */}
               <div
-                className="bg-muted/30 rounded-lg p-4 min-h-[500px] min-w-[320px] flex-shrink-0"
+                className="bg-muted/30 rounded-lg p-4 h-[calc(100vh-12rem)] min-w-[400px] flex-shrink-0 flex flex-col"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'editing-in-progress')}
               >
@@ -898,7 +744,7 @@ const AdminWhatsappBlaster = () => {
                   </div>
                   <Badge variant="secondary">{bookingsData['editing-in-progress'].length}</Badge>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-3 flex-1 overflow-y-auto">
                   {bookingsData['editing-in-progress'].map((booking) => {
                     const isExpanded = expandedCards.has(booking.id);
                     return (
@@ -963,7 +809,7 @@ const AdminWhatsappBlaster = () => {
 
               {/* Ready for Delivery Column */}
               <div
-                className="bg-muted/30 rounded-lg p-4 min-h-[500px] min-w-[320px] flex-shrink-0"
+                className="bg-muted/30 rounded-lg p-4 h-[calc(100vh-12rem)] min-w-[400px] flex-shrink-0 flex flex-col"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'ready-for-delivery')}
               >
@@ -972,18 +818,9 @@ const AdminWhatsappBlaster = () => {
                     <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                     <h3 className="font-semibold">Ready for Delivery</h3>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      onClick={handleWhatsAppBlast}
-                      size="sm"
-                    >
-                      <Send className="w-4 h-4 mr-2" />
-                      Blast WhatsApp
-                    </Button>
-                    <Badge variant="secondary">{bookingsData['ready-for-delivery'].length}</Badge>
-                  </div>
+                  <Badge variant="secondary">{bookingsData['ready-for-delivery'].length}</Badge>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-3 flex-1 overflow-y-auto">
                   {bookingsData['ready-for-delivery'].map((booking) => {
                     const isExpanded = expandedCards.has(booking.id);
                     return (
@@ -1041,98 +878,23 @@ const AdminWhatsappBlaster = () => {
                     );
                   })}
                 </div>
-              </div>
-            </div>
-            {/* Done Delivery */}
-            <div>
-              <h3 className="font-medium mb-3 flex items-center gap-2">
-                <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                Done Delivery
-                <Badge variant="secondary" className="text-xs">{bookingsData['done-delivery'].length}</Badge>
-              </h3>
-              
-              {/* With Add-on Package Sub-section */}
-              <div className="mb-4">
-                <h4 className="text-sm font-medium text-muted-foreground mb-2 pl-5">
-                  ✨ With Add-on Package
-                  <Badge variant="outline" className="text-xs ml-2">
-                    {bookingsData['done-delivery'].filter(b => b.totalPrice > 200).length}
-                  </Badge>
-                </h4>
-                <div className="space-y-3">
-                  {bookingsData['done-delivery'].filter(b => b.totalPrice > 200).map((booking) => (
-                    <Card key={booking.id} className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-purple-500">
-                      <CardContent className="p-3">
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-start">
-                            <span className="font-medium text-sm">{booking.reference}</span>
-                            <Badge className="text-xs bg-purple-500 text-white">✨ Add-on</Badge>
-                          </div>
-                          <div className="space-y-1 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <User className="w-3 h-3" />
-                              {booking.customerName}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {new Date(booking.date).toLocaleDateString('ms-MY')}
-                            </div>
-                            <div className="text-xs font-medium text-purple-600">
-                              RM {booking.totalPrice.toFixed(2)}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  {bookingsData['done-delivery'].filter(b => b.totalPrice > 200).length === 0 && (
-                    <p className="text-xs text-muted-foreground text-center py-4">No bookings</p>
-                  )}
+
+                {/* Footer with Blast WhatsApp Button */}
+                <div className="mt-4 pt-4 border-t">
+                  <Button
+                    onClick={handleWhatsAppBlast}
+                    className="w-full"
+                    size="sm"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    Blast WhatsApp
+                  </Button>
                 </div>
               </div>
 
-              {/* Without Add-on Package Sub-section */}
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-2 pl-5">
-                  📦 Without Add-on Package
-                  <Badge variant="outline" className="text-xs ml-2">
-                    {bookingsData['done-delivery'].filter(b => b.totalPrice <= 200).length}
-                  </Badge>
-                </h4>
-                <div className="space-y-3">
-                  {bookingsData['done-delivery'].filter(b => b.totalPrice <= 200).map((booking) => (
-                    <Card key={booking.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                      <CardContent className="p-3">
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-start">
-                            <span className="font-medium text-sm">{booking.reference}</span>
-                            <Badge variant="secondary" className="text-xs">Standard</Badge>
-                          </div>
-                          <div className="space-y-1 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <User className="w-3 h-3" />
-                              {booking.customerName}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {new Date(booking.date).toLocaleDateString('ms-MY')}
-                            </div>
-                            <div className="text-xs font-medium text-green-600">
-                              RM {booking.totalPrice.toFixed(2)}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  {bookingsData['done-delivery'].filter(b => b.totalPrice <= 200).length === 0 && (
-                    <p className="text-xs text-muted-foreground text-center py-4">No bookings</p>
-                  )}
-                </div>
-              </div>
               {/* Done Delivery Column */}
               <div
-                className="bg-muted/30 rounded-lg p-4 min-h-[500px] min-w-[320px] flex-shrink-0"
+                className="bg-muted/30 rounded-lg p-4 h-[calc(100vh-12rem)] min-w-[400px] flex-shrink-0 flex flex-col"
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, 'done-delivery')}
               >
@@ -1143,160 +905,162 @@ const AdminWhatsappBlaster = () => {
                   </div>
                   <Badge variant="secondary">{bookingsData['done-delivery'].length}</Badge>
                 </div>
-                
-                {/* With Add-on Package Sub-section */}
-                <div className="mb-6">
-                  <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-                    ✨ With Add-on Package
-                    <Badge variant="outline" className="text-xs">
-                      {bookingsData['done-delivery'].filter(b => b.totalPrice > 200).length}
-                    </Badge>
-                  </h4>
-                  <div className="space-y-3">
-                    {bookingsData['done-delivery'].filter(b => b.totalPrice > 200).map((booking) => {
-                      const isExpanded = expandedCards.has(booking.id);
-                      return (
-                        <Card
-                          key={booking.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, booking, 'done-delivery')}
-                          className="cursor-move hover:shadow-lg transition-shadow border-l-4 border-l-purple-500"
-                        >
-                          <CardContent className="p-3">
-                            <div className="space-y-2">
-                              <div
-                                className="flex justify-between items-center cursor-pointer"
-                                onClick={() => toggleCardExpansion(booking.id)}
-                              >
-                                <div>
-                                  <span className="font-medium text-sm">{booking.reference}</span>
-                                  <div className="text-xs text-muted-foreground">{booking.customerName}</div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge className="text-xs bg-purple-500 text-white">✨ Add-on</Badge>
-                                  {isExpanded ?
-                                    <ChevronUp className="w-4 h-4 text-muted-foreground" /> :
-                                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                                  }
-                                </div>
-                              </div>
 
-                              {isExpanded && (
-                                <div className="space-y-1 text-xs text-muted-foreground border-t pt-2 mt-2">
-                                  <div className="flex items-center gap-1">
-                                    <Phone className="w-3 h-3" />
-                                    {booking.customerPhone || 'N/A'}
+                {/* Scrollable content area */}
+                <div className="flex-1 overflow-y-auto">
+                  {/* With Add-on Package Sub-section */}
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                      ✨ With Add-on Package
+                      <Badge variant="outline" className="text-xs">
+                        {bookingsData['done-delivery'].filter(b => !!b.addonPackageId).length}
+                      </Badge>
+                    </h4>
+                    <div className="space-y-3">
+                      {bookingsData['done-delivery'].filter(b => !!b.addonPackageId).map((booking) => {
+                        const isExpanded = expandedCards.has(booking.id);
+                        return (
+                          <Card
+                            key={booking.id}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, booking, 'done-delivery')}
+                            className="cursor-move hover:shadow-lg transition-shadow border-l-4 border-l-purple-500"
+                          >
+                            <CardContent className="p-3">
+                              <div className="space-y-2">
+                                <div
+                                  className="flex justify-between items-center cursor-pointer"
+                                  onClick={() => toggleCardExpansion(booking.id)}
+                                >
+                                  <div>
+                                    <span className="font-medium text-sm">{booking.reference}</span>
+                                    <div className="text-xs text-muted-foreground">{booking.customerName}</div>
                                   </div>
-                                  <div className="flex items-center gap-1">
-                                    <Mail className="w-3 h-3" />
-                                    <span className="truncate">{booking.customerEmail || 'N/A'}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" />
-                                    {new Date(booking.date).toLocaleDateString('ms-MY')}
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    {booking.startTime} - {booking.endTime}
-                                  </div>
-                                  <div className="text-xs font-medium mt-1">
-                                    Layout: {booking.layoutName}
-                                  </div>
-                                  <div className="text-xs font-medium text-purple-600">
-                                    RM {booking.totalPrice.toFixed(2)}
+                                  <div className="flex items-center gap-2">
+                                    <Badge className="text-xs bg-purple-500 text-white">✨ Add-on</Badge>
+                                    {isExpanded ?
+                                      <ChevronUp className="w-4 h-4 text-muted-foreground" /> :
+                                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                                    }
                                   </div>
                                 </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                    {bookingsData['done-delivery'].filter(b => b.totalPrice > 200).length === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-4">No bookings</p>
-                    )}
+
+                                {isExpanded && (
+                                  <div className="space-y-1 text-xs text-muted-foreground border-t pt-2 mt-2">
+                                    <div className="flex items-center gap-1">
+                                      <Phone className="w-3 h-3" />
+                                      {booking.customerPhone || 'N/A'}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Mail className="w-3 h-3" />
+                                      <span className="truncate">{booking.customerEmail || 'N/A'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      {new Date(booking.date).toLocaleDateString('ms-MY')}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      {booking.startTime} - {booking.endTime}
+                                    </div>
+                                    <div className="text-xs font-medium mt-1">
+                                      Layout: {booking.layoutName}
+                                    </div>
+                                    <div className="text-xs font-medium text-purple-600">
+                                      RM {booking.totalPrice.toFixed(2)}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                      {bookingsData['done-delivery'].filter(b => !!b.addonPackageId).length === 0 && (
+                        <p className="text-xs text-muted-foreground text-center py-4">No bookings</p>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                {/* Without Add-on Package Sub-section */}
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
-                    📦 Without Add-on Package
-                    <Badge variant="outline" className="text-xs">
-                      {bookingsData['done-delivery'].filter(b => b.totalPrice <= 200).length}
-                    </Badge>
-                  </h4>
-                  <div className="space-y-3">
-                    {bookingsData['done-delivery'].filter(b => b.totalPrice <= 200).map((booking) => {
-                      const isExpanded = expandedCards.has(booking.id);
-                      return (
-                        <Card
-                          key={booking.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, booking, 'done-delivery')}
-                          className="cursor-move hover:shadow-lg transition-shadow"
-                        >
-                          <CardContent className="p-3">
-                            <div className="space-y-2">
-                              <div
-                                className="flex justify-between items-center cursor-pointer"
-                                onClick={() => toggleCardExpansion(booking.id)}
-                              >
-                                <div>
-                                  <span className="font-medium text-sm">{booking.reference}</span>
-                                  <div className="text-xs text-muted-foreground">{booking.customerName}</div>
+                  {/* Without Add-on Package Sub-section */}
+                  <div>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-2">
+                      📦 Without Add-on Package
+                      <Badge variant="outline" className="text-xs">
+                        {bookingsData['done-delivery'].filter(b => !b.addonPackageId).length}
+                      </Badge>
+                    </h4>
+                    <div className="space-y-3">
+                      {bookingsData['done-delivery'].filter(b => !b.addonPackageId).map((booking) => {
+                        const isExpanded = expandedCards.has(booking.id);
+                        return (
+                          <Card
+                            key={booking.id}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, booking, 'done-delivery')}
+                            className="cursor-move hover:shadow-lg transition-shadow"
+                          >
+                            <CardContent className="p-3">
+                              <div className="space-y-2">
+                                <div
+                                  className="flex justify-between items-center cursor-pointer"
+                                  onClick={() => toggleCardExpansion(booking.id)}
+                                >
+                                  <div>
+                                    <span className="font-medium text-sm">{booking.reference}</span>
+                                    <div className="text-xs text-muted-foreground">{booking.customerName}</div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="secondary" className="text-xs">Standard</Badge>
+                                    {isExpanded ?
+                                      <ChevronUp className="w-4 h-4 text-muted-foreground" /> :
+                                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                                    }
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="secondary" className="text-xs">Standard</Badge>
-                                  {isExpanded ?
-                                    <ChevronUp className="w-4 h-4 text-muted-foreground" /> :
-                                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                                  }
-                                </div>
+
+                                {isExpanded && (
+                                  <div className="space-y-1 text-xs text-muted-foreground border-t pt-2 mt-2">
+                                    <div className="flex items-center gap-1">
+                                      <Phone className="w-3 h-3" />
+                                      {booking.customerPhone || 'N/A'}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Mail className="w-3 h-3" />
+                                      <span className="truncate">{booking.customerEmail || 'N/A'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      {new Date(booking.date).toLocaleDateString('ms-MY')}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Clock className="w-3 h-4" />
+                                      {booking.startTime} - {booking.endTime}
+                                    </div>
+                                    <div className="text-xs font-medium mt-1">
+                                      Layout: {booking.layoutName}
+                                    </div>
+                                    <div className="text-xs font-medium text-green-600">
+                                      RM {booking.totalPrice.toFixed(2)}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-
-                              {isExpanded && (
-                                <div className="space-y-1 text-xs text-muted-foreground border-t pt-2 mt-2">
-                                  <div className="flex items-center gap-1">
-                                    <Phone className="w-3 h-3" />
-                                    {booking.customerPhone || 'N/A'}
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Mail className="w-3 h-3" />
-                                    <span className="truncate">{booking.customerEmail || 'N/A'}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" />
-                                    {new Date(booking.date).toLocaleDateString('ms-MY')}
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    {booking.startTime} - {booking.endTime}
-                                  </div>
-                                  <div className="text-xs font-medium mt-1">
-                                    Layout: {booking.layoutName}
-                                  </div>
-                                  <div className="text-xs font-medium text-green-600">
-                                    RM {booking.totalPrice.toFixed(2)}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                    {bookingsData['done-delivery'].filter(b => b.totalPrice <= 200).length === 0 && (
-                      <p className="text-xs text-muted-foreground text-center py-4">No bookings</p>
-                    )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                      {bookingsData['done-delivery'].filter(b => !b.addonPackageId).length === 0 && (
+                        <p className="text-xs text-muted-foreground text-center py-4">No bookings</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              </div>
 
-
-              {/* WhatsApp Blast Dialog */}
+            {/* WhatsApp Blast Dialog */}
             <Dialog open={isBlastDialogOpen} onOpenChange={setIsBlastDialogOpen}>
               <DialogContent className="max-w-2xl">
                 <DialogHeader>

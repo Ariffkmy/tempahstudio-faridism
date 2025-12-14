@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink, Palette, Image as ImageIcon, Users as UsersIcon, Trash, MessageCircle, Paintbrush, Layout } from 'lucide-react';
+import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink, Palette, Image as ImageIcon, Users as UsersIcon, Trash, MessageCircle, Paintbrush, Layout, Edit, Save, Clock } from 'lucide-react';
 import { loadStudioSettings, saveStudioSettings, updateStudioLayouts, saveGoogleCredentials, initiateGoogleAuth, exchangeGoogleCode, loadStudioPortfolioPhotos, deleteStudioPortfolioPhoto } from '@/services/studioSettings';
 import { supabase } from '@/lib/supabase';
 import { uploadLogo, uploadTermsPdf } from '@/services/fileUploadService';
@@ -34,7 +34,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import type { StudioLayout } from '@/types/database';
 import type { AddonPackage } from '@/types/booking';
-import { createStudioUser, getStudioAdmins } from '@/services/adminAuth';
+import { createStudioUser, getStudioAdmins, updateStudioUser, deleteStudioUser } from '@/services/adminAuth';
 import type { AdminUser } from '@/types/database';
 import { useSidebar } from '@/contexts/SidebarContext';
 
@@ -71,6 +71,7 @@ const AdminSettings = () => {
     ownerName: '',
     ownerPhone: '',
     studioEmail: '',
+    studioPhone: '',
     bankAccountNumber: '',
     accountOwnerName: '',
     qrCode: '',
@@ -122,7 +123,9 @@ const AdminSettings = () => {
     bookingTitleFont: 'default',
     bookingTitleSize: 'xl',
     bookingSubtitleFont: 'default',
-    bookingSubtitleSize: 'base'
+    bookingSubtitleSize: 'base',
+    // Studio operational status
+    isOperational: true
   });
 
   const [layouts, setLayouts] = useState<StudioLayout[]>([]);
@@ -139,6 +142,16 @@ const AdminSettings = () => {
     phone: '',
     password: '',
   });
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editUserForm, setEditUserForm] = useState({
+    email: '',
+    full_name: '',
+    phone: '',
+  });
+  const [isDeletingUser, setIsDeletingUser] = useState<string | null>(null);
+
+  // Unavailable dates state
+  const [isDateRange, setIsDateRange] = useState(false);
 
   const [newLayout, setNewLayout] = useState({
     name: '',
@@ -191,6 +204,7 @@ const AdminSettings = () => {
             ownerName: data.ownerName,
             ownerPhone: data.ownerPhone,
             studioEmail: data.studioEmail,
+            studioPhone: data.studioPhone || '',
             bankAccountNumber: data.bankAccountNumber,
             accountOwnerName: data.accountOwnerName,
             qrCode: data.qrCode,
@@ -473,6 +487,118 @@ const AdminSettings = () => {
       });
     } finally {
       setIsCreatingUser(false);
+    }
+  };
+
+  // Handle edit user
+  const handleEditUser = (studioUser: AdminUser) => {
+    setEditingUserId(studioUser.id);
+    setEditUserForm({
+      email: studioUser.email,
+      full_name: studioUser.full_name,
+      phone: studioUser.phone || '',
+    });
+  };
+
+  // Handle cancel edit
+  const handleCancelEdit = () => {
+    setEditingUserId(null);
+    setEditUserForm({
+      email: '',
+      full_name: '',
+      phone: '',
+    });
+  };
+
+  // Handle save edit
+  const handleSaveEdit = async (userId: string) => {
+    // Validate form
+    if (!editUserForm.email || !editUserForm.full_name) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(editUserForm.email)) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const result = await updateStudioUser(userId, {
+        email: editUserForm.email,
+        full_name: editUserForm.full_name,
+        phone: editUserForm.phone || undefined,
+      });
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "User updated successfully",
+        });
+        // Reset edit state
+        handleCancelEdit();
+        // Reload users
+        await loadStudioUsers();
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to update user",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update user",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle delete user
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Are you sure you want to delete ${userName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setIsDeletingUser(userId);
+    try {
+      const result = await deleteStudioUser(userId);
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "User deleted successfully",
+        });
+        // Reload users
+        await loadStudioUsers();
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to delete user",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete user",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingUser(null);
     }
   };
 
@@ -1502,7 +1628,7 @@ const AdminSettings = () => {
             {/* Settings Tabs */}
             <Tabs defaultValue="maklumat-asas" className="w-full">
               <div className="border-b border-border">
-                <TabsList className="grid w-full grid-cols-5 md:flex md:w-auto h-auto p-0 bg-transparent justify-start">
+                <TabsList className="grid w-full grid-cols-6 md:flex md:w-auto h-auto p-0 bg-transparent justify-start">
                   <TabsTrigger
                     value="maklumat-asas"
                     className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
@@ -1535,8 +1661,15 @@ const AdminSettings = () => {
                     value="users"
                     className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
                   >
-                    <UsersIcon className="h-4 w-4 mr-2" />
+                    <span className="mr-2">👥</span>
                     Users
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="waktu-operasi"
+                    className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    <span className="mr-2">🕒</span>
+                    Waktu Operasi
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -1574,6 +1707,21 @@ const AdminSettings = () => {
                             className="pl-9"
                           />
                         </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="studioPhone">Telefon Studio</Label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="studioPhone"
+                          type="tel"
+                          value={settings.studioPhone}
+                          onChange={(e) => handleSettingChange('studioPhone', e.target.value)}
+                          placeholder="012-345-6789"
+                          className="pl-9"
+                        />
                       </div>
                     </div>
 
@@ -3456,32 +3604,419 @@ const AdminSettings = () => {
                             <TableHead>Phone</TableHead>
                             <TableHead>Role</TableHead>
                             <TableHead>Created</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {studioUsers.map((studioUser) => (
-                            <TableRow key={studioUser.id}>
-                              <TableCell className="font-medium">
-                                {studioUser.full_name}
-                              </TableCell>
-                              <TableCell>{studioUser.email}</TableCell>
-                              <TableCell>{studioUser.phone || '-'}</TableCell>
-                              <TableCell>
-                                <Badge variant="default">
-                                  {studioUser.role === 'admin' ? 'Admin' : studioUser.role === 'staff' ? 'Staff' : studioUser.role}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                {new Date(studioUser.created_at).toLocaleDateString()}
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                          {studioUsers.map((studioUser) => {
+                            const isEditing = editingUserId === studioUser.id;
+                            const isCurrentUser = user?.id === studioUser.id;
+
+                            return (
+                              <TableRow key={studioUser.id}>
+                                <TableCell className="font-medium">
+                                  {isEditing ? (
+                                    <Input
+                                      value={editUserForm.full_name}
+                                      onChange={(e) => setEditUserForm({ ...editUserForm, full_name: e.target.value })}
+                                      placeholder="Full Name"
+                                      className="h-8"
+                                    />
+                                  ) : (
+                                    studioUser.full_name
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {isEditing ? (
+                                    <Input
+                                      type="email"
+                                      value={editUserForm.email}
+                                      onChange={(e) => setEditUserForm({ ...editUserForm, email: e.target.value })}
+                                      placeholder="Email"
+                                      className="h-8"
+                                    />
+                                  ) : (
+                                    studioUser.email
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {isEditing ? (
+                                    <Input
+                                      type="tel"
+                                      value={editUserForm.phone}
+                                      onChange={(e) => setEditUserForm({ ...editUserForm, phone: e.target.value })}
+                                      placeholder="Phone"
+                                      className="h-8"
+                                    />
+                                  ) : (
+                                    studioUser.phone || '-'
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="default">
+                                    {studioUser.role === 'admin' ? 'Admin' : studioUser.role === 'staff' ? 'Staff' : studioUser.role}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {new Date(studioUser.created_at).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex items-center justify-end gap-2">
+                                    {isEditing ? (
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => handleSaveEdit(studioUser.id)}
+                                          className="h-8 w-8 p-0"
+                                        >
+                                          <Save className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={handleCancelEdit}
+                                          className="h-8 w-8 p-0"
+                                        >
+                                          <X className="h-4 w-4" />
+                                        </Button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => handleEditUser(studioUser)}
+                                          disabled={isCurrentUser}
+                                          className="h-8 w-8 p-0"
+                                          title={isCurrentUser ? "Cannot edit your own account" : "Edit user"}
+                                        >
+                                          <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => handleDeleteUser(studioUser.id, studioUser.full_name)}
+                                          disabled={isCurrentUser || isDeletingUser === studioUser.id}
+                                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                          title={isCurrentUser ? "Cannot delete your own account" : "Delete user"}
+                                        >
+                                          {isDeletingUser === studioUser.id ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                            <Trash className="h-4 w-4" />
+                                          )}
+                                        </Button>
+                                      </>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
                         </TableBody>
                       </Table>
                     )}
                   </CardContent>
                 </Card >
               </TabsContent >
+
+              {/* Tab 6: Waktu Operasi */}
+              <TabsContent value="waktu-operasi" className="space-y-6 mt-6">
+                {/* Studio Operational Status - Killer Switch */}
+                <Card className={`border-2 ${settings.isOperational ? 'border-green-500/50 bg-green-50/50' : 'border-red-500/50 bg-red-50/50'}`}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          {settings.isOperational ? (
+                            <>
+                              <div className="h-3 w-3 rounded-full bg-green-500 animate-pulse"></div>
+                              <h3 className="text-lg font-semibold text-green-900">Studio Beroperasi</h3>
+                            </>
+                          ) : (
+                            <>
+                              <div className="h-3 w-3 rounded-full bg-red-500"></div>
+                              <h3 className="text-lg font-semibold text-red-900">Studio Tidak Beroperasi</h3>
+                            </>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {settings.isOperational
+                            ? 'Studio sedang menerima tempahan. Pelanggan boleh membuat tempahan melalui borang tempahan.'
+                            : 'Studio tidak menerima tempahan. Pelanggan tidak boleh membuat tempahan baru.'
+                          }
+                        </p>
+                      </div>
+                      <div>
+                        {settings.isOperational ? (
+                          <Button
+                            variant="destructive"
+                            size="lg"
+                            onClick={() => {
+                              if (window.confirm('Anda pasti mahu menutup studio? Pelanggan tidak akan dapat membuat tempahan baru.')) {
+                                setSettings({ ...settings, isOperational: false });
+                              }
+                            }}
+                            className="min-w-[180px]"
+                          >
+                            <X className="h-5 w-5 mr-2" />
+                            Tidak Beroperasi
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="default"
+                            size="lg"
+                            onClick={() => {
+                              if (window.confirm('Anda pasti mahu membuka semula studio? Pelanggan akan dapat membuat tempahan.')) {
+                                setSettings({ ...settings, isOperational: true });
+                              }
+                            }}
+                            className="min-w-[180px] bg-green-600 hover:bg-green-700"
+                          >
+                            <Plus className="h-5 w-5 mr-2" />
+                            Mula Beroperasi
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Operating Hours Card */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Waktu Operasi Harian</CardTitle>
+                    <CardDescription>Tetapkan waktu operasi studio untuk setiap hari</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Monday */}
+                    <div className="flex items-center gap-4 p-4 border rounded-lg">
+                      <div className="flex items-center gap-3 flex-1">
+                        <Switch id="monday-enabled" defaultChecked />
+                        <Label htmlFor="monday-enabled" className="font-medium min-w-[80px]">Isnin</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input type="time" defaultValue="09:00" className="w-32" />
+                        <span className="text-muted-foreground">-</span>
+                        <Input type="time" defaultValue="18:00" className="w-32" />
+                      </div>
+                    </div>
+
+                    {/* Tuesday */}
+                    <div className="flex items-center gap-4 p-4 border rounded-lg">
+                      <div className="flex items-center gap-3 flex-1">
+                        <Switch id="tuesday-enabled" defaultChecked />
+                        <Label htmlFor="tuesday-enabled" className="font-medium min-w-[80px]">Selasa</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input type="time" defaultValue="09:00" className="w-32" />
+                        <span className="text-muted-foreground">-</span>
+                        <Input type="time" defaultValue="18:00" className="w-32" />
+                      </div>
+                    </div>
+
+                    {/* Wednesday */}
+                    <div className="flex items-center gap-4 p-4 border rounded-lg">
+                      <div className="flex items-center gap-3 flex-1">
+                        <Switch id="wednesday-enabled" defaultChecked />
+                        <Label htmlFor="wednesday-enabled" className="font-medium min-w-[80px]">Rabu</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input type="time" defaultValue="09:00" className="w-32" />
+                        <span className="text-muted-foreground">-</span>
+                        <Input type="time" defaultValue="18:00" className="w-32" />
+                      </div>
+                    </div>
+
+                    {/* Thursday */}
+                    <div className="flex items-center gap-4 p-4 border rounded-lg">
+                      <div className="flex items-center gap-3 flex-1">
+                        <Switch id="thursday-enabled" defaultChecked />
+                        <Label htmlFor="thursday-enabled" className="font-medium min-w-[80px]">Khamis</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input type="time" defaultValue="09:00" className="w-32" />
+                        <span className="text-muted-foreground">-</span>
+                        <Input type="time" defaultValue="18:00" className="w-32" />
+                      </div>
+                    </div>
+
+                    {/* Friday */}
+                    <div className="flex items-center gap-4 p-4 border rounded-lg">
+                      <div className="flex items-center gap-3 flex-1">
+                        <Switch id="friday-enabled" defaultChecked />
+                        <Label htmlFor="friday-enabled" className="font-medium min-w-[80px]">Jumaat</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input type="time" defaultValue="09:00" className="w-32" />
+                        <span className="text-muted-foreground">-</span>
+                        <Input type="time" defaultValue="18:00" className="w-32" />
+                      </div>
+                    </div>
+
+                    {/* Saturday */}
+                    <div className="flex items-center gap-4 p-4 border rounded-lg">
+                      <div className="flex items-center gap-3 flex-1">
+                        <Switch id="saturday-enabled" defaultChecked />
+                        <Label htmlFor="saturday-enabled" className="font-medium min-w-[80px]">Sabtu</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input type="time" defaultValue="09:00" className="w-32" />
+                        <span className="text-muted-foreground">-</span>
+                        <Input type="time" defaultValue="18:00" className="w-32" />
+                      </div>
+                    </div>
+
+                    {/* Sunday */}
+                    <div className="flex items-center gap-4 p-4 border rounded-lg">
+                      <div className="flex items-center gap-3 flex-1">
+                        <Switch id="sunday-enabled" />
+                        <Label htmlFor="sunday-enabled" className="font-medium min-w-[80px]">Ahad</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input type="time" defaultValue="09:00" className="w-32" disabled />
+                        <span className="text-muted-foreground">-</span>
+                        <Input type="time" defaultValue="18:00" className="w-32" disabled />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Unavailable Dates Card */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Tarikh Tidak Beroperasi</CardTitle>
+                    <CardDescription>Tetapkan tarikh dan waktu di mana studio tidak beroperasi (cuti umum, cuti tahunan, dll)</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Add Unavailable Date Button */}
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button className="w-full">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Tambah Tarikh Tidak Tersedia
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-[600px]">
+                        <DialogHeader>
+                          <DialogTitle>Tambah Tarikh Tidak Tersedia</DialogTitle>
+                          <DialogDescription>
+                            Tetapkan tarikh dan waktu di mana studio tidak beroperasi
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          {/* Date Range Toggle */}
+                          <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                            <Switch
+                              id="dialog-date-range"
+                              checked={isDateRange}
+                              onCheckedChange={setIsDateRange}
+                            />
+                            <div className="flex-1">
+                              <Label htmlFor="dialog-date-range" className="font-medium cursor-pointer">Julat Tarikh</Label>
+                              <p className="text-xs text-muted-foreground">Pilih beberapa hari berturut-turut</p>
+                            </div>
+                          </div>
+
+                          {/* Date Inputs */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className={`space-y-2 ${!isDateRange ? 'md:col-span-2' : ''}`}>
+                              <Label htmlFor="dialog-start-date">Tarikh Mula *</Label>
+                              <Input
+                                id="dialog-start-date"
+                                type="date"
+                                placeholder="Pilih tarikh"
+                              />
+                            </div>
+                            {/* End Date - Only shown when date range is enabled */}
+                            {isDateRange && (
+                              <div className="space-y-2">
+                                <Label htmlFor="dialog-end-date">Tarikh Tamat *</Label>
+                                <Input
+                                  id="dialog-end-date"
+                                  type="date"
+                                  placeholder="Pilih tarikh tamat"
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Reason */}
+                          <div className="space-y-2">
+                            <Label htmlFor="dialog-unavailable-reason">Sebab (Optional)</Label>
+                            <Input
+                              id="dialog-unavailable-reason"
+                              placeholder="Cth: Cuti Umum, Cuti Tahunan, Cuti Peribadi"
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                            <Switch id="dialog-whole-day-unavailable" defaultChecked />
+                            <div className="flex-1">
+                              <Label htmlFor="dialog-whole-day-unavailable" className="font-medium cursor-pointer">Sepanjang Hari</Label>
+                              <p className="text-xs text-muted-foreground">Studio tidak beroperasi sepanjang hari</p>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="dialog-start-time">Waktu Mula Tidak Tersedia</Label>
+                              <Input
+                                id="dialog-start-time"
+                                type="time"
+                                defaultValue="09:00"
+                                disabled
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="dialog-end-time">Waktu Tamat Tidak Tersedia</Label>
+                              <Input
+                                id="dialog-end-time"
+                                type="time"
+                                defaultValue="18:00"
+                                disabled
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button type="submit" className="w-full sm:w-auto">
+                            <Plus className="h-4 w-4 mr-2" />
+                            Tambah
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+
+                    {/* List of Unavailable Dates */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Senarai Tarikh Tidak Tersedia</Label>
+                      <div className="border rounded-lg divide-y">
+                        {/* Empty state */}
+                        <div className="p-8 text-center text-muted-foreground">
+                          <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p>Tiada data</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Save Button */}
+                <div className="flex justify-end">
+                  <Button onClick={saveSettings} size="lg" disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Menyimpan...
+                      </>
+                    ) : (
+                      'Simpan Tetapan'
+                    )}
+                  </Button>
+                </div>
+              </TabsContent>
             </Tabs >
           </div >
         </main >

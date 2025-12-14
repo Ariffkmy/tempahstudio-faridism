@@ -91,6 +91,51 @@ export async function uploadLogo(file: File, studioId: string): Promise<UploadRe
 }
 
 /**
+ * Upload About photo to Supabase Storage
+ */
+export async function uploadAboutPhoto(file: File, studioId: string): Promise<UploadResult> {
+  try {
+    // Validate file
+    const validation = validateFile(file, MAX_LOGO_SIZE);
+    if (!validation.valid) {
+      return { success: false, error: validation.error };
+    }
+
+    // Create unique filename with studio ID and timestamp
+    const fileExt = file.name.split('.').pop();
+    const fileName = `about_${studioId}_${Date.now()}.${fileExt}`;
+    const filePath = `${studioId}/about/${fileName}`;
+
+    // Debug authentication status
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('Current auth session:', { user: session?.user?.id, sessionValid: !!session?.user });
+
+    // Upload file to logo bucket (reusing the same bucket)
+    const { data, error } = await supabase.storage
+      .from(LOGO_BUCKET)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true
+      });
+
+    if (error) {
+      console.error('About photo upload error:', error);
+      return { success: false, error: 'Failed to upload about photo' };
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from(LOGO_BUCKET)
+      .getPublicUrl(filePath);
+
+    return { success: true, url: publicUrl };
+  } catch (error) {
+    console.error('Unexpected error during about photo upload:', error);
+    return { success: false, error: 'Unexpected error occurred' };
+  }
+}
+
+/**
  * Delete logo from Supabase Storage
  */
 export async function deleteLogo(url: string): Promise<{ success: boolean; error?: string }> {

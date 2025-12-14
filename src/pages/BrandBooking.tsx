@@ -116,6 +116,7 @@ const BrandBooking = () => {
     headerAboutEnabled: false,
     headerAboutUrl: '',
     headerAboutText: '',
+    headerAboutPhoto: '',
     headerPortfolioEnabled: false,
     headerPortfolioUrl: '',
     headerContactEnabled: false,
@@ -204,6 +205,7 @@ const BrandBooking = () => {
           headerAboutEnabled: studioData.header_about_enabled || false,
           headerAboutUrl: studioData.header_about_url || '',
           headerAboutText: (studioData as any).header_about_text || '',
+          headerAboutPhoto: (studioData as any).header_about_photo || '',
           headerPortfolioEnabled: studioData.header_portfolio_enabled || false,
           headerPortfolioUrl: studioData.header_portfolio_url || '',
           headerContactEnabled: studioData.header_contact_enabled || false,
@@ -489,6 +491,7 @@ const BrandBooking = () => {
           contactUrl={customization.headerContactUrl}
           homeText={customization.headerHomeText}
           aboutText={customization.headerAboutText}
+          aboutPhoto={customization.headerAboutPhoto}
           contactAddress={customization.headerContactAddress}
           contactPhone={customization.headerContactPhone}
           contactEmail={customization.headerContactEmail}

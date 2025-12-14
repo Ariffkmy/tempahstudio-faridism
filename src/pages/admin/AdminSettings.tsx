@@ -57,6 +57,7 @@ const AdminSettings = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
+  const [isUploadingAboutPhoto, setIsUploadingAboutPhoto] = useState(false);
   const [portfolioPhotos, setPortfolioPhotos] = useState<string[]>([]);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
   const [deletingPhotoUrl, setDeletingPhotoUrl] = useState<string | null>(null);
@@ -97,6 +98,7 @@ const AdminSettings = () => {
     headerAboutEnabled: false,
     headerAboutUrl: '',
     headerAboutText: '',
+    headerAboutPhoto: '',
     headerPortfolioEnabled: false,
     headerPortfolioUrl: '',
     headerContactEnabled: false,
@@ -212,12 +214,18 @@ const AdminSettings = () => {
             headerLogo: data.headerLogo || '',
             headerHomeEnabled: data.headerHomeEnabled || false,
             headerHomeUrl: data.headerHomeUrl || '',
+            headerHomeText: data.headerHomeText || '',
             headerAboutEnabled: data.headerAboutEnabled || false,
             headerAboutUrl: data.headerAboutUrl || '',
+            headerAboutText: data.headerAboutText || '',
+            headerAboutPhoto: data.headerAboutPhoto || '',
             headerPortfolioEnabled: data.headerPortfolioEnabled || false,
             headerPortfolioUrl: data.headerPortfolioUrl || '',
             headerContactEnabled: data.headerContactEnabled || false,
             headerContactUrl: data.headerContactUrl || '',
+            headerContactAddress: data.headerContactAddress || '',
+            headerContactPhone: data.headerContactPhone || '',
+            headerContactEmail: data.headerContactEmail || '',
             enablePortfolioPhotoUpload: data.enablePortfolioPhotoUpload || false,
             portfolioUploadInstructions: data.portfolioUploadInstructions || 'Upload your photos for your portfolio session. Maximum 20 photos, each file up to 10MB.',
             portfolioMaxFileSize: data.portfolioMaxFileSize || 10,
@@ -2814,6 +2822,101 @@ const AdminSettings = () => {
                                   <p className="text-xs text-muted-foreground">
                                     This text will appear in a popup when users click on the About navigation
                                   </p>
+
+                                  {/* About Photo Upload */}
+                                  <div className="space-y-2 mt-4">
+                                    <Label htmlFor="headerAboutPhoto" className="text-xs">
+                                      About Photo (Optional)
+                                      {settings.headerAboutPhoto && <span className="text-muted-foreground ml-1">- Upload new to replace</span>}
+                                    </Label>
+                                    <Input
+                                      id="headerAboutPhoto"
+                                      type="file"
+                                      accept="image/*"
+                                      disabled={isUploadingAboutPhoto}
+                                      onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+
+                                        if (!effectiveStudioId) {
+                                          toast({
+                                            title: "Studio not ready",
+                                            description: "Please select a studio before uploading a photo.",
+                                            variant: "destructive",
+                                          });
+                                          return;
+                                        }
+
+                                        setIsUploadingAboutPhoto(true);
+                                        try {
+                                          const { uploadAboutPhoto } = await import('@/services/fileUploadService');
+                                          const result = await uploadAboutPhoto(file, effectiveStudioId);
+                                          if (result.success && result.url) {
+                                            handleSettingChange('headerAboutPhoto', result.url);
+                                            toast({ title: "Photo uploaded", description: "About photo updated successfully." });
+                                          } else {
+                                            toast({
+                                              title: "Upload failed",
+                                              description: result.error || "Failed to upload photo",
+                                              variant: "destructive",
+                                            });
+                                          }
+                                        } catch (error) {
+                                          console.error('About photo upload error:', error);
+                                          toast({
+                                            title: "Upload failed",
+                                            description: "Unexpected error while uploading photo",
+                                            variant: "destructive",
+                                          });
+                                        } finally {
+                                          setIsUploadingAboutPhoto(false);
+                                          // Clear the input
+                                          e.target.value = '';
+                                        }
+                                      }}
+                                    />
+                                    {settings.headerAboutPhoto ? (
+                                      <div className="space-y-2 p-3 bg-muted rounded-md">
+                                        <span className="text-sm block">Current photo:</span>
+                                        <div className="relative w-full max-w-xs max-h-48 rounded-md border bg-white overflow-hidden flex items-center justify-center">
+                                          <img
+                                            src={settings.headerAboutPhoto}
+                                            alt="About photo"
+                                            className="max-w-full max-h-48 h-auto object-contain"
+                                            onError={(e) => {
+                                              const target = e.target as HTMLImageElement;
+                                              target.style.display = 'none';
+                                            }}
+                                          />
+                                          {isUploadingAboutPhoto && (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-white/70">
+                                              <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
+                                            </div>
+                                          )}
+                                          <Button
+                                            type="button"
+                                            size="icon"
+                                            variant="ghost"
+                                            className="absolute top-1 right-1 h-8 w-8 bg-red-600 hover:bg-red-700 text-white"
+                                            onClick={() => {
+                                              handleSettingChange('headerAboutPhoto', '');
+                                              toast({
+                                                title: "Photo removed",
+                                                description: "About photo has been removed. Click 'Simpan Tetapan' to save changes.",
+                                              });
+                                            }}
+                                            aria-label="Delete about photo"
+                                          >
+                                            <Trash className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <p className="text-sm text-muted-foreground">
+                                        Upload a photo to display in the About popup
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
                               )}
                             </div>

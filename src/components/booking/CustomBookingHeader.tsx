@@ -22,6 +22,7 @@ interface CustomBookingHeaderProps {
   contactUrl?: string;
   homeText?: string;
   aboutText?: string;
+  aboutPhoto?: string;
   contactAddress?: string;
   contactPhone?: string;
   contactEmail?: string;
@@ -42,6 +43,7 @@ const CustomBookingHeader = ({
   contactUrl,
   homeText,
   aboutText,
+  aboutPhoto,
   contactAddress,
   contactPhone,
   contactEmail,
@@ -219,7 +221,7 @@ const CustomBookingHeader = ({
 
       {/* Home Dialog */}
       <Dialog open={homeDialogOpen} onOpenChange={setHomeDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto m-4">
           <DialogHeader>
             <DialogTitle className="text-2xl">Home</DialogTitle>
           </DialogHeader>
@@ -231,19 +233,33 @@ const CustomBookingHeader = ({
 
       {/* About Dialog */}
       <Dialog open={aboutDialogOpen} onOpenChange={setAboutDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto m-4">
           <DialogHeader>
             <DialogTitle className="text-2xl">About</DialogTitle>
           </DialogHeader>
-          <div className="mt-4">
-            <p className="text-base whitespace-pre-wrap leading-relaxed">{aboutText}</p>
+          <div className="mt-4 space-y-4">
+            {aboutPhoto && (
+              <div className="w-full max-h-[40vh] rounded-lg overflow-hidden flex items-center justify-center bg-muted/30">
+                <img
+                  src={aboutPhoto}
+                  alt="About"
+                  className="max-w-full max-h-[40vh] h-auto object-contain"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+            {aboutText && (
+              <p className="text-base whitespace-pre-wrap leading-relaxed">{aboutText}</p>
+            )}
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Contact Dialog */}
       <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto m-4">
           <DialogHeader>
             <DialogTitle className="text-2xl">Contact Us</DialogTitle>
             <DialogDescription>Get in touch with us</DialogDescription>

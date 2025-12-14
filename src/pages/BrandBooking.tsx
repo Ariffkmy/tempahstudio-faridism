@@ -468,6 +468,52 @@ const BrandBooking = () => {
     );
   }
 
+  // Check if studio is operational
+  const isStudioOperational = (studio as any).is_operational !== false;
+
+  if (!isStudioOperational) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <Card className="p-8 text-center shadow-2xl border-2">
+            <div className="mb-6">
+              <div className="mx-auto w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <span className="text-6xl">😔</span>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-3">
+                Maaf
+              </h2>
+              <p className="text-lg text-gray-700 mb-2">
+                {studio.name} tidak menerima sebarang tempahan buat masa ini
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Sila hubungi kami untuk maklumat lanjut
+              </p>
+            </div>
+
+            {(studio.email || studio.phone) && (
+              <div className="mt-6 pt-6 border-t space-y-2">
+                <p className="text-sm text-muted-foreground mb-3">Hubungi kami:</p>
+                {studio.email && (
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-sm text-muted-foreground">📧</span>
+                    <p className="text-sm font-medium">{studio.email}</p>
+                  </div>
+                )}
+                {studio.phone && (
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-sm text-muted-foreground">📱</span>
+                    <p className="text-sm font-medium">{studio.phone}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="min-h-screen bg-muted/20"

@@ -56,6 +56,7 @@ export interface Studio {
   image?: string | null;
   opening_hours: OpeningHours;
   email?: string | null;
+  phone?: string | null;
   google_maps_link?: string | null;
   waze_link?: string | null;
   bank_account_number?: string | null;

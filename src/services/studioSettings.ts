@@ -12,6 +12,7 @@ export interface StudioSettings {
   slug: string;
   studioLocation: string;
   studioEmail: string;
+  studioPhone: string;
   googleMapsLink: string;
   wazeLink: string;
 
@@ -82,6 +83,9 @@ export interface StudioSettings {
   bookingTitleSize: string;
   bookingSubtitleFont: string;
   bookingSubtitleSize: string;
+
+  // Studio operational status
+  isOperational: boolean;
 }
 
 export interface StudioSettingsWithLayouts extends StudioSettings {
@@ -177,6 +181,7 @@ export async function loadStudioSettings(studioId?: string): Promise<StudioSetti
       slug: studio.slug || '',
       studioLocation: studio.location || '',
       studioEmail: studio.email || '',
+      studioPhone: studio.phone || '',
       googleMapsLink: studio.google_maps_link || '',
       wazeLink: studio.waze_link || '',
       ownerName: ownerName,
@@ -232,6 +237,7 @@ export async function loadStudioSettings(studioId?: string): Promise<StudioSetti
       bookingTitleSize: (studio as any).booking_title_size || 'xl',
       bookingSubtitleFont: (studio as any).booking_subtitle_font || 'default',
       bookingSubtitleSize: (studio as any).booking_subtitle_size || 'base',
+      isOperational: (studio as any).is_operational !== false, // Default to true if not set
       layouts: layouts || []
     };
 
@@ -279,6 +285,7 @@ export async function saveStudioSettings(
       name: settings.studioName,
       location: settings.studioLocation,
       email: settings.studioEmail,
+      phone: settings.studioPhone,
       google_maps_link: settings.googleMapsLink,
       waze_link: settings.wazeLink,
       bank_account_number: settings.bankAccountNumber,
@@ -316,6 +323,7 @@ export async function saveStudioSettings(
         name: settings.studioName,
         location: settings.studioLocation,
         email: settings.studioEmail,
+        phone: settings.studioPhone,
         google_maps_link: settings.googleMapsLink,
         waze_link: settings.wazeLink,
         bank_account_number: settings.bankAccountNumber,
@@ -366,6 +374,7 @@ export async function saveStudioSettings(
         booking_title_size: settings.bookingTitleSize,
         booking_subtitle_font: settings.bookingSubtitleFont,
         booking_subtitle_size: settings.bookingSubtitleSize,
+        is_operational: settings.isOperational,
         updated_at: new Date().toISOString()
       })
       .eq('id', targetStudioId)

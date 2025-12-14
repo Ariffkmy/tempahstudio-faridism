@@ -70,7 +70,7 @@ export async function registerAdmin(data: AdminRegistrationData): Promise<{
     if (authError) {
       // Rollback: Delete the created studio
       await supabase.from('studios').delete().eq('id', newStudio.id);
-      
+
       // Handle specific errors
       if (authError.message.includes('already registered')) {
         return {
@@ -806,6 +806,171 @@ export async function createStudioUser(data: {
     };
   } catch (error) {
     console.error('Create studio user error:', error);
+    return {
+      success: false,
+      error: 'Unexpected error occurred',
+    };
+  }
+}
+
+/**
+ * Update a studio user's information
+ * Only callable by admins (not staff) of the same studio
+ */
+export async function updateStudioUser(
+  userId: string,
+  updates: {
+    full_name?: string;
+    phone?: string;
+    email?: string;
+  }
+): Promise<{
+  success: boolean;
+  user?: AdminUser;
+  error?: string;
+}> {
+  try {
+    // Get current admin to verify permissions
+    const currentAdmin = await getCurrentAdmin();
+    if (!currentAdmin) {
+      return {
+        success: false,
+        error: 'Not authenticated',
+      };
+    }
+
+    // Check if current user is staff (staff cannot update users)
+    if (currentAdmin.role === 'staff') {
+      return {
+        success: false,
+        error: 'Staff cannot update users',
+      };
+    }
+
+    // Get the user to update
+    const { data: userToUpdate, error: fetchError } = await supabase
+      .from('admin_users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (fetchError || !userToUpdate) {
+      return {
+        success: false,
+        error: 'User not found',
+      };
+    }
+
+    // Verify the user belongs to the same studio (unless super admin)
+    if (currentAdmin.role !== 'super_admin' && userToUpdate.studio_id !== currentAdmin.studio_id) {
+      return {
+        success: false,
+        error: 'Cannot update users from other studios',
+      };
+    }
+
+    // Update admin_users record
+    const { data: updatedUser, error: updateError } = await supabase
+      .from('admin_users')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (updateError) {
+      return {
+        success: false,
+        error: updateError.message,
+      };
+    }
+
+    return {
+      success: true,
+      user: updatedUser,
+    };
+  } catch (error) {
+    console.error('Update studio user error:', error);
+    return {
+      success: false,
+      error: 'Unexpected error occurred',
+    };
+  }
+}
+
+/**
+ * Delete a studio user
+ * Only callable by admins (not staff) of the same studio
+ */
+export async function deleteStudioUser(userId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    // Get current admin to verify permissions
+    const currentAdmin = await getCurrentAdmin();
+    if (!currentAdmin) {
+      return {
+        success: false,
+        error: 'Not authenticated',
+      };
+    }
+
+    // Check if current user is staff (staff cannot delete users)
+    if (currentAdmin.role === 'staff') {
+      return {
+        success: false,
+        error: 'Staff cannot delete users',
+      };
+    }
+
+    // Prevent deleting yourself
+    if (currentAdmin.id === userId) {
+      return {
+        success: false,
+        error: 'Cannot delete your own account',
+      };
+    }
+
+    // Get the user to delete
+    const { data: userToDelete, error: fetchError } = await supabase
+      .from('admin_users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (fetchError || !userToDelete) {
+      return {
+        success: false,
+        error: 'User not found',
+      };
+    }
+
+    // Verify the user belongs to the same studio (unless super admin)
+    if (currentAdmin.role !== 'super_admin' && userToDelete.studio_id !== currentAdmin.studio_id) {
+      return {
+        success: false,
+        error: 'Cannot delete users from other studios',
+      };
+    }
+
+    // Soft delete: set is_active to false
+    const { error: deleteError } = await supabase
+      .from('admin_users')
+      .update({ is_active: false })
+      .eq('id', userId);
+
+    if (deleteError) {
+      return {
+        success: false,
+        error: deleteError.message,
+      };
+    }
+
+    return {
+      success: true,
+    };
+  } catch (error) {
+    console.error('Delete studio user error:', error);
     return {
       success: false,
       error: 'Unexpected error occurred',

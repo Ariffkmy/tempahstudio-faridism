@@ -10,7 +10,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, Menu, Home, Users, CalendarDays, BarChart3, Cog, LogOut, Key, Shield, Mail, Phone, Plus, X, FileText, Edit, Check, RotateCcw, User, UserCheck, Send } from 'lucide-react';
+import { Settings, Menu, Home, Users, CalendarDays, BarChart3, Cog, LogOut, Key, Shield, Mail, Phone, Plus, X, FileText, Edit, Check, RotateCcw, User, UserCheck, Send, Package, Wallet, CreditCard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -22,11 +22,18 @@ import type { AdminUser, Customer } from '@/types/database';
 // Import payment gateway service
 import { getPaymentGatewaySettings, updatePaymentGatewaySettings } from '@/services/paymentGatewayService';
 
+// Import PackageManagement component
+import { PackageManagement } from '@/components/admin/PackageManagement';
+
+// Import PaymentSettingsManagement component
+import { PaymentSettingsManagement } from '@/components/admin/PaymentSettingsManagement';
+
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: Home },
   { name: 'Tempahan', href: '/admin/bookings', icon: CalendarDays },
   { name: 'Laporan', href: '/admin/reports', icon: BarChart3 },
   { name: 'Pengurusan', href: '/admin/management', icon: Users },
+  { name: 'Package Payments', href: '/admin/package-payments', icon: CreditCard, superAdminOnly: true },
   { name: 'Tetapan', href: '/admin/settings', icon: Cog },
 ];
 
@@ -148,6 +155,7 @@ const AdminSuperSettings = () => {
     twilioSid: '',
     twilioAuthToken: '',
     twilioWhatsappNumber: '',
+    deliveryTemplateSid: '',
   });
   const [sendgridTemplates, setSendgridTemplates] = useState<Array<any>>([]);
   const [newTemplate, setNewTemplate] = useState({
@@ -213,6 +221,7 @@ const AdminSuperSettings = () => {
             twilioSid: twilioResult.settings.twilio_sid || '',
             twilioAuthToken: twilioResult.settings.twilio_auth_token || '',
             twilioWhatsappNumber: twilioResult.settings.twilio_whatsapp_number || '',
+            deliveryTemplateSid: twilioResult.settings.delivery_template_sid || '',
           });
         }
 
@@ -569,6 +578,7 @@ const AdminSuperSettings = () => {
         twilio_sid: twilioSettings.twilioSid,
         twilio_auth_token: twilioSettings.twilioAuthToken,
         twilio_whatsapp_number: twilioSettings.twilioWhatsappNumber,
+        delivery_template_sid: twilioSettings.deliveryTemplateSid,
       });
 
       if (!twilioResult.success) {
@@ -706,6 +716,14 @@ const AdminSuperSettings = () => {
                 <TabsTrigger value="users" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
                   <User className="h-4 w-4 mr-2" />
                   Users
+                </TabsTrigger>
+                <TabsTrigger value="packages" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                  <Package className="h-4 w-4 mr-2" />
+                  Pakej Business
+                </TabsTrigger>
+                <TabsTrigger value="payment-settings" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                  <Wallet className="h-4 w-4 mr-2" />
+                  Payment Settings
                 </TabsTrigger>
                 <TabsTrigger value="google-calendar" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
                   <CalendarDays className="h-4 w-4 mr-2" />
@@ -907,6 +925,16 @@ const AdminSuperSettings = () => {
                   </Card>
                 </TabsContent>
               </Tabs>
+            </TabsContent>
+
+            {/* Packages Tab Content */}
+            <TabsContent value="packages" className="space-y-4">
+              <PackageManagement />
+            </TabsContent>
+
+            {/* Payment Settings Tab Content */}
+            <TabsContent value="payment-settings" className="space-y-4">
+              <PaymentSettingsManagement />
             </TabsContent>
 
             <TabsContent value="google-calendar" className="space-y-4">
@@ -1315,6 +1343,28 @@ const AdminSuperSettings = () => {
                     </p>
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="deliveryTemplateSidMobile" className="text-sm">Delivery Template SID</Label>
+                    <Input
+                      id="deliveryTemplateSidMobile"
+                      value={twilioSettings.deliveryTemplateSid}
+                      onChange={(e) => handleTwilioChange('deliveryTemplateSid', e.target.value)}
+                      placeholder="HXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      className="font-mono text-xs"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Twilio Content Template SID untuk notifikasi penghantaran (optional)
+                    </p>
+                    <p className="text-xs text-blue-600">
+                      Template variables: {'{1}'} = Customer Name, {'{2}'} = Delivery Link, {'{3}'} = Admin Phone, {'{4}'} = Studio Name
+                    </p>
+                  </div>
+
+                  {/* Test WhatsApp Button */}
+                  <div className="pt-4 border-t">
+                    <TestWhatsAppDialog />
+                  </div>
+
                   <div className="pt-4 border-t">
                     <Button
                       onClick={saveSettings}
@@ -1479,6 +1529,14 @@ const AdminSuperSettings = () => {
                   <TabsTrigger value="users" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
                     <User className="h-4 w-4 mr-2" />
                     Users
+                  </TabsTrigger>
+                  <TabsTrigger value="packages" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                    <Package className="h-4 w-4 mr-2" />
+                    Pakej Business
+                  </TabsTrigger>
+                  <TabsTrigger value="payment-settings" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                    <Wallet className="h-4 w-4 mr-2" />
+                    Payment Settings
                   </TabsTrigger>
                   <TabsTrigger value="google-calendar" className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
                     <CalendarDays className="h-4 w-4 mr-2" />
@@ -1682,7 +1740,15 @@ const AdminSuperSettings = () => {
                 </Tabs>
               </TabsContent>
 
+              {/* Packages Tab Content */}
+              <TabsContent value="packages" className="space-y-6 mt-6">
+                <PackageManagement />
+              </TabsContent>
 
+              {/* Payment Settings Tab Content */}
+              <TabsContent value="payment-settings" className="space-y-6 mt-6">
+                <PaymentSettingsManagement />
+              </TabsContent>
 
               <TabsContent value="google-calendar" className="space-y-6 mt-6">
                 {/* Google Calendar Settings */}
@@ -2092,6 +2158,23 @@ const AdminSuperSettings = () => {
                         />
                         <p className="text-sm text-muted-foreground">
                           Nombor WhatsApp yang didaftarkan dengan Twilio
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="deliveryTemplateSidDesktop">Delivery Template SID</Label>
+                        <Input
+                          id="deliveryTemplateSidDesktop"
+                          value={twilioSettings.deliveryTemplateSid}
+                          onChange={(e) => handleTwilioChange('deliveryTemplateSid', e.target.value)}
+                          placeholder="HXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                          className="font-mono"
+                        />
+                        <p className="text-sm text-muted-foreground">
+                          Twilio Content Template SID untuk notifikasi penghantaran (optional)
+                        </p>
+                        <p className="text-sm text-blue-600">
+                          Template variables: {'{1}'} = Customer Name, {'{2}'} = Delivery Link, {'{3}'} = Admin Phone, {'{4}'} = Studio Name
                         </p>
                       </div>
                     </div>

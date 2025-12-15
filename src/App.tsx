@@ -23,6 +23,8 @@ import AdminReports from "./pages/admin/AdminReports";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminManagement from "./pages/admin/AdminManagement";
 import AdminSuperSettings from "./pages/admin/AdminSuperSettings";
+import AdminPackagePayments from "./pages/admin/AdminPackagePayments";
+import PackagePayment from "./pages/PackagePayment";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +55,9 @@ const App = () => (
                 <Route path="/admin/login" element={<AdminLogin />} />
                 <Route path="/admin/register" element={<AdminRegister />} />
                 <Route path="/admin/verify-email" element={<VerifyEmail />} />
+
+                {/* Package Payment Route (Public) */}
+                <Route path="/package-payment" element={<PackagePayment />} />
 
                 {/* Protected Admin Routes */}
                 <Route
@@ -108,6 +113,14 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <AdminSuperSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/package-payments"
+                  element={
+                    <ProtectedRoute>
+                      <AdminPackagePayments />
                     </ProtectedRoute>
                   }
                 />

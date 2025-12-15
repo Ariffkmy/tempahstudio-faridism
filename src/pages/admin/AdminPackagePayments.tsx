@@ -33,7 +33,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { getAllPackagePayments, updatePackagePayment, type PackagePayment } from '@/services/packagePaymentService';
-import { CreditCard, Eye, FileText, CheckCircle, XCircle, Clock, Menu } from 'lucide-react';
+import { CreditCard, Eye, FileText, CheckCircle, XCircle, Clock, Menu, Users, DollarSign, Package } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function AdminPackagePayments() {
@@ -166,6 +166,93 @@ export default function AdminPackagePayments() {
             {/* Main Content */}
             <div className={`flex-1 transition-all duration-300 ${isCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
                 <div className="container mx-auto py-8 px-4 pt-20 lg:pt-8">
+                    {/* Stats Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                        {/* Total Paid Users */}
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    Total Paid Users
+                                </CardTitle>
+                                <Users className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">
+                                    {payments.filter(p => ['verified', 'completed'].includes(p.status)).length}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Verified & Completed
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        {/* Total Payment */}
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    Total Payment
+                                </CardTitle>
+                                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">
+                                    RM {payments
+                                        .filter(p => ['verified', 'completed'].includes(p.status))
+                                        .reduce((sum, p) => sum + Number(p.package_price), 0)
+                                        .toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Total revenue collected
+                                </p>
+                            </CardContent>
+                        </Card>
+
+                        {/* Package Selection */}
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    Package Selection
+                                </CardTitle>
+                                <Package className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-1">
+                                    {Object.entries(
+                                        payments.reduce((acc, p) => {
+                                            acc[p.package_name] = (acc[p.package_name] || 0) + 1;
+                                            return acc;
+                                        }, {} as Record<string, number>)
+                                    ).map(([name, count]) => (
+                                        <div key={name} className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground capitalize">{name}:</span>
+                                            <span className="font-bold">{count}</span>
+                                        </div>
+                                    ))}
+                                    {payments.length === 0 && (
+                                        <div className="text-sm text-muted-foreground">No data</div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Pending Users */}
+                        <Card>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">
+                                    Pending Users
+                                </CardTitle>
+                                <Clock className="h-4 w-4 text-muted-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">
+                                    {payments.filter(p => p.status === 'pending').length}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Awaiting verification
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
                     <Card>
                         <CardHeader>
                             <div className="flex items-center justify-between">

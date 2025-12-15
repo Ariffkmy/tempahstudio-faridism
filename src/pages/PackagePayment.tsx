@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function PackagePayment() {
     const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
     const packageSlug = searchParams.get('package') || 'silver';
     const { toast } = useToast();
 
@@ -183,6 +184,9 @@ export default function PackagePayment() {
                 title: 'Terima kasih!',
                 description: 'Pembayaran anda telah dihantar. Kami akan menghubungi anda tidak lama lagi.',
             });
+
+            // Navigate to admin registration
+            navigate('/admin/register');
 
             // Reset form
             setFormData({

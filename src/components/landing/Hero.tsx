@@ -111,9 +111,9 @@ export function Hero() {
                 duration: 0.5,
                 ease: [0.4, 0.0, 0.2, 1],
               }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-balance text-center lg:text-left mb-6"
+              className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-center lg:text-left mb-6"
             >
-              Platform mengurus tempahan <Highlight className="mt-2">studio raya anda </Highlight> 📆
+              Platform mengurus tempahan <span className="inline-block whitespace-nowrap"><Highlight className="mt-2">studio raya anda</Highlight> 📆</span>
             </motion.h1>
 
             <p className="text-s sm:text-s max-w-xl mb-8 text-center lg:text-left animate-slide-up stagger-1">

@@ -20,6 +20,8 @@ export async function getTwilioSettings(): Promise<{
     twilio_sid: string;
     twilio_auth_token: string;
     twilio_whatsapp_number: string;
+    delivery_template_sid?: string;
+    delivery_template_variables?: Record<string, string>;
     created_at: string;
     updated_at: string;
   };
@@ -65,6 +67,8 @@ export async function updateTwilioSettings(updates: {
   twilio_sid?: string;
   twilio_auth_token?: string;
   twilio_whatsapp_number?: string;
+  delivery_template_sid?: string;
+  delivery_template_variables?: Record<string, string>;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     // Check if settings already exist
@@ -109,7 +113,7 @@ export async function updateTwilioSettings(updates: {
 }
 
 /**
- * Send WhatsApp message via Twilio
+ * Send WhatsApp message via Twilio (plain text message)
  */
 export async function sendWhatsAppMessage(phoneNumber: string, message: string): Promise<{
   success: boolean;
@@ -133,5 +137,38 @@ export async function sendWhatsAppMessage(phoneNumber: string, message: string):
   } catch (error) {
     console.error('Error calling Twilio whatsApp function:', error);
     return { success: false, error: 'Unexpected error occurred while sending WhatsApp message' };
+  }
+}
+
+/**
+ * Send WhatsApp message via Twilio using Content Template
+ */
+export async function sendWhatsAppTemplate(
+  phoneNumber: string,
+  templateSid: string,
+  templateVariables: Record<string, string>
+): Promise<{
+  success: boolean;
+  sid?: string;
+  error?: string;
+}> {
+  try {
+    const { data, error } = await supabase.functions.invoke('send-whatsapp-twilio', {
+      body: {
+        phoneNumber,
+        templateSid,
+        templateVariables,
+      },
+    });
+
+    if (error) {
+      console.error('Error sending WhatsApp template:', error);
+      return { success: false, error: error.message };
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error calling Twilio whatsApp template function:', error);
+    return { success: false, error: 'Unexpected error occurred while sending WhatsApp template' };
   }
 }

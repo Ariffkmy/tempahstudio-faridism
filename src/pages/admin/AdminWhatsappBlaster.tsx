@@ -16,6 +16,7 @@ import { Link } from 'react-router-dom';
 import { getStudioBookingsWithDetails, updateBookingStatus, updateBookingDeliveryLink } from '@/services/bookingService';
 import { Booking } from '@/types/booking';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 const AdminWhatsappBlaster = () => {
   const { user, studio, isSuperAdmin } = useAuth();
@@ -200,29 +201,106 @@ const AdminWhatsappBlaster = () => {
 
   const handleSend = async () => {
     try {
-      const { sendWhatsAppMessage } = await import('@/services/twilioService');
+      // Import both functions
+      const { sendWhatsAppTemplate, getTwilioSettings } = await import('@/services/twilioService');
+
+      // Get Twilio settings to check for template configuration
+      const twilioResult = await getTwilioSettings();
+
+      if (!twilioResult.success || !twilioResult.settings) {
+        toast({
+          title: 'Ralat',
+          description: 'Gagal mendapatkan tetapan Twilio',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const { delivery_template_sid } = twilioResult.settings;
+
+      if (!delivery_template_sid) {
+        toast({
+          title: 'Ralat',
+          description: 'Template SID tidak dikonfigurasi. Sila tetapkan di Super Settings.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Get studio information for admin phone and studio name
+      if (!effectiveStudioId) {
+        toast({
+          title: 'Ralat',
+          description: 'Studio ID tidak dijumpai',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Fetch studio details to get admin phone and studio name
+      const { data: studioData, error: studioError } = await supabase
+        .from('studios')
+        .select('name, phone')
+        .eq('id', effectiveStudioId)
+        .single();
+
+      if (studioError || !studioData) {
+        toast({
+          title: 'Ralat',
+          description: 'Gagal mendapatkan maklumat studio',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const studioPhone = studioData.phone || '+60123456789'; // Fallback phone
+      const studioName = studioData.name || 'Raya Studio';
+
+      let successCount = 0;
+      let failCount = 0;
 
       for (const b of readyWithLinks) {
         const deliveryLink = b.deliveryLink || bookingLinks[b.id] || '[Link tidak tersedia]';
-        const personalizedMessage = blastMessage
-          .replace('{{name}}', b.customerName)
-          .replace('{{studioname}}', 'Raya Studio')
-          .replace('{{link}}', deliveryLink);
-        const result = await sendWhatsAppMessage(b.customerPhone, personalizedMessage);
+
+        // Prepare template variables matching the new template structure
+        const templateVariables = {
+          '1': b.customerName,      // {{1}} = customer name
+          '2': deliveryLink,        // {{2}} = delivery link
+          '3': studioPhone,         // {{3}} = studio admin phone number
+          '4': studioName           // {{4}} = studio name
+        };
+
+        const result = await sendWhatsAppTemplate(
+          b.customerPhone,
+          delivery_template_sid,
+          templateVariables
+        );
 
         if (!result.success) {
           console.error(`Failed to send WhatsApp to ${b.customerName}: ${result.error}`);
-          // Continue with other recipients even if one fails
+          failCount++;
         } else {
           console.log(`WhatsApp sent to ${b.customerName}, SID: ${result.sid}`);
+          successCount++;
         }
       }
+
+      // Show summary toast
+      toast({
+        title: 'WhatsApp Blast Selesai',
+        description: `Berjaya: ${successCount}, Gagal: ${failCount}`,
+        variant: successCount > 0 ? 'default' : 'destructive',
+      });
 
       setBlastMessage(defaultMessage);
       setIsBlastDialogOpen(false);
     } catch (error) {
       console.error('Error sending WhatsApp messages:', error);
-      // Still close the dialog and reset
+      toast({
+        title: 'Ralat',
+        description: 'Gagal menghantar mesej WhatsApp',
+        variant: 'destructive',
+      });
       setBlastMessage(defaultMessage);
       setIsBlastDialogOpen(false);
     }
@@ -1068,11 +1146,17 @@ const AdminWhatsappBlaster = () => {
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <label className="font-medium">Mesej:</label>
-                    <Textarea value={blastMessage} onChange={(e) => setBlastMessage(e.target.value)} className="min-h-[120px]" />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Gunakan: <code className="bg-muted px-1 rounded">{`{{name}}`}</code>, <code className="bg-muted px-1 rounded">{`{{link}}`}</code>, <code className="bg-muted px-1 rounded">{`{{studioname}}`}</code>
-                    </p>
+                    <label className="font-medium">Template:</label>
+                    <div className="p-3 bg-muted rounded-md text-sm text-balance">
+                      <p className="font-medium mb-1">Menggunakan Twilio Content Template</p>
+                      <p className="text-muted-foreground">Mesej akan dihantar menggunakan template yang telah dikonfigurasi di Super Settings.</p>
+                      <ul className="list-disc list-inside mt-2 text-xs text-muted-foreground">
+                        <li>Nama Pelanggan (Automatic)</li>
+                        <li>Link Gambar (Dari input)</li>
+                        <li>No. Telefon Admin (Automatic)</li>
+                        <li>Nama Studio (Automatic)</li>
+                      </ul>
+                    </div>
                   </div>
                   <div>
                     <label className="font-medium">Penerima:</label>

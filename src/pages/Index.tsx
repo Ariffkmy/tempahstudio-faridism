@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/landing/Header';
 import { Hero } from '@/components/landing/Hero';
 import { MockHeroSection } from '@/components/landing/MockHeroSection';
@@ -9,20 +10,42 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { getPackages } from '@/services/packageService';
+import type { Package } from '@/types/database';
+import { CheckCircle2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const Index = () => {
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [loadingPackages, setLoadingPackages] = useState(true);
+
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        const data = await getPackages(); // Only fetch active packages
+        setPackages(data);
+      } catch (error) {
+        console.error('Error fetching packages:', error);
+      } finally {
+        setLoadingPackages(false);
+      }
+    };
+
+    fetchPackages();
+  }, []);
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       <Header />
-      <main>
+      <main className="overflow-x-hidden">
         <Hero />
         <MockHeroSection />
 
         {/* Phone Mockup Section - Desktop 3x3 Grid, Mobile Single Column */}
-        <section className="py-32 bg-background relative overflow-hidden">
+        <section className="py-16 md:py-32 bg-background relative overflow-hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-5xl font-bold text-foreground mb-6">
+            <div className="text-center mb-12 md:mb-16">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4 md:mb-6">
                 Solusi lengkap untuk studio raya anda!
               </h2>
 
@@ -31,7 +54,7 @@ const Index = () => {
             {/* Responsive Grid: 2x4 on Desktop (always 8 features), Single Column on Mobile */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-4 items-stretch">
               <div className="flex justify-center">
-                <div className="w-full bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white/20 min-h-[160px] lg:min-h-0 lg:min-w-[200px]">
+                <div className="w-full max-w-md lg:max-w-none bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white/20 min-h-[160px] lg:min-h-0">
                   <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mb-2 text-xl">
                     ✅
                   </div>
@@ -41,7 +64,7 @@ const Index = () => {
               </div>
 
               <div className="flex justify-center">
-                <div className="w-full bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white/20 min-h-[160px] lg:min-h-0 lg:min-w-[200px]">
+                <div className="w-full max-w-md lg:max-w-none bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white/20 min-h-[160px] lg:min-h-0">
                   <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mb-2 text-xl">
                     🗓️
                   </div>
@@ -51,7 +74,7 @@ const Index = () => {
               </div>
 
               <div className="flex justify-center">
-                <div className="w-full bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white/20 min-h-[160px] lg:min-h-0 lg:min-w-[200px]">
+                <div className="w-full max-w-md lg:max-w-none bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white/20 min-h-[160px] lg:min-h-0">
                   <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mb-2 text-xl">
                     💳
                   </div>
@@ -61,7 +84,7 @@ const Index = () => {
               </div>
 
               <div className="flex justify-center">
-                <div className="w-full bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white/20 min-h-[160px] lg:min-h-0 lg:min-w-[200px]">
+                <div className="w-full max-w-md lg:max-w-none bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white/20 min-h-[160px] lg:min-h-0">
                   <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mb-2 text-xl">
                     📊
                   </div>
@@ -71,7 +94,7 @@ const Index = () => {
               </div>
 
               <div className="flex justify-center">
-                <div className="w-full bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white/20 min-h-[160px] lg:min-h-0 lg:min-w-[200px]">
+                <div className="w-full max-w-md lg:max-w-none bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white/20 min-h-[160px] lg:min-h-0">
                   <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mb-2 text-xl">
                     👥
                   </div>
@@ -81,7 +104,7 @@ const Index = () => {
               </div>
 
               <div className="flex justify-center">
-                <div className="w-full bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white/20 min-w-[220px] min-h-[160px] lg:min-h-0 lg:min-w-[220px]">
+                <div className="w-full max-w-md lg:max-w-none bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white/20 min-h-[160px] lg:min-h-0">
                   <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mb-2 text-xl">
                     ⚙️
                   </div>
@@ -91,7 +114,7 @@ const Index = () => {
               </div>
 
               <div className="flex justify-center">
-                <div className="w-full bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white/20 min-h-[160px] lg:min-h-0 lg:min-w-[200px]">
+                <div className="w-full max-w-md lg:max-w-none bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white/20 min-h-[160px] lg:min-h-0">
                   <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mb-2 text-xl">
                     🧾
                   </div>
@@ -101,7 +124,7 @@ const Index = () => {
               </div>
 
               <div className="flex justify-center">
-                <div className="w-full bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white/20 min-h-[160px] lg:min-h-0 lg:min-w-[200px]">
+                <div className="w-full max-w-md lg:max-w-none bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white/20 min-h-[160px] lg:min-h-0">
                   <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mb-2 text-xl">
                     🔔
                   </div>
@@ -139,159 +162,69 @@ const Index = () => {
         </section>
 
         {/* Pricing Section */}
-        <section className="py-20 bg-gradient-to-br from-primary/5 via-background to-primary/5">
+        <section className="py-12 md:py-20 bg-gradient-to-br from-primary/5 via-background to-primary/5">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-foreground mb-4">
+            <div className="text-center mb-12 md:mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
                 Pilih Pakej Sesuai Studio Anda
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">
                 Mulai dari studio kecil hingga rantai studio besar, kami ada penyelesaian untuk semua saiz perniagaan anda
               </p>
             </div>
 
-            {/* Pricing Cards - 3 columns on desktop, 1 column on mobile */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-6 max-w-5xl mx-auto">
-              {/* Starter Package */}
-              <div className="bg-card border border-border rounded-xl p-6 relative shadow-lg hover:shadow-xl transition-shadow flex flex-col h-full">
-                <div className="text-center">
-                  <h3 className="text-2xl font-bold text-foreground mb-2">Silver</h3>
-                  <div className="text-4xl font-bold text-primary mb-1">RM 300</div>
-                  <p className="text-sm text-muted-foreground mb-6">/tahun</p>
-
-                  <div className="space-y-3 mb-8 text-left">
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-500">✨</span>
-                      <span className="text-sm">Tempahan atas talian (domain tempahstudio.com)</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-500">📱</span>
-                      <span className="text-sm">Responsive untuk semua peranti</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-500">💳</span>
-                      <span className="text-sm">Integrasi Google Calendar</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-500">🔔</span>
-                      <span className="text-sm">Notifikasi ke emel anda & pelanggan anda</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-500">📧</span>
-                      <span className="text-sm">Data analitik tentang tempahan, pengguna, dan banyak lagi</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-500">🧾</span>
-                      <span className="text-sm">Resit elektronik untuk pelanggan anda</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-500">🧾</span>
-                      <span className="text-sm">1 akaun admin user</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-500">🎨</span>
-                      <span className="text-sm">Disenaraikan dalam website <a href="https://caristudioraya.vercel.app" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">caristudioraya.vercel.app</a></span>
-                    </div>
-
-                  </div>
-                </div>
-
-                <div className="mt-auto text-center">
-                  <Link
-                    to="/admin/register"
-                    className="w-full bg-primary text-primary-foreground py-3 px-6 rounded-lg font-medium hover:bg-primary/90 transition-colors inline-block"
-                  >
-                    Pilih Silver
-                  </Link>
-                </div>
+            {/* Pricing Cards - Dynamic from database */}
+            {loadingPackages ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
               </div>
-
-              {/* Professional Package - Most Popular */}
-              <div className="bg-card border-2 border-primary rounded-xl p-6 relative shadow-lg hover:shadow-xl transition-shadow scale-105 flex flex-col h-full">
-                {/* Popular Badge */}
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium">
-                  Pilihan Berbaloi
-                </div>
-
-                <div className="text-center">
-                  <h3 className="text-2xl font-bold text-foreground mb-2">Gold</h3>
-                  <div className="text-4xl font-bold text-primary mb-1">RM 599</div>
-                  <p className="text-sm text-muted-foreground mb-6">/tahun</p>
-
-                  <div className="space-y-3 mb-8 text-left">
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-500">🎯</span>
-                      <span className="text-sm">Semua dalam Silver</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-500">📊</span>
-                      <span className="text-sm">Whatsapp blast untuk menghantar link gambar / maklumat order</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-500">🗓️</span>
-                      <span className="text-sm">Tambahan admin user (2 akaun/studio)</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-500">🗓️</span>
-                      <span className="text-sm">Customize Booking Form</span>
-                    </div>
-                    
-
-                  </div>
-                </div>
-
-                <div className="mt-auto text-center">
-                  <Link
-                    to="/admin/register"
-                    className="w-full bg-primary text-primary-foreground py-3 px-6 rounded-lg font-medium hover:bg-primary/90 transition-colors inline-block"
+            ) : packages.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 lg:gap-6 max-w-5xl mx-auto">
+                {packages.map((pkg) => (
+                  <div
+                    key={pkg.id}
+                    className={cn(
+                      "bg-card rounded-xl p-6 relative shadow-lg hover:shadow-xl transition-shadow flex flex-col h-full",
+                      pkg.is_popular ? "border-2 border-primary md:scale-105" : "border border-border"
+                    )}
                   >
-                    Pilih Gold
-                  </Link>
-                </div>
-              </div>
+                    {/* Popular Badge */}
+                    {pkg.is_popular && (
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium">
+                        Pilihan Berbaloi
+                      </div>
+                    )}
 
-              {/* Enterprise Package */}
-              <div className="bg-card border border-border rounded-xl p-6 relative shadow-lg hover:shadow-xl transition-shadow flex flex-col h-full">
-                <div className="text-center">
-                  <h3 className="text-2xl font-bold text-foreground mb-2">Platinum</h3>
-                  <div className="text-4xl font-bold text-primary mb-1">RM 1199</div>
-                  <p className="text-sm text-muted-foreground mb-6">/tahun</p>
+                    <div className="text-center">
+                      <h3 className="text-xl md:text-2xl font-bold text-foreground mb-2">{pkg.name}</h3>
+                      <div className="text-3xl md:text-4xl font-bold text-primary mb-1">RM {pkg.price.toFixed(0)}</div>
+                      <p className="text-sm text-muted-foreground mb-6">/{pkg.period}</p>
 
-                  <div className="space-y-3 mb-8 text-left">
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-500">🏢</span>
-                      <span className="text-sm">Semua dalam Gold</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-500">📈</span>
-                      <span className="text-sm">Custom domain (nama studio anda di link booking)</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-500">⚡</span>
-                      <span className="text-sm">Payment Gateway</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-500">👑</span>
-                      <span className="text-sm">Tambahan admin user (4 akaun/studio)</span>
+                      <div className="space-y-3 mb-8 text-left">
+                        {pkg.features.map((feature, index) => (
+                          <div key={index} className="flex items-start gap-3">
+                            <span className="text-sm">{feature}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-500">🚀</span>
-                      <span className="text-sm">Pembangunan ciri khas</span>
+                    <div className="mt-auto text-center">
+                      <Link
+                        to={`/package-payment?package=${pkg.slug}`}
+                        className="w-full bg-primary text-primary-foreground py-3 px-6 rounded-lg font-medium hover:bg-primary/90 transition-colors inline-block"
+                      >
+                        Pilih {pkg.name}
+                      </Link>
                     </div>
                   </div>
-                </div>
-
-                <div className="mt-auto text-center">
-                  <Link
-                    to="/admin/register"
-                    className="w-full bg-primary text-primary-foreground py-3 px-6 rounded-lg font-medium hover:bg-primary/90 transition-colors inline-block"
-                  >
-                    Pilih Platinum
-                  </Link>
-                </div>
+                ))}
               </div>
-            </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <p>No packages available at the moment.</p>
+              </div>
+            )}
 
             {/* Bottom CTA */}
             <div className="text-center mt-12">
@@ -312,11 +245,11 @@ const Index = () => {
               <h2 className="text-4xl font-bold text-foreground mb-4">
                 Soalan Lazim
               </h2>
-              
+
             </div>
 
             <Accordion type="single" collapsible className="w-full space-y-4">
-              
+
 
               {/* FAQ Item 2 */}
               <AccordionItem value="item-2" className="bg-card rounded-lg border">
@@ -358,7 +291,7 @@ const Index = () => {
                 </AccordionContent>
               </AccordionItem>
 
-        
+
               {/* FAQ Item 7 */}
               <AccordionItem value="item-7" className="bg-card rounded-lg border">
                 <AccordionTrigger className="px-6 py-4">

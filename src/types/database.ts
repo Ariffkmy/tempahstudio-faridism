@@ -240,6 +240,31 @@ export interface BookingWithDetails extends Booking {
 }
 
 // =============================================
+// PACKAGES TABLE
+// =============================================
+export interface Package {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  period: string;
+  is_popular: boolean;
+  features: string[];
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type PackageInsert = Omit<Package, 'id' | 'created_at' | 'updated_at'> & {
+  id?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type PackageUpdate = Partial<PackageInsert>;
+
+// =============================================
 // AUTH TYPES
 // =============================================
 export interface AdminRegistrationData {

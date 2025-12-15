@@ -10,7 +10,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, Menu, Home, Users, CalendarDays, BarChart3, Cog, LogOut, Key, Shield, Mail, Phone, Plus, X, FileText, Edit, Check, RotateCcw, User, UserCheck, Send, Package, Wallet } from 'lucide-react';
+import { Settings, Menu, Home, Users, CalendarDays, BarChart3, Cog, LogOut, Key, Shield, Mail, Phone, Plus, X, FileText, Edit, Check, RotateCcw, User, UserCheck, Send, Package, Wallet, CreditCard } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -33,6 +33,7 @@ const navigation = [
   { name: 'Tempahan', href: '/admin/bookings', icon: CalendarDays },
   { name: 'Laporan', href: '/admin/reports', icon: BarChart3 },
   { name: 'Pengurusan', href: '/admin/management', icon: Users },
+  { name: 'Package Payments', href: '/admin/package-payments', icon: CreditCard, superAdminOnly: true },
   { name: 'Tetapan', href: '/admin/settings', icon: Cog },
 ];
 

@@ -23,6 +23,7 @@ import AdminReports from "./pages/admin/AdminReports";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminManagement from "./pages/admin/AdminManagement";
 import AdminSuperSettings from "./pages/admin/AdminSuperSettings";
+import AdminPackagePayments from "./pages/admin/AdminPackagePayments";
 import PackagePayment from "./pages/PackagePayment";
 import NotFound from "./pages/NotFound";
 
@@ -112,6 +113,14 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <AdminSuperSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/package-payments"
+                  element={
+                    <ProtectedRoute>
+                      <AdminPackagePayments />
                     </ProtectedRoute>
                   }
                 />

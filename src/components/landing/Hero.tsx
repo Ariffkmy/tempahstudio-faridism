@@ -111,21 +111,26 @@ export function Hero() {
                 duration: 0.5,
                 ease: [0.4, 0.0, 0.2, 1],
               }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-center lg:text-left mb-6"
+              className="text-4xl sm:text-5xl lg:text-5xl font-bold tracking-tight text-center lg:text-left mb-6"
             >
               Platform mengurus tempahan <span className="inline-block whitespace-nowrap"><Highlight className="mt-2">studio raya anda</Highlight> 📆</span>
             </motion.h1>
 
-            <p className="text-s sm:text-s max-w-xl mb-8 text-center lg:text-left animate-slide-up stagger-1">
+            <p className="text-l sm:text-xl max-w-xl mb-8 text-center lg:text-left animate-slide-up stagger-1">
               Sistem tempahan studio raya yang cepat dan mudah untuk pelanggan anda. Urus slot, pakej, pembayaran dan banyak lagi dalam satu platform.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 mb-12 animate-slide-up stagger-2">
-              <Button variant="hero" size="xl" asChild>
-                <Link to="/book">
-                  Mula Tempah
-                  <ArrowRight className="h-5 w-5" />
-                </Link>
+              <Button
+                variant="hero"
+                size="xl"
+                onClick={() => {
+                  const pricingSection = document.getElementById('pricing-section');
+                  pricingSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+              >
+                Lihat Pakej
+                <ArrowRight className="h-5 w-5" />
               </Button>
             </div>
 
@@ -187,11 +192,7 @@ export function Hero() {
                     <p className="text-sm text-muted-foreground mb-2">
                       Belum mempunyai akaun?
                     </p>
-                    <Button variant="hero-outline" size="lg" asChild>
-                      <Link to="/admin/register">
-                        Daftar Sekarang
-                      </Link>
-                    </Button>
+
                   </div>
                 </form>
               </CardContent>

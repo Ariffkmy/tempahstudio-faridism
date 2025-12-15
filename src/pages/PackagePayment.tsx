@@ -12,6 +12,7 @@ import { CheckCircle2, ArrowLeft, Building2, Mail, Phone, User, Copy, Check, QrC
 import { useToast } from '@/hooks/use-toast';
 import { getPackageBySlug } from '@/services/packageService';
 import { getPaymentSettings } from '@/services/paymentSettingsService';
+import { createPackagePayment, uploadReceipt } from '@/services/packagePaymentService';
 import type { Package } from '@/types/database';
 import type { PaymentSettings } from '@/services/paymentSettingsService';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -35,6 +36,7 @@ export default function PackagePayment() {
 
     const [receiptFile, setReceiptFile] = useState<File | null>(null);
     const [agreedToTerms, setAgreedToTerms] = useState(false);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('qr');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Fetch package and payment settings data on mount
@@ -152,18 +154,56 @@ export default function PackagePayment() {
 
         setIsSubmitting(true);
 
-        // Simulate payment processing
-        // In production, this would upload receipt and send notification
-        setTimeout(() => {
+        try {
+            // Upload receipt first
+            const uploadResult = await uploadReceipt(receiptFile);
+
+            if (!uploadResult.success) {
+                throw new Error(uploadResult.error || 'Failed to upload receipt');
+            }
+
+            // Create payment record
+            const paymentResult = await createPackagePayment({
+                package_id: selectedPackage.id,
+                package_name: selectedPackage.name,
+                package_price: selectedPackage.price,
+                studio_name: formData.studioName,
+                full_name: formData.fullName,
+                email: formData.email,
+                phone: formData.phone,
+                payment_method: selectedPaymentMethod,
+                receipt_url: uploadResult.url,
+            });
+
+            if (!paymentResult.success) {
+                throw new Error(paymentResult.error || 'Failed to submit payment');
+            }
+
             toast({
                 title: 'Terima kasih!',
-                description: 'Kami akan menghubungi anda tidak lama lagi untuk meneruskan pembayaran.',
+                description: 'Pembayaran anda telah dihantar. Kami akan menghubungi anda tidak lama lagi.',
             });
-            setIsSubmitting(false);
 
-            // You can redirect to a confirmation page or admin registration
-            // navigate('/admin/register');
-        }, 2000);
+            // Reset form
+            setFormData({
+                studioName: '',
+                fullName: '',
+                email: '',
+                phone: '',
+            });
+            setReceiptFile(null);
+            setAgreedToTerms(false);
+
+        } catch (error: any) {
+            console.error('Error submitting payment:', error);
+            toast({
+                title: 'Ralat',
+                description: error.message || 'Gagal menghantar pembayaran. Sila cuba lagi.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     // Show loading state while fetching package
@@ -245,7 +285,7 @@ export default function PackagePayment() {
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <Tabs defaultValue="qr" className="w-full">
+                                    <Tabs value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod} className="w-full">
                                         <TabsList className="grid w-full grid-cols-3">
                                             <TabsTrigger value="qr">
                                                 <QrCode className="h-4 w-4 mr-2" />

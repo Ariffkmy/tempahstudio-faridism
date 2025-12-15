@@ -162,7 +162,7 @@ const Index = () => {
         </section>
 
         {/* Pricing Section */}
-        <section className="py-12 md:py-20 bg-gradient-to-br from-primary/5 via-background to-primary/5">
+        <section id="pricing-section" className="py-12 md:py-20 bg-gradient-to-br from-primary/5 via-background to-primary/5">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12 md:mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
@@ -231,9 +231,7 @@ const Index = () => {
               <p className="text-muted-foreground mb-4">
                 Semua pakej termasuk setup percuma dan sokongan 24 jam
               </p>
-              <p className="text-sm text-muted-foreground">
-                Tiada kontrak. Batal bila-bila masa. Bayar hanya untuk tempahan yang berjaya.
-              </p>
+
             </div>
           </div>
         </section>
@@ -319,12 +317,7 @@ const Index = () => {
                 Masih ada soalan lain? Jangan ragu untuk hubungi kami!
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link
-                  to="/admin/register"
-                  className="bg-primary text-primary-foreground px-8 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors text-center"
-                >
-                  Daftar Sekarang
-                </Link>
+
                 <a
                   href="https://wa.me/601129947089"
                   target="_blank"

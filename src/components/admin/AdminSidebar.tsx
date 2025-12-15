@@ -12,6 +12,7 @@ import {
   Send,
   ChevronLeft,
   ChevronRight,
+  CreditCard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,6 +24,7 @@ const navigation = [
   { name: 'Tempahan', href: '/admin/bookings', icon: Calendar },
   { name: 'Whatsapp Blaster', href: '/admin/whatsapp-blaster', icon: Send },
   { name: 'Laporan', href: '/admin/reports', icon: FileText },
+  { name: 'Package Payments', href: '/admin/package-payments', icon: CreditCard, superAdminOnly: true },
   { name: 'Tetapan', href: '/admin/settings', icon: Settings },
 ];
 
@@ -101,26 +103,28 @@ export function AdminSidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1">
-        {navigation.map((item) => {
-          const isActive = location.pathname === item.href;
-          return (
-            <Link
-              key={item.name}
-              to={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-                isCollapsed && "justify-center"
-              )}
-              title={isCollapsed ? item.name : undefined}
-            >
-              <item.icon className="h-5 w-5 flex-shrink-0" />
-              {!isCollapsed && item.name}
-            </Link>
-          );
-        })}
+        {navigation
+          .filter((item) => !item.superAdminOnly || isSuperAdmin)
+          .map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                to={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                  isCollapsed && "justify-center"
+                )}
+                title={isCollapsed ? item.name : undefined}
+              >
+                <item.icon className="h-5 w-5 flex-shrink-0" />
+                {!isCollapsed && item.name}
+              </Link>
+            );
+          })}
 
         {/* Super Admin Only: Admin Management */}
         {isSuperAdmin && (

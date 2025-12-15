@@ -86,6 +86,12 @@ export interface StudioSettings {
 
   // Studio operational status
   isOperational: boolean;
+
+  // Operating hours
+  operatingStartTime: string;
+  operatingEndTime: string;
+  breakStartTime: string;
+  breakEndTime: string;
 }
 
 export interface StudioSettingsWithLayouts extends StudioSettings {
@@ -238,6 +244,10 @@ export async function loadStudioSettings(studioId?: string): Promise<StudioSetti
       bookingSubtitleFont: (studio as any).booking_subtitle_font || 'default',
       bookingSubtitleSize: (studio as any).booking_subtitle_size || 'base',
       isOperational: (studio as any).is_operational !== false, // Default to true if not set
+      operatingStartTime: (studio as any).operating_start_time || '09:00',
+      operatingEndTime: (studio as any).operating_end_time || '18:00',
+      breakStartTime: (studio as any).break_start_time || '13:00',
+      breakEndTime: (studio as any).break_end_time || '14:00',
       layouts: layouts || []
     };
 
@@ -375,6 +385,10 @@ export async function saveStudioSettings(
         booking_subtitle_font: settings.bookingSubtitleFont,
         booking_subtitle_size: settings.bookingSubtitleSize,
         is_operational: settings.isOperational,
+        operating_start_time: settings.operatingStartTime,
+        operating_end_time: settings.operatingEndTime,
+        break_start_time: settings.breakStartTime,
+        break_end_time: settings.breakEndTime,
         updated_at: new Date().toISOString()
       })
       .eq('id', targetStudioId)

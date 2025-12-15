@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink, Palette, Image as ImageIcon, Users as UsersIcon, Trash, MessageCircle, Paintbrush, Layout, Edit, Save, Clock } from 'lucide-react';
+import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink, Palette, Image as ImageIcon, Users as UsersIcon, Trash, Trash2, MessageCircle, Paintbrush, Layout, Edit, Save, Clock } from 'lucide-react';
 import { loadStudioSettings, saveStudioSettings, updateStudioLayouts, saveGoogleCredentials, initiateGoogleAuth, exchangeGoogleCode, loadStudioPortfolioPhotos, deleteStudioPortfolioPhoto } from '@/services/studioSettings';
 import { supabase } from '@/lib/supabase';
 import { uploadLogo, uploadTermsPdf } from '@/services/fileUploadService';
@@ -125,7 +125,12 @@ const AdminSettings = () => {
     bookingSubtitleFont: 'default',
     bookingSubtitleSize: 'base',
     // Studio operational status
-    isOperational: true
+    isOperational: true,
+    // Operating hours
+    operatingStartTime: '09:00',
+    operatingEndTime: '18:00',
+    breakStartTime: '13:00',
+    breakEndTime: '14:00'
   });
 
   const [layouts, setLayouts] = useState<StudioLayout[]>([]);
@@ -152,6 +157,19 @@ const AdminSettings = () => {
 
   // Unavailable dates state
   const [isDateRange, setIsDateRange] = useState(false);
+  const [isWholeDay, setIsWholeDay] = useState(true); // Default to whole day
+  const [unavailableDate, setUnavailableDate] = useState({
+    startDate: '',
+    endDate: '',
+    reason: '',
+    startTime: '09:00',
+    endTime: '18:00'
+  });
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [unavailableDates, setUnavailableDates] = useState<any[]>([]);
+  const [editingDateId, setEditingDateId] = useState<string | null>(null);
+  const [isEditingOperatingHours, setIsEditingOperatingHours] = useState(false);
+  const [isEditingBreakTime, setIsEditingBreakTime] = useState(false);
 
   const [newLayout, setNewLayout] = useState({
     name: '',
@@ -255,7 +273,12 @@ const AdminSettings = () => {
             bookingTitleFont: data.bookingTitleFont || 'default',
             bookingTitleSize: data.bookingTitleSize || 'xl',
             bookingSubtitleFont: data.bookingSubtitleFont || 'default',
-            bookingSubtitleSize: data.bookingSubtitleSize || 'base'
+            bookingSubtitleSize: data.bookingSubtitleSize || 'base',
+            isOperational: data.isOperational !== false, // Default to true if not set
+            operatingStartTime: data.operatingStartTime || '09:00',
+            operatingEndTime: data.operatingEndTime || '18:00',
+            breakStartTime: data.breakStartTime || '13:00',
+            breakEndTime: data.breakEndTime || '14:00'
           });
           setLayouts(data.layouts);
 
@@ -313,6 +336,11 @@ const AdminSettings = () => {
     };
 
     fetchBookingLink();
+  }, [effectiveStudioId]);
+
+  // Load unavailable dates on mount
+  useEffect(() => {
+    loadUnavailableDates();
   }, [effectiveStudioId]);
 
   // Load portfolio photos
@@ -884,6 +912,358 @@ const AdminSettings = () => {
       title: "Thumbnail updated",
       description: "Thumbnail photo updated successfully",
     });
+  };
+
+  // Load unavailable dates
+  const loadUnavailableDates = async () => {
+    if (!effectiveStudioId) return;
+
+    console.log('📅 Loading unavailable dates for studio:', effectiveStudioId);
+
+    const { data, error } = await supabase
+      .from('unavailable_dates')
+      .select('*')
+      .eq('studio_id', effectiveStudioId)
+      .order('start_date', { ascending: true });
+
+    if (error) {
+      console.error('❌ Error loading unavailable dates:', error);
+      return;
+    }
+
+    console.log('✅ Loaded unavailable dates:', data);
+    setUnavailableDates(data || []);
+  };
+
+  // Handle deleting unavailable date
+  const handleDeleteUnavailableDate = async (dateId: string, dateInfo: string) => {
+    const confirmed = window.confirm(
+      `Adakah anda pasti mahu memadam tarikh ini?\n\n${dateInfo}`
+    );
+
+    if (!confirmed) {
+      console.log('❌ Delete cancelled by user');
+      return;
+    }
+
+    console.log('🗑️ Deleting unavailable date:', dateId);
+
+    try {
+      const { error } = await supabase
+        .from('unavailable_dates')
+        .delete()
+        .eq('id', dateId);
+
+      if (error) {
+        console.error('❌ Error deleting:', error);
+        toast({
+          title: "Error",
+          description: `Failed to delete: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('✅ Successfully deleted');
+      toast({
+        title: "Success",
+        description: "Tarikh tidak beroperasi telah dipadam",
+      });
+
+      // Reload the list
+      await loadUnavailableDates();
+
+    } catch (error) {
+      console.error('❌ Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "Unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle editing unavailable date
+  const handleEditUnavailableDate = (date: any) => {
+    console.log('✏️ Editing unavailable date:', date);
+
+    // Populate form with existing data
+    setUnavailableDate({
+      startDate: date.start_date,
+      endDate: date.end_date || '',
+      reason: date.reason || '',
+      startTime: date.start_time || '09:00',
+      endTime: date.end_time || '18:00'
+    });
+
+    // Set toggles
+    setIsDateRange(!!date.end_date);
+    setIsWholeDay(date.is_whole_day);
+
+    // Set editing ID
+    setEditingDateId(date.id);
+
+    // Open dialog
+    setIsDialogOpen(true);
+  };
+
+  // Save operating hours to database
+  const handleSaveOperatingHours = async () => {
+    try {
+      console.log('💾 Saving operating hours...', {
+        operatingStartTime: settings.operatingStartTime,
+        operatingEndTime: settings.operatingEndTime
+      });
+
+      const { error } = await supabase
+        .from('studios')
+        .update({
+          operating_start_time: settings.operatingStartTime,
+          operating_end_time: settings.operatingEndTime,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', effectiveStudioId);
+
+      if (error) {
+        console.error('❌ Error saving operating hours:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save operating hours",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('✅ Operating hours saved successfully');
+      toast({
+        title: "Success",
+        description: "Waktu operasi telah disimpan",
+      });
+      setIsEditingOperatingHours(false);
+    } catch (error) {
+      console.error('❌ Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "Unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Save break time to database
+  const handleSaveBreakTime = async () => {
+    try {
+      console.log('💾 Saving break time...', {
+        breakStartTime: settings.breakStartTime,
+        breakEndTime: settings.breakEndTime
+      });
+
+      const { error } = await supabase
+        .from('studios')
+        .update({
+          break_start_time: settings.breakStartTime,
+          break_end_time: settings.breakEndTime,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', effectiveStudioId);
+
+      if (error) {
+        console.error('❌ Error saving break time:', error);
+        toast({
+          title: "Error",
+          description: "Failed to save break time",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('✅ Break time saved successfully');
+      toast({
+        title: "Success",
+        description: "Waktu berehat telah disimpan",
+      });
+      setIsEditingBreakTime(false);
+    } catch (error) {
+      console.error('❌ Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "Unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Toggle operational status and save to database
+  const handleToggleOperationalStatus = async (newStatus: boolean) => {
+    const action = newStatus ? 'membuka semula' : 'menutup';
+    const message = newStatus
+      ? 'Anda pasti mahu membuka semula studio? Pelanggan akan dapat membuat tempahan.'
+      : 'Anda pasti mahu menutup studio? Pelanggan tidak akan dapat membuat tempahan baru.';
+
+    if (!window.confirm(message)) {
+      return;
+    }
+
+    try {
+      console.log(`🔄 ${action} studio...`, { isOperational: newStatus });
+
+      // Update state first for immediate UI feedback
+      setSettings({ ...settings, isOperational: newStatus });
+
+      const { error } = await supabase
+        .from('studios')
+        .update({
+          is_operational: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', effectiveStudioId);
+
+      if (error) {
+        console.error('❌ Error updating operational status:', error);
+        // Revert state on error
+        setSettings({ ...settings, isOperational: !newStatus });
+        toast({
+          title: "Error",
+          description: "Failed to update operational status",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('✅ Operational status updated successfully');
+      toast({
+        title: "Success",
+        description: newStatus
+          ? "Studio telah dibuka semula"
+          : "Studio telah ditutup",
+      });
+    } catch (error) {
+      console.error('❌ Unexpected error:', error);
+      // Revert state on error
+      setSettings({ ...settings, isOperational: !newStatus });
+      toast({
+        title: "Error",
+        description: "Unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle adding unavailable date
+  const handleAddUnavailableDate = async () => {
+    console.log('🔵 [handleAddUnavailableDate] Starting...');
+    console.log('📅 Form Data:', {
+      startDate: unavailableDate.startDate,
+      endDate: unavailableDate.endDate,
+      reason: unavailableDate.reason,
+      isWholeDay,
+      isDateRange,
+      startTime: unavailableDate.startTime,
+      endTime: unavailableDate.endTime
+    });
+
+    if (!unavailableDate.startDate) {
+      console.log('❌ No start date provided');
+      toast({
+        title: "Error",
+        description: "Sila pilih tarikh mula",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isDateRange && !unavailableDate.endDate) {
+      console.log('❌ Date range selected but no end date');
+      toast({
+        title: "Error",
+        description: "Sila pilih tarikh tamat untuk julat tarikh",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      console.log('🔄 Preparing data for database...');
+      const dataToSave = {
+        studio_id: effectiveStudioId,
+        start_date: unavailableDate.startDate,
+        end_date: isDateRange ? unavailableDate.endDate : null,
+        is_whole_day: isWholeDay,
+        start_time: isWholeDay ? null : unavailableDate.startTime,
+        end_time: isWholeDay ? null : unavailableDate.endTime,
+        reason: unavailableDate.reason || null
+      };
+
+      console.log('💾 Data to save:', dataToSave);
+      console.log('📝 Editing mode:', editingDateId ? 'UPDATE' : 'INSERT');
+
+      let data, error;
+
+      if (editingDateId) {
+        // Update existing date
+        const result = await supabase
+          .from('unavailable_dates')
+          .update(dataToSave)
+          .eq('id', editingDateId)
+          .select();
+        data = result.data;
+        error = result.error;
+      } else {
+        // Insert new date
+        const result = await supabase
+          .from('unavailable_dates')
+          .insert([dataToSave])
+          .select();
+        data = result.data;
+        error = result.error;
+      }
+
+      console.log('📡 Supabase response:', { data, error });
+
+      if (error) {
+        console.error('❌ Supabase error:', error);
+        toast({
+          title: "Error",
+          description: `Failed to save: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('✅ Successfully saved!', data);
+      toast({
+        title: "Success",
+        description: editingDateId
+          ? "Tarikh tidak beroperasi telah dikemaskini"
+          : "Tarikh tidak beroperasi telah ditambah",
+      });
+
+      // Reset form
+      setUnavailableDate({
+        startDate: '',
+        endDate: '',
+        reason: '',
+        startTime: '09:00',
+        endTime: '18:00'
+      });
+      setIsDateRange(false);
+      setIsWholeDay(true);
+      setEditingDateId(null); // Reset editing state
+
+      // Close dialog
+      setIsDialogOpen(false);
+
+      // Reload the list
+      await loadUnavailableDates();
+
+    } catch (error) {
+      console.error('❌ Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "Unexpected error occurred",
+        variant: "destructive",
+      });
+    }
   };
 
 
@@ -3753,11 +4133,7 @@ const AdminSettings = () => {
                           <Button
                             variant="destructive"
                             size="lg"
-                            onClick={() => {
-                              if (window.confirm('Anda pasti mahu menutup studio? Pelanggan tidak akan dapat membuat tempahan baru.')) {
-                                setSettings({ ...settings, isOperational: false });
-                              }
-                            }}
+                            onClick={() => handleToggleOperationalStatus(false)}
                             className="min-w-[180px]"
                           >
                             <X className="h-5 w-5 mr-2" />
@@ -3767,11 +4143,7 @@ const AdminSettings = () => {
                           <Button
                             variant="default"
                             size="lg"
-                            onClick={() => {
-                              if (window.confirm('Anda pasti mahu membuka semula studio? Pelanggan akan dapat membuat tempahan.')) {
-                                setSettings({ ...settings, isOperational: true });
-                              }
-                            }}
+                            onClick={() => handleToggleOperationalStatus(true)}
                             className="min-w-[180px] bg-green-600 hover:bg-green-700"
                           >
                             <Plus className="h-5 w-5 mr-2" />
@@ -3786,98 +4158,114 @@ const AdminSettings = () => {
                 {/* Operating Hours Card */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Waktu Operasi Harian</CardTitle>
-                    <CardDescription>Tetapkan waktu operasi studio untuk setiap hari</CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>Waktu Operasi</CardTitle>
+                        <CardDescription>Waktu operasi studio setiap hari</CardDescription>
+                      </div>
+                      {isEditingOperatingHours ? (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={handleSaveOperatingHours}
+                        >
+                          <Save className="h-4 w-4 mr-2" />
+                          Simpan
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsEditingOperatingHours(true)}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+                      )}
+                    </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Monday */}
-                    <div className="flex items-center gap-4 p-4 border rounded-lg">
-                      <div className="flex items-center gap-3 flex-1">
-                        <Switch id="monday-enabled" defaultChecked />
-                        <Label htmlFor="monday-enabled" className="font-medium min-w-[80px]">Isnin</Label>
+                  <CardContent>
+                    <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/30">
+                      <div className="flex items-center gap-2 flex-1">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Mula</span>
+                        <Input
+                          type="time"
+                          value={settings.operatingStartTime}
+                          onChange={(e) => handleSettingChange('operatingStartTime', e.target.value)}
+                          disabled={!isEditingOperatingHours}
+                          className="w-32"
+                        />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Input type="time" defaultValue="09:00" className="w-32" />
-                        <span className="text-muted-foreground">-</span>
-                        <Input type="time" defaultValue="18:00" className="w-32" />
-                      </div>
-                    </div>
-
-                    {/* Tuesday */}
-                    <div className="flex items-center gap-4 p-4 border rounded-lg">
-                      <div className="flex items-center gap-3 flex-1">
-                        <Switch id="tuesday-enabled" defaultChecked />
-                        <Label htmlFor="tuesday-enabled" className="font-medium min-w-[80px]">Selasa</Label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Input type="time" defaultValue="09:00" className="w-32" />
-                        <span className="text-muted-foreground">-</span>
-                        <Input type="time" defaultValue="18:00" className="w-32" />
-                      </div>
-                    </div>
-
-                    {/* Wednesday */}
-                    <div className="flex items-center gap-4 p-4 border rounded-lg">
-                      <div className="flex items-center gap-3 flex-1">
-                        <Switch id="wednesday-enabled" defaultChecked />
-                        <Label htmlFor="wednesday-enabled" className="font-medium min-w-[80px]">Rabu</Label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Input type="time" defaultValue="09:00" className="w-32" />
-                        <span className="text-muted-foreground">-</span>
-                        <Input type="time" defaultValue="18:00" className="w-32" />
+                      <span className="text-muted-foreground">-</span>
+                      <div className="flex items-center gap-2 flex-1">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Tamat</span>
+                        <Input
+                          type="time"
+                          value={settings.operatingEndTime}
+                          onChange={(e) => handleSettingChange('operatingEndTime', e.target.value)}
+                          disabled={!isEditingOperatingHours}
+                          className="w-32"
+                        />
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
 
-                    {/* Thursday */}
-                    <div className="flex items-center gap-4 p-4 border rounded-lg">
-                      <div className="flex items-center gap-3 flex-1">
-                        <Switch id="thursday-enabled" defaultChecked />
-                        <Label htmlFor="thursday-enabled" className="font-medium min-w-[80px]">Khamis</Label>
+                {/* Break Time Card */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>Waktu Berehat</CardTitle>
+                        <CardDescription>Waktu berehat di mana studio tidak menerima tempahan</CardDescription>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Input type="time" defaultValue="09:00" className="w-32" />
-                        <span className="text-muted-foreground">-</span>
-                        <Input type="time" defaultValue="18:00" className="w-32" />
-                      </div>
+                      {isEditingBreakTime ? (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={handleSaveBreakTime}
+                        >
+                          <Save className="h-4 w-4 mr-2" />
+                          Simpan
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsEditingBreakTime(true)}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+                      )}
                     </div>
-
-                    {/* Friday */}
-                    <div className="flex items-center gap-4 p-4 border rounded-lg">
-                      <div className="flex items-center gap-3 flex-1">
-                        <Switch id="friday-enabled" defaultChecked />
-                        <Label htmlFor="friday-enabled" className="font-medium min-w-[80px]">Jumaat</Label>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-4 p-4 border rounded-lg bg-muted/30">
+                      <div className="flex items-center gap-2 flex-1">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Mula</span>
+                        <Input
+                          type="time"
+                          value={settings.breakStartTime}
+                          onChange={(e) => handleSettingChange('breakStartTime', e.target.value)}
+                          disabled={!isEditingBreakTime}
+                          className="w-32"
+                        />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Input type="time" defaultValue="09:00" className="w-32" />
-                        <span className="text-muted-foreground">-</span>
-                        <Input type="time" defaultValue="18:00" className="w-32" />
-                      </div>
-                    </div>
-
-                    {/* Saturday */}
-                    <div className="flex items-center gap-4 p-4 border rounded-lg">
-                      <div className="flex items-center gap-3 flex-1">
-                        <Switch id="saturday-enabled" defaultChecked />
-                        <Label htmlFor="saturday-enabled" className="font-medium min-w-[80px]">Sabtu</Label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Input type="time" defaultValue="09:00" className="w-32" />
-                        <span className="text-muted-foreground">-</span>
-                        <Input type="time" defaultValue="18:00" className="w-32" />
-                      </div>
-                    </div>
-
-                    {/* Sunday */}
-                    <div className="flex items-center gap-4 p-4 border rounded-lg">
-                      <div className="flex items-center gap-3 flex-1">
-                        <Switch id="sunday-enabled" />
-                        <Label htmlFor="sunday-enabled" className="font-medium min-w-[80px]">Ahad</Label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Input type="time" defaultValue="09:00" className="w-32" disabled />
-                        <span className="text-muted-foreground">-</span>
-                        <Input type="time" defaultValue="18:00" className="w-32" disabled />
+                      <span className="text-muted-foreground">-</span>
+                      <div className="flex items-center gap-2 flex-1">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">Tamat</span>
+                        <Input
+                          type="time"
+                          value={settings.breakEndTime}
+                          onChange={(e) => handleSettingChange('breakEndTime', e.target.value)}
+                          disabled={!isEditingBreakTime}
+                          className="w-32"
+                        />
                       </div>
                     </div>
                   </CardContent>
@@ -3891,16 +4279,36 @@ const AdminSettings = () => {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Add Unavailable Date Button */}
-                    <Dialog>
+                    <Dialog
+                      open={isDialogOpen}
+                      onOpenChange={(open) => {
+                        setIsDialogOpen(open);
+                        if (!open) {
+                          // Reset editing state when dialog closes
+                          setEditingDateId(null);
+                          setUnavailableDate({
+                            startDate: '',
+                            endDate: '',
+                            reason: '',
+                            startTime: '09:00',
+                            endTime: '18:00'
+                          });
+                          setIsDateRange(false);
+                          setIsWholeDay(true);
+                        }
+                      }}
+                    >
                       <DialogTrigger asChild>
                         <Button className="w-full">
                           <Plus className="h-4 w-4 mr-2" />
-                          Tambah Tarikh Tidak Tersedia
+                          Tambah Tarikh Tidak Beroperasi
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-[600px]">
                         <DialogHeader>
-                          <DialogTitle>Tambah Tarikh Tidak Tersedia</DialogTitle>
+                          <DialogTitle>
+                            {editingDateId ? 'Edit Tarikh & Waktu' : 'Tambah Tarikh & Waktu'}
+                          </DialogTitle>
                           <DialogDescription>
                             Tetapkan tarikh dan waktu di mana studio tidak beroperasi
                           </DialogDescription>
@@ -3914,7 +4322,7 @@ const AdminSettings = () => {
                               onCheckedChange={setIsDateRange}
                             />
                             <div className="flex-1">
-                              <Label htmlFor="dialog-date-range" className="font-medium cursor-pointer">Julat Tarikh</Label>
+                              <Label htmlFor="dialog-date-range" className="font-medium cursor-pointer">Studio tidak beroperasi lebih dari 1 hari</Label>
                               <p className="text-xs text-muted-foreground">Pilih beberapa hari berturut-turut</p>
                             </div>
                           </div>
@@ -3926,6 +4334,8 @@ const AdminSettings = () => {
                               <Input
                                 id="dialog-start-date"
                                 type="date"
+                                value={unavailableDate.startDate}
+                                onChange={(e) => setUnavailableDate({ ...unavailableDate, startDate: e.target.value })}
                                 placeholder="Pilih tarikh"
                               />
                             </div>
@@ -3936,6 +4346,8 @@ const AdminSettings = () => {
                                 <Input
                                   id="dialog-end-date"
                                   type="date"
+                                  value={unavailableDate.endDate}
+                                  onChange={(e) => setUnavailableDate({ ...unavailableDate, endDate: e.target.value })}
                                   placeholder="Pilih tarikh tamat"
                                 />
                               </div>
@@ -3947,12 +4359,18 @@ const AdminSettings = () => {
                             <Label htmlFor="dialog-unavailable-reason">Sebab (Optional)</Label>
                             <Input
                               id="dialog-unavailable-reason"
+                              value={unavailableDate.reason}
+                              onChange={(e) => setUnavailableDate({ ...unavailableDate, reason: e.target.value })}
                               placeholder="Cth: Cuti Umum, Cuti Tahunan, Cuti Peribadi"
                             />
                           </div>
 
                           <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                            <Switch id="dialog-whole-day-unavailable" defaultChecked />
+                            <Switch
+                              id="dialog-whole-day-unavailable"
+                              checked={isWholeDay}
+                              onCheckedChange={setIsWholeDay}
+                            />
                             <div className="flex-1">
                               <Label htmlFor="dialog-whole-day-unavailable" className="font-medium cursor-pointer">Sepanjang Hari</Label>
                               <p className="text-xs text-muted-foreground">Studio tidak beroperasi sepanjang hari</p>
@@ -3965,8 +4383,9 @@ const AdminSettings = () => {
                               <Input
                                 id="dialog-start-time"
                                 type="time"
-                                defaultValue="09:00"
-                                disabled
+                                value={unavailableDate.startTime}
+                                onChange={(e) => setUnavailableDate({ ...unavailableDate, startTime: e.target.value })}
+                                disabled={isWholeDay}
                               />
                             </div>
                             <div className="space-y-2">
@@ -3974,16 +4393,30 @@ const AdminSettings = () => {
                               <Input
                                 id="dialog-end-time"
                                 type="time"
-                                defaultValue="18:00"
-                                disabled
+                                value={unavailableDate.endTime}
+                                onChange={(e) => setUnavailableDate({ ...unavailableDate, endTime: e.target.value })}
+                                disabled={isWholeDay}
                               />
                             </div>
                           </div>
                         </div>
                         <DialogFooter>
-                          <Button type="submit" className="w-full sm:w-auto">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Tambah
+                          <Button
+                            type="button"
+                            onClick={handleAddUnavailableDate}
+                            className="w-full sm:w-auto"
+                          >
+                            {editingDateId ? (
+                              <>
+                                <Save className="h-4 w-4 mr-2" />
+                                Simpan
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Tambah
+                              </>
+                            )}
                           </Button>
                         </DialogFooter>
                       </DialogContent>
@@ -3993,11 +4426,85 @@ const AdminSettings = () => {
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Senarai Tarikh Tidak Tersedia</Label>
                       <div className="border rounded-lg divide-y">
-                        {/* Empty state */}
-                        <div className="p-8 text-center text-muted-foreground">
-                          <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                          <p>Tiada data</p>
-                        </div>
+                        {unavailableDates.length === 0 ? (
+                          /* Empty state */
+                          <div className="p-8 text-center text-muted-foreground">
+                            <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                            <p>Tiada data</p>
+                          </div>
+                        ) : (
+                          /* List of dates */
+                          unavailableDates.map((date) => (
+                            <div key={date.id} className="p-4 hover:bg-muted/50 transition-colors">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="font-medium">
+                                    {new Date(date.start_date).toLocaleDateString('ms-MY', {
+                                      day: 'numeric',
+                                      month: 'long',
+                                      year: 'numeric'
+                                    })}
+                                    {date.end_date && (
+                                      <span> - {new Date(date.end_date).toLocaleDateString('ms-MY', {
+                                        day: 'numeric',
+                                        month: 'long',
+                                        year: 'numeric'
+                                      })}</span>
+                                    )}
+                                  </div>
+                                  {date.reason && (
+                                    <p className="text-sm text-muted-foreground mt-1">{date.reason}</p>
+                                  )}
+                                  <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                                    {date.is_whole_day ? (
+                                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                                        <Clock className="h-3 w-3" />
+                                        Sepanjang Hari
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded">
+                                        <Clock className="h-3 w-3" />
+                                        {date.start_time} - {date.end_time}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                {/* Action Buttons */}
+                                <div className="flex items-center gap-2">
+                                  {/* Edit Button */}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEditUnavailableDate(date)}
+                                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  {/* Delete Button */}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      const dateInfo = new Date(date.start_date).toLocaleDateString('ms-MY', {
+                                        day: 'numeric',
+                                        month: 'long',
+                                        year: 'numeric'
+                                      }) + (date.end_date ? ` - ${new Date(date.end_date).toLocaleDateString('ms-MY', {
+                                        day: 'numeric',
+                                        month: 'long',
+                                        year: 'numeric'
+                                      })}` : '');
+                                      handleDeleteUnavailableDate(date.id, dateInfo);
+                                    }}
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
                   </CardContent>

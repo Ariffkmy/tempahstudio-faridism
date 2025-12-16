@@ -25,6 +25,7 @@ import AdminManagement from "./pages/admin/AdminManagement";
 import AdminSuperSettings from "./pages/admin/AdminSuperSettings";
 import AdminPackagePayments from "./pages/admin/AdminPackagePayments";
 import PackagePayment from "./pages/PackagePayment";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +59,9 @@ const App = () => (
 
                 {/* Package Payment Route (Public) */}
                 <Route path="/package-payment" element={<PackagePayment />} />
+
+                {/* Onboarding Route (Public) */}
+                <Route path="/onboarding" element={<Onboarding />} />
 
                 {/* Protected Admin Routes */}
                 <Route

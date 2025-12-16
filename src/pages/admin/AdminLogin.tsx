@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { requestPasswordReset } from '@/services/adminAuth';
 import { Eye, EyeOff } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { supabase } from '@/lib/supabase';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -29,9 +30,40 @@ const AdminLogin = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && !authLoading) {
-      navigate('/admin');
-    }
+    const checkOnboardingStatus = async () => {
+      if (isAuthenticated && !authLoading) {
+        console.log('🔍 AdminLogin useEffect: Checking onboarding status...');
+
+        // Check if user has completed onboarding
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          console.log('👤 AdminLogin useEffect: User ID:', user.id);
+
+          const { data: userData, error } = await supabase
+            .from('admin_users')
+            .select('onboarding_completed')
+            .eq('auth_user_id', user.id)
+            .single();
+
+          console.log('📊 AdminLogin useEffect: User data:', userData);
+          console.log('❌ AdminLogin useEffect: Error:', error);
+          console.log('✅ AdminLogin useEffect: onboarding_completed =', userData?.onboarding_completed);
+
+          if (userData && !userData.onboarding_completed) {
+            // User hasn't completed onboarding, redirect to onboarding
+            console.log('➡️ AdminLogin useEffect: Redirecting to /onboarding (not completed)');
+            navigate('/onboarding');
+          } else {
+            // User has completed onboarding, go to dashboard
+            console.log('➡️ AdminLogin useEffect: Redirecting to /admin (completed)');
+            navigate('/admin');
+          }
+        }
+      }
+    };
+
+    checkOnboardingStatus();
   }, [isAuthenticated, authLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -53,11 +85,42 @@ const AdminLogin = () => {
     setIsSubmitting(false);
 
     if (result.success) {
-      toast({
-        title: 'Selamat kembali!',
-        description: 'Mengalihkan ke papan pemuka...',
-      });
-      navigate('/admin');
+      console.log('🔍 AdminLogin handleLogin: Login successful, checking onboarding status...');
+
+      // Check if user has completed onboarding
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        console.log('👤 AdminLogin handleLogin: User ID:', user.id);
+
+        const { data: userData, error } = await supabase
+          .from('admin_users')
+          .select('onboarding_completed')
+          .eq('auth_user_id', user.id)
+          .single();
+
+        console.log('📊 AdminLogin handleLogin: User data:', userData);
+        console.log('❌ AdminLogin handleLogin: Error:', error);
+        console.log('✅ AdminLogin handleLogin: onboarding_completed =', userData?.onboarding_completed);
+
+        if (userData && !userData.onboarding_completed) {
+          // User hasn't completed onboarding, redirect to onboarding
+          console.log('➡️ AdminLogin handleLogin: Redirecting to /onboarding (not completed)');
+          toast({
+            title: 'Selamat kembali!',
+            description: 'Mari teruskan setup studio anda...',
+          });
+          navigate('/onboarding');
+        } else {
+          // User has completed onboarding, go to dashboard
+          console.log('➡️ AdminLogin handleLogin: Redirecting to /admin (completed)');
+          toast({
+            title: 'Selamat kembali!',
+            description: 'Mengalihkan ke papan pemuka...',
+          });
+          navigate('/admin');
+        }
+      }
     } else {
       toast({
         title: 'Log Masuk Gagal',

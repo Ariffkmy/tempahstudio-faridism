@@ -13,6 +13,8 @@ export type BookingStatus =
   | 'no-show'
   | 'cancelled';
 
+export type PaymentVerificationStatus = 'disahkan' | 'belum_disahkan' | 'diragui';
+
 // Opening Hours type used across tables
 export interface OpeningHours {
   [day: string]: { open: string; close: string } | null;
@@ -219,6 +221,10 @@ export interface Booking {
   notes?: string | null;
   internal_notes?: string | null;
   delivery_link?: string | null;
+  payment_method?: string | null;
+  receipt_url?: string | null;
+  payment_proof_url?: string | null;
+  payment_verification?: PaymentVerificationStatus;
   created_at: string;
   updated_at: string;
 }

@@ -386,6 +386,42 @@ const BrandBooking = () => {
     setIsSubmitting(true);
 
     try {
+      // Upload payment proof files if provided
+      let receiptUrl: string | undefined;
+      let paymentProofUrl: string | undefined;
+
+      if (uploadedFiles.receipt) {
+        const { uploadBookingReceipt } = await import('@/services/bookingPaymentService');
+        const uploadResult = await uploadBookingReceipt(uploadedFiles.receipt);
+        if (uploadResult.success) {
+          receiptUrl = uploadResult.url;
+        } else {
+          toast({
+            title: "Ralat",
+            description: "Gagal memuat naik resit. Sila cuba lagi.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      if (uploadedFiles.proof) {
+        const { uploadBookingPaymentProof } = await import('@/services/bookingPaymentService');
+        const uploadResult = await uploadBookingPaymentProof(uploadedFiles.proof);
+        if (uploadResult.success) {
+          paymentProofUrl = uploadResult.url;
+        } else {
+          toast({
+            title: "Ralat",
+            description: "Gagal memuat naik bukti pembayaran. Sila cuba lagi.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       // For now, assume 2-hour booking (this should be configurable)
       const duration = 2; // hours
       const startDateTime = new Date(`${selectedDate.toDateString()} ${selectedTime}`);
@@ -409,6 +445,8 @@ const BrandBooking = () => {
         notes: formData.notes,
         paymentMethod: selectedPayment,
         addonPackageId: selectedAddon || undefined,
+        receiptUrl,
+        paymentProofUrl,
       };
 
       const result = await createPublicBooking(bookingData);

@@ -83,6 +83,7 @@ const BrandBooking = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedLayout, setSelectedLayout] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<string>('');
+  const [paymentType, setPaymentType] = useState<'deposit' | 'full'>('full');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -668,6 +669,56 @@ const BrandBooking = () => {
               </Card>
             )}
 
+            {/* Payment Type Selection */}
+            <Card variant="outline" className="p-4 scroll-animate delay-375">
+              <h3 className="font-semibold mb-4">Jenis Pembayaran</h3>
+              <div className="grid gap-3">
+                <label
+                  className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${paymentType === 'full'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
+                    }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentType"
+                    value="full"
+                    checked={paymentType === 'full'}
+                    onChange={() => setPaymentType('full')}
+                    className="mt-1"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium">Bayaran Penuh</div>
+                    <div className="text-sm text-muted-foreground">
+                      Bayar keseluruhan jumlah tempahan
+                    </div>
+                  </div>
+                </label>
+
+                <label
+                  className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${paymentType === 'deposit'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
+                    }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentType"
+                    value="deposit"
+                    checked={paymentType === 'deposit'}
+                    onChange={() => setPaymentType('deposit')}
+                    className="mt-1"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium">Deposit Sahaja</div>
+                    <div className="text-sm text-muted-foreground">
+                      Bayar deposit terlebih dahulu, baki kemudian
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </Card>
+
             {/* Payment Selection */}
             <div className="scroll-animate delay-400">
               <PaymentSelector
@@ -705,7 +756,7 @@ const BrandBooking = () => {
 
             {/* Summary Card */}
             {layout && (
-              <Card variant="outline" className="p-4 scroll-animate delay-700">
+              <Card variant="outline" className="p-4">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-green-600" />
                   Ringkasan Tempahan
@@ -722,6 +773,12 @@ const BrandBooking = () => {
                       {selectedPayment === 'cash' ? 'Bayar melalui cash/QR di studio' :
                         selectedPayment === 'qr' ? 'Bayar melalui QR sekarang' :
                           selectedPayment === 'bank' ? 'Pemindahan Bank' : '-'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Jenis Pembayaran:</span>
+                    <span className="font-medium">
+                      {paymentType === 'full' ? 'Bayaran Penuh' : 'Deposit Sahaja'}
                     </span>
                   </div>
                   {selectedAddon && (
@@ -754,7 +811,7 @@ const BrandBooking = () => {
 
             {/* Form Validation Status */}
             {!isFormValid && (
-              <Card variant="outline" className="p-4 border-yellow-200 bg-yellow-50 scroll-animate delay-800">
+              <Card variant="outline" className="p-4 border-yellow-200 bg-yellow-50">
                 <h4 className="font-medium text-yellow-800 mb-2">Sila lengkapkan maklumat berikut:</h4>
                 <ul className="text-sm text-yellow-700 space-y-1">
                   {!selectedLayout && <li>• Pilih layout studio</li>}
@@ -772,7 +829,7 @@ const BrandBooking = () => {
             )}
 
             {/* Submit Button */}
-            <div className="flex justify-end scroll-animate delay-800">
+            <div className="flex justify-end">
               <Button
                 onClick={handleSubmit}
                 disabled={!isFormValid || isSubmitting}

@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +23,7 @@ import { useSidebar } from '@/contexts/SidebarContext';
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Tempahan', href: '/admin/bookings', icon: Calendar },
+  { name: 'Pelanggan Anda', href: '/admin/customers', icon: Users },
   { name: 'Whatsapp Blaster', href: '/admin/whatsapp-blaster', icon: Send },
   { name: 'Laporan', href: '/admin/reports', icon: FileText },
   { name: 'Package Payments', href: '/admin/package-payments', icon: CreditCard, superAdminOnly: true },

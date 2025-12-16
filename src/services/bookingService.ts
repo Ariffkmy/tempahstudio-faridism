@@ -428,7 +428,7 @@ export async function createPublicBooking(bookingData: CreateBookingData): Promi
         end_time: bookingData.endTime,
         duration: bookingData.duration,
         total_price: bookingData.totalPrice,
-        status: 'pending',
+        status: 'done-payment',
         notes: bookingData.notes || null,
         addon_package_id: bookingData.addonPackageId || null,
       })

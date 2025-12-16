@@ -60,7 +60,7 @@ export function BookingSummary({
               </div>
               <div className="flex items-center gap-2 text-sm">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>Studio Raya</span>
+                <span>Tempah Studio</span>
               </div>
             </div>
 

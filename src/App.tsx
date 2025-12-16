@@ -18,6 +18,7 @@ import AdminRegister from "./pages/admin/AdminRegister";
 import VerifyEmail from "./pages/admin/VerifyEmail";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminBookings from "./pages/admin/AdminBookings";
+import AdminCustomers from "./pages/admin/AdminCustomers";
 import AdminWhatsappBlaster from "./pages/admin/AdminWhatsappBlaster";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminSettings from "./pages/admin/AdminSettings";
@@ -77,6 +78,14 @@ const App = () => (
                   element={
                     <ProtectedRoute>
                       <AdminBookings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/customers"
+                  element={
+                    <ProtectedRoute>
+                      <AdminCustomers />
                     </ProtectedRoute>
                   }
                 />

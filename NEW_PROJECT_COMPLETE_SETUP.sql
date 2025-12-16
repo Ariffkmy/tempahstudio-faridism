@@ -992,7 +992,7 @@ ON CONFLICT DO NOTHING;
 
 -- Insert default email templates
 INSERT INTO email_templates (template_id, name, description, subject, template_variables) VALUES
-('199982901212-231', 'Admin Email Onboarding', 'Welcome email sent to new admin users after registration', 'Welcome to Studio Raya Admin Panel - {{studio_name}}', '[\"admin_name\", \"studio_name\", \"login_url\", \"registration_date\"]'::jsonb),
+('199982901212-231', 'Admin Email Onboarding', 'Welcome email sent to new admin users after registration', 'Welcome to Tempah Studio Admin Panel - {{studio_name}}', '[\"admin_name\", \"studio_name\", \"login_url\", \"registration_date\"]'::jsonb),
 ('booking-confirmation-template', 'Booking Confirmation', 'Confirmation email sent to customers after successful booking', 'Booking Confirmation - {{booking_reference}}', '[\"customer_name\", \"booking_reference\", \"booking_date\", \"booking_time\", \"studio_name\", \"layout_name\"]'::jsonb),
 ('booking-status-update-template', 'Booking Status Update', 'Email sent when booking status changes', 'Booking Update - {{booking_reference}}', '[\"customer_name\", \"booking_reference\", \"new_status\", \"studio_name\"]'::jsonb),
 ('booking-cancellation-template', 'Booking Cancellation', 'Email sent when booking is cancelled', 'Booking Cancelled - {{booking_reference}}', '[\"customer_name\", \"booking_reference\", \"cancellation_reason\", \"refund_info\"]'::jsonb),

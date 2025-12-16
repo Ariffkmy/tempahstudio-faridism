@@ -106,7 +106,7 @@ serve(async (req: Request) => {
       to: recipient_email,
       from: {
         email: fromEmail,
-        name: 'Studio Raya'
+        name: 'Tempah Studio'
       },
       templateId: template.template_id,
       dynamicTemplateData: allTemplateData,

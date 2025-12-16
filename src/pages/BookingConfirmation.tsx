@@ -80,7 +80,7 @@ const BookingConfirmation = () => {
                     <MapPin className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">
-                        {booking?.studio?.name || 'Studio Raya'}
+                        {booking?.studio?.name || 'Tempah Studio'}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {booking?.studio?.location || 'Kuala Lumpur, Malaysia'}

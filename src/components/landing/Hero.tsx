@@ -87,10 +87,10 @@ export function Hero() {
         backgroundSize: '40px 40px',
       }} />
 
-      <div className="container">
+      <div className="container px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left side - Hero text */}
-          <div className="max-w-3xl md:mt-0 mt-40">
+          <div className="w-full max-w-full lg:max-w-3xl md:mt-0 mt-40 px-2 sm:px-0">
             {/*
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent text-accent-foreground text-sm font-medium mb-6 animate-fade-in">
               <Star className="h-3.5 w-3.5 fill-current" />
@@ -111,16 +111,16 @@ export function Hero() {
                 duration: 0.5,
                 ease: [0.4, 0.0, 0.2, 1],
               }}
-              className="text-4xl sm:text-5xl lg:text-5xl font-bold tracking-tight text-center lg:text-left mb-6"
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-bold tracking-tight text-center lg:text-left mb-6 break-words"
             >
-              Platform mengurus tempahan <span className="inline-block whitespace-nowrap"><Highlight className="mt-2">studio raya anda</Highlight> 📆</span>
+              Platform mengurus tempahan <span className="inline-block break-words"><Highlight className="mt-2">studio raya anda</Highlight> 📆</span>
             </motion.h1>
 
-            <p className="text-l sm:text-xl max-w-xl mb-8 text-center lg:text-left animate-slide-up stagger-1">
+            <p className="text-base sm:text-lg md:text-xl max-w-full lg:max-w-xl mb-8 text-center lg:text-left animate-slide-up stagger-1">
               Sistem tempahan studio raya yang cepat dan mudah untuk pelanggan anda. Urus slot, pakej, pembayaran dan banyak lagi dalam satu platform.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 mb-12 animate-slide-up stagger-2">
+            <div className="flex flex-col sm:flex-row gap-4 mb-12 animate-slide-up stagger-2 justify-center lg:justify-start">
               <Button
                 variant="hero"
                 size="xl"
@@ -128,6 +128,7 @@ export function Hero() {
                   const pricingSection = document.getElementById('pricing-section');
                   pricingSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }}
+                className="w-full sm:w-auto"
               >
                 Lihat Pakej
                 <ArrowRight className="h-5 w-5" />

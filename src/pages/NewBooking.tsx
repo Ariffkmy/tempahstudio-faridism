@@ -71,6 +71,12 @@ const NewBooking = () => {
   const [studioPortfolioPhotos, setStudioPortfolioPhotos] = useState<string[]>([]);
   const [portfolioUploadInstructions, setPortfolioUploadInstructions] = useState('');
   const [portfolioMaxFileSize, setPortfolioMaxFileSize] = useState(10);
+  const [timeInterval, setTimeInterval] = useState(60); // Default to 60 minutes
+  const [operatingStartTime, setOperatingStartTime] = useState('09:00');
+  const [operatingEndTime, setOperatingEndTime] = useState('18:00');
+  const [bookedTimes, setBookedTimes] = useState<string[]>([]);
+  const [depositEnabled, setDepositEnabled] = useState(false);
+  const [depositAmount, setDepositAmount] = useState(0);
 
   // Debug: Component mounted
   console.log('🚀 NewBooking component mounted/rendered');
@@ -125,6 +131,11 @@ const NewBooking = () => {
         const studioSettings = await loadStudioSettings(actualStudioId);
         if (studioSettings) {
           setStudioPortfolioEnabled(studioSettings.headerPortfolioEnabled);
+          setTimeInterval(studioSettings.timeSlotGap || 60); // Default to 60 minutes if not set
+          setOperatingStartTime(studioSettings.operatingStartTime || '09:00');
+          setOperatingEndTime(studioSettings.operatingEndTime || '18:00');
+          setDepositEnabled(studioSettings.depositEnabled || false);
+          setDepositAmount(studioSettings.depositAmount || 0);
         }
 
         // Load portfolio photos
@@ -155,6 +166,7 @@ const NewBooking = () => {
             description: layout.description,
             capacity: layout.capacity,
             pricePerHour: Number(layout.price_per_hour),
+            minute_package: layout.minute_package || 60,
             image: layout.image,
             thumbnail_photo: layout.thumbnail_photo,
             amenities: layout.amenities || [],
@@ -228,6 +240,45 @@ const NewBooking = () => {
     };
   }, [isLoading]);
 
+  // Fetch booked times for selected layout and date
+  useEffect(() => {
+    const fetchBookedTimes = async () => {
+      if (!selectedDate || !selectedLayout || !studio?.id) {
+        setBookedTimes([]);
+        return;
+      }
+
+      try {
+        const dateString = selectedDate.toISOString().split('T')[0];
+
+        // Fetch bookings for this specific layout and date
+        const { data: bookings, error } = await supabase
+          .from('bookings')
+          .select('start_time')
+          .eq('studio_id', studio.id)
+          .eq('layout_id', selectedLayout)
+          .eq('date', dateString)
+          .in('status', ['done-payment', 'done-photoshoot', 'start-editing', 'ready-for-delivery', 'completed']);
+
+        if (error) {
+          console.error('Error fetching booked times:', error);
+          setBookedTimes([]);
+          return;
+        }
+
+        // Extract start times
+        const times = bookings?.map(b => b.start_time) || [];
+        setBookedTimes(times);
+        console.log(`📅 Booked times for layout ${selectedLayout} on ${dateString}:`, times);
+      } catch (error) {
+        console.error('Error fetching booked times:', error);
+        setBookedTimes([]);
+      }
+    };
+
+    fetchBookedTimes();
+  }, [selectedDate, selectedLayout, studio?.id]);
+
   const isFormValid = Boolean(
     selectedLayout &&
     selectedDate &&
@@ -255,15 +306,15 @@ const NewBooking = () => {
     setIsSubmitting(true);
 
     try {
-      // For now, assume 2-hour booking (this should be configurable)
-      // In a real implementation, this would come from the time slot selection
-      const duration = 2; // hours
+      // Use selected layout's minute_package for duration (store in minutes as integer)
+      const durationInMinutes = layout.minute_package || 60; // Duration in minutes from layout's package
       const startDateTime = new Date(`${selectedDate.toDateString()} ${selectedTime}`);
-      const endDateTime = new Date(startDateTime.getTime() + (duration * 60 * 60 * 1000));
+      const endDateTime = new Date(startDateTime.getTime() + (durationInMinutes * 60 * 1000));
       const endTime = endDateTime.toTimeString().slice(0, 5);
 
-      // Calculate total price
-      const totalPrice = layout.pricePerHour * duration;
+      // Calculate total price based on duration in hours
+      const durationInHours = durationInMinutes / 60;
+      const totalPrice = layout.pricePerHour * durationInHours;
 
       const bookingData = {
         customerName: formData.name,
@@ -274,7 +325,7 @@ const NewBooking = () => {
         date: selectedDate.toISOString().split('T')[0],
         startTime: selectedTime,
         endTime: endTime,
-        duration: duration,
+        duration: durationInMinutes,
         totalPrice: totalPrice,
         notes: formData.notes,
         paymentMethod: selectedPayment,
@@ -412,7 +463,7 @@ const NewBooking = () => {
             <div className="scroll-animate delay-600">
               {selectedDate ? (
                 <TimeSlots
-                  slots={generateTimeSlots(selectedDate, selectedLayout)}
+                  slots={generateTimeSlots(selectedDate, selectedLayout, timeInterval, operatingStartTime, operatingEndTime, bookedTimes)}
                   selectedTime={selectedTime}
                   onSelectTime={setSelectedTime}
                 />

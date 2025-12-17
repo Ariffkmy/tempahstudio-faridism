@@ -14,6 +14,7 @@ export interface StudioLayout {
   description: string;
   capacity: number;
   pricePerHour: number;
+  minute_package?: number;
   image?: string;
   thumbnail_photo?: string;
   amenities?: string[];

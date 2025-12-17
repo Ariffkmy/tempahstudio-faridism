@@ -243,7 +243,7 @@ export function BookingDetailModal({ booking, open, onOpenChange }: BookingDetai
                                     <div className="flex-1">
                                         <p className="text-xs text-muted-foreground">Masa</p>
                                         <p className="font-medium">{booking.startTime} - {booking.endTime}</p>
-                                        <p className="text-xs text-muted-foreground mt-0.5">{booking.duration} jam</p>
+                                        <p className="text-xs text-muted-foreground mt-0.5">{booking.duration} minit</p>
                                     </div>
                                 </div>
 

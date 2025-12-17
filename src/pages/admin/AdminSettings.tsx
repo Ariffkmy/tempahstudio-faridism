@@ -130,7 +130,10 @@ const AdminSettings = () => {
     operatingStartTime: '09:00',
     operatingEndTime: '18:00',
     breakStartTime: '13:00',
-    breakEndTime: '14:00'
+    breakEndTime: '14:00',
+    // Deposit settings
+    depositEnabled: false,
+    depositAmount: 0
   });
 
   const [layouts, setLayouts] = useState<StudioLayout[]>([]);
@@ -278,7 +281,9 @@ const AdminSettings = () => {
             operatingStartTime: data.operatingStartTime || '09:00',
             operatingEndTime: data.operatingEndTime || '18:00',
             breakStartTime: data.breakStartTime || '13:00',
-            breakEndTime: data.breakEndTime || '14:00'
+            breakEndTime: data.breakEndTime || '14:00',
+            depositEnabled: data.depositEnabled || false,
+            depositAmount: data.depositAmount || 0
           });
           setLayouts(data.layouts);
 
@@ -1857,7 +1862,7 @@ const AdminSettings = () => {
 
                       <div className="grid grid-cols-1 gap-3">
                         <div className="space-y-1">
-                          <Label className="text-xs">Nama Layout</Label>
+                          <Label className="text-xs">Nama Pakej</Label>
                           <Input
                             value={layout.name}
                             onChange={(e) => handleLayoutChange(index, 'name', e.target.value)}
@@ -1909,11 +1914,11 @@ const AdminSettings = () => {
 
                   <div className="space-y-3">
                     <div className="space-y-1">
-                      <Label className="text-xs">Nama Layout</Label>
+                      <Label className="text-xs">Nama Pakej</Label>
                       <Input
                         value={newLayout.name}
                         onChange={(e) => setNewLayout(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="Nama Layout"
+                        placeholder="Nama Pakej"
                         className="h-8 text-sm"
                       />
                     </div>
@@ -2526,7 +2531,7 @@ const AdminSettings = () => {
 
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                  <Label>Nama Layout</Label>
+                                  <Label>Nama Pakej</Label>
                                   <Input
                                     value={layout.name}
                                     onChange={(e) => handleLayoutChange(index, 'name', e.target.value)}
@@ -2552,18 +2557,18 @@ const AdminSettings = () => {
                                 </div>
 
                                 <div className="space-y-2">
-                                  <Label>Gambar</Label>
-                                  <div className="flex gap-2">
-                                    <Input
-                                      value={layout.image}
-                                      onChange={(e) => handleLayoutChange(index, 'image', e.target.value)}
-                                      placeholder="URL gambar"
-                                    />
-                                    <Button variant="outline" size="sm">
-                                      <Upload className="h-4 w-4" />
-                                    </Button>
-                                  </div>
+                                  <Label>Tempoh Pakej (Minit)</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    value={layout.minute_package || ''}
+                                    onChange={(e) => handleLayoutChange(index, 'minute_package', parseInt(e.target.value) || 0)}
+                                    placeholder="e.g., 60, 120, 180"
+                                  />
+                                  <p className="text-xs text-muted-foreground">Tempoh pakej dalam minit (cth: 60 = 1 jam)</p>
                                 </div>
+
+
                               </div>
 
                               <div className="space-y-2">
@@ -2717,7 +2722,7 @@ const AdminSettings = () => {
                               <div className="space-y-4 py-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <div className="space-y-2">
-                                    <Label htmlFor="new-layout-name">Nama Layout *</Label>
+                                    <Label htmlFor="new-layout-name">Nama Pakej *</Label>
                                     <Input
                                       id="new-layout-name"
                                       value={newLayout.name}
@@ -2747,6 +2752,19 @@ const AdminSettings = () => {
                                       value={newLayout.price_per_hour}
                                       onChange={(e) => setNewLayout(prev => ({ ...prev, price_per_hour: parseInt(e.target.value) || 0 }))}
                                     />
+                                  </div>
+
+                                  <div className="space-y-2 md:col-span-2">
+                                    <Label htmlFor="new-layout-minute-package">Tempoh Pakej (Minit)</Label>
+                                    <Input
+                                      id="new-layout-minute-package"
+                                      type="number"
+                                      min="0"
+                                      value={newLayout.minute_package || ''}
+                                      onChange={(e) => setNewLayout(prev => ({ ...prev, minute_package: parseInt(e.target.value) || 0 }))}
+                                      placeholder="e.g., 60, 120, 180"
+                                    />
+                                    <p className="text-xs text-muted-foreground">Tempoh pakej dalam minit (cth: 60 = 1 jam)</p>
                                   </div>
                                 </div>
 
@@ -2987,6 +3005,12 @@ const AdminSettings = () => {
                         Konfigurasi Slot Masa
                       </TabsTrigger>
                       <TabsTrigger
+                        value="deposit"
+                        className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                      >
+                        Deposit
+                      </TabsTrigger>
+                      <TabsTrigger
                         value="logo-studio"
                         className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                       >
@@ -3172,17 +3196,62 @@ const AdminSettings = () => {
                               <SelectItem value="30">30 minit</SelectItem>
                               <SelectItem value="45">45 minit</SelectItem>
                               <SelectItem value="60">1 jam</SelectItem>
+                              <SelectItem value="120">2 jam</SelectItem>
+                              <SelectItem value="180">3 jam</SelectItem>
+                              <SelectItem value="240">4 jam</SelectItem>
                             </SelectContent>
                           </Select>
                           <p className="text-sm text-muted-foreground">
-                            Slot masa akan dipaparkan dengan jarak {settings.timeSlotGap} minit antara setiap pilihan.
+                            Slot masa akan dipaparkan dengan jarak {settings.timeSlotGap >= 60 ? `${settings.timeSlotGap / 60} jam` : `${settings.timeSlotGap} minit`} antara setiap pilihan.
                           </p>
                         </div>
                       </CardContent>
                     </Card>
                   </TabsContent>
 
-                  {/* Sub-tab 4: Logo Studio */}
+                  {/* Sub-tab 4: Deposit */}
+                  <TabsContent value="deposit" className="space-y-6 mt-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Tetapan Deposit</CardTitle>
+                        <CardDescription>Konfigurasi pilihan pembayaran deposit untuk tempahan</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label className="text-base">Aktifkan Pilihan Deposit</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Benarkan pelanggan membayar deposit sahaja semasa membuat tempahan
+                            </p>
+                          </div>
+                          <Switch
+                            checked={settings.depositEnabled}
+                            onCheckedChange={(checked) => handleSettingChange('depositEnabled', checked)}
+                          />
+                        </div>
+
+                        {settings.depositEnabled && (
+                          <div className="space-y-2 pt-4 border-t">
+                            <Label htmlFor="depositAmount">Jumlah Deposit (RM)</Label>
+                            <Input
+                              id="depositAmount"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={settings.depositAmount}
+                              onChange={(e) => handleSettingChange('depositAmount', parseFloat(e.target.value) || 0)}
+                              placeholder="0.00"
+                            />
+                            <p className="text-sm text-muted-foreground">
+                              Tetapkan jumlah deposit yang perlu dibayar oleh pelanggan. Baki akan dibayar kemudian.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Sub-tab 5: Logo Studio */}
                   <TabsContent value="logo-studio" className="space-y-6 mt-6">
                     <Card>
                       <CardHeader>

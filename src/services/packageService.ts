@@ -6,6 +6,7 @@ export interface Package {
     slug: string;
     price: number;
     period: string;
+    minute_package?: number | null;
     is_popular: boolean;
     features: string[];
     is_active: boolean;
@@ -19,6 +20,7 @@ export interface CreatePackageInput {
     slug: string;
     price: number;
     period: string;
+    minute_package?: number;
     is_popular: boolean;
     features: string[];
     is_active: boolean;

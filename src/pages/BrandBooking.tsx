@@ -95,6 +95,7 @@ const BrandBooking = () => {
     proof: null as File | null,
   });
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [numberOfPax, setNumberOfPax] = useState<number>(1);
 
   // Studio-specific state
   const [studio, setStudio] = useState<Studio | null>(null);
@@ -148,6 +149,12 @@ const BrandBooking = () => {
   // Portfolio gallery state
   const [portfolioGalleryOpen, setPortfolioGalleryOpen] = useState(false);
   const [portfolioPhotos, setPortfolioPhotos] = useState<string[]>([]);
+  const [timeInterval, setTimeInterval] = useState(60); // Default to 60 minutes
+  const [operatingStartTime, setOperatingStartTime] = useState('09:00');
+  const [operatingEndTime, setOperatingEndTime] = useState('18:00');
+  const [bookedTimes, setBookedTimes] = useState<string[]>([]);
+  const [depositEnabled, setDepositEnabled] = useState(false);
+  const [depositAmount, setDepositAmount] = useState(0);
 
   const layout = layouts.find((l) => l.id === selectedLayout) || null;
 
@@ -231,6 +238,13 @@ const BrandBooking = () => {
           bookingSubtitleSize: (studioData as any).booking_subtitle_size || 'base'
         });
 
+        // Load time interval configuration
+        setTimeInterval((studioData as any).time_slot_gap || 60);
+        setOperatingStartTime((studioData as any).operating_start_time || '09:00');
+        setOperatingEndTime((studioData as any).operating_end_time || '18:00');
+        setDepositEnabled((studioData as any).deposit_enabled || false);
+        setDepositAmount((studioData as any).deposit_amount || 0);
+
         // Load studio layouts
         const { data: layoutsData, error: layoutsError } = await supabase
           .from('studio_layouts')
@@ -254,6 +268,7 @@ const BrandBooking = () => {
             description: layout.description,
             capacity: layout.capacity,
             pricePerHour: Number(layout.price_per_hour),
+            minute_package: layout.minute_package || 60,
             image: layout.image,
             thumbnail_photo: layout.thumbnail_photo,
             amenities: layout.amenities || [],
@@ -301,61 +316,61 @@ const BrandBooking = () => {
     loadStudioData();
   }, [studioId, studioSlug, navigate, toast]);
 
-  // Scroll animation effect with logging
+
+
+  // Fetch booked times for selected layout and date
   useEffect(() => {
-    console.log('🎬 Setting up scroll animations... isLoading=', isLoading);
-
-    if (isLoading) {
-      console.log('⏳ Skipping - still loading');
-      return;
-    }
-
-    console.log('✅ Not loading, setting up animations...');
-
-    const observerOptions = {
-      threshold: 0.15,
-      rootMargin: '0px 0px -100px 0px'
-    };
-
-    const handleIntersection = (entries: IntersectionObserverEntry[]) => {
-      entries.forEach((entry) => {
-        console.log('👀 Element observed:', {
-          target: entry.target.className,
-          isIntersecting: entry.isIntersecting,
-          intersectionRatio: entry.intersectionRatio
-        });
-
-        if (entry.isIntersecting) {
-          console.log('✅ Element entering viewport, adding visible class');
-          entry.target.classList.add('visible');
-        }
-      });
-    };
-
-    const observer = new IntersectionObserver(handleIntersection, observerOptions);
-
-    // Wait a bit for DOM to be ready
-    const timeoutId = setTimeout(() => {
-      console.log('⏰ Searching for .scroll-animate elements...');
-      const animatedElements = document.querySelectorAll('.scroll-animate');
-      console.log(`📦 Found ${animatedElements.length} elements to animate`);
-
-      if (animatedElements.length === 0) {
-        console.warn('⚠️ WARNING: No .scroll-animate elements found in DOM!');
+    const fetchBookedTimes = async () => {
+      if (!selectedDate || !selectedLayout || !studio?.id) {
+        setBookedTimes([]);
+        return;
       }
 
-      animatedElements.forEach((element, index) => {
-        console.log(`🔗 Observing element ${index + 1}:`, element.className);
-        observer.observe(element);
-      });
-    }, 200);
+      try {
+        // Format date correctly to avoid timezone issues
+        const year = selectedDate.getFullYear();
+        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+        const day = String(selectedDate.getDate()).padStart(2, '0');
+        const dateString = `${year}-${month}-${day}`;
 
-    return () => {
-      console.log('🧹 Cleaning up scroll animation observer');
-      clearTimeout(timeoutId);
-      observer.disconnect();
+        console.log('🔍 Fetching booked times for:', {
+          studioId: studio.id,
+          layoutId: selectedLayout,
+          date: dateString
+        });
+
+        // Fetch bookings for this specific layout and date
+        const { data: bookings, error } = await supabase
+          .from('bookings')
+          .select('start_time')
+          .eq('studio_id', studio.id)
+          .eq('layout_id', selectedLayout)
+          .eq('date', dateString)
+          .in('status', ['done-payment', 'done-photoshoot', 'start-editing', 'ready-for-delivery', 'completed']);
+
+        if (error) {
+          console.error('❌ Error fetching booked times:', error);
+          setBookedTimes([]);
+          return;
+        }
+
+        // Extract start times and normalize to HH:MM format (remove seconds)
+        const times = bookings?.map(b => {
+          // Remove seconds from time format (e.g., "12:00:00" -> "12:00")
+          const timeWithoutSeconds = b.start_time.substring(0, 5);
+          return timeWithoutSeconds;
+        }) || [];
+        setBookedTimes(times);
+        console.log(`✅ Booked times for layout ${selectedLayout} on ${dateString}:`, times);
+        console.log(`📊 Total booked slots: ${times.length}`);
+      } catch (error) {
+        console.error('Error fetching booked times:', error);
+        setBookedTimes([]);
+      }
     };
-  }, [isLoading]);
+
+    fetchBookedTimes();
+  }, [selectedDate, selectedLayout, studio?.id]);
 
   const isFormValid = Boolean(
     selectedLayout &&
@@ -422,14 +437,25 @@ const BrandBooking = () => {
         }
       }
 
-      // For now, assume 2-hour booking (this should be configurable)
-      const duration = 2; // hours
+      // Use selected layout's minute_package for duration (store in minutes as integer)
+      const durationInMinutes = layout.minute_package || 60; // Duration in minutes from layout's package
       const startDateTime = new Date(`${selectedDate.toDateString()} ${selectedTime}`);
-      const endDateTime = new Date(startDateTime.getTime() + (duration * 60 * 60 * 1000));
+      const endDateTime = new Date(startDateTime.getTime() + (durationInMinutes * 60 * 1000)); // Use layout's minute_package
       const endTime = endDateTime.toTimeString().slice(0, 5);
 
-      // Calculate total price
-      const totalPrice = layout.pricePerHour * duration;
+      // Format date correctly to avoid timezone issues
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      const formattedDate = `${year}-${month}-${day}`;
+
+      // Calculate total price based on payment type (using hours for price calculation)
+      const durationInHours = durationInMinutes / 60;
+      const basePrice = layout.pricePerHour * durationInHours;
+      const addonPrice = selectedAddon ? (addonPackages.find(p => p.id === selectedAddon)?.price || 0) : 0;
+      const fullPrice = basePrice + addonPrice;
+      const totalPrice = paymentType === 'deposit' ? depositAmount : fullPrice;
+      const balanceDue = paymentType === 'deposit' ? (fullPrice - depositAmount) : 0;
 
       const bookingData = {
         customerName: formData.name,
@@ -437,11 +463,14 @@ const BrandBooking = () => {
         customerPhone: formData.phone,
         studioId: studio.id,
         layoutId: selectedLayout,
-        date: selectedDate.toISOString().split('T')[0],
+        date: formattedDate,
         startTime: selectedTime,
         endTime: endTime,
-        duration: duration,
+        duration: durationInMinutes,
         totalPrice: totalPrice,
+        balanceDue: balanceDue,
+        paymentType: paymentType,
+        numberOfPax: numberOfPax,
         notes: formData.notes,
         paymentMethod: selectedPayment,
         addonPackageId: selectedAddon || undefined,
@@ -625,7 +654,7 @@ const BrandBooking = () => {
 
           <div className="space-y-6">
             {/* Layout Selection */}
-            <Card variant="outline" className="p-4 scroll-animate delay-200">
+            <Card variant="outline" className="p-4">
               <h3 className="font-semibold mb-4">Pilih Layout Studio</h3>
               {isLoading ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -647,7 +676,7 @@ const BrandBooking = () => {
             </Card>
 
             {/* Contact Form */}
-            <div className="scroll-animate delay-300">
+            <div>
               <ContactForm
                 formData={formData}
                 onFormChange={handleFormChange}
@@ -656,7 +685,7 @@ const BrandBooking = () => {
 
             {/* Add-on Packages Selection */}
             {addonPackages.length > 0 && (
-              <Card variant="outline" className="p-4 scroll-animate delay-350">
+              <Card variant="outline" className="p-4">
                 <h3 className="font-semibold mb-4">Pakej Tambahan (Pilihan)</h3>
                 <div className="space-y-3">
                   {/* No addon option */}
@@ -707,67 +736,31 @@ const BrandBooking = () => {
               </Card>
             )}
 
-            {/* Payment Type Selection */}
-            <Card variant="outline" className="p-4 scroll-animate delay-375">
-              <h3 className="font-semibold mb-4">Jenis Pembayaran</h3>
-              <div className="grid gap-3">
-                <label
-                  className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${paymentType === 'full'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50'
-                    }`}
-                >
-                  <input
-                    type="radio"
-                    name="paymentType"
-                    value="full"
-                    checked={paymentType === 'full'}
-                    onChange={() => setPaymentType('full')}
-                    className="mt-1"
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium">Bayaran Penuh</div>
-                    <div className="text-sm text-muted-foreground">
-                      Bayar keseluruhan jumlah tempahan
-                    </div>
-                  </div>
+            {/* Number of Pax */}
+            <Card variant="outline" className="p-4">
+              <h3 className="font-semibold mb-4">Bilangan Pax</h3>
+              <div className="space-y-2">
+                <label htmlFor="numberOfPax" className="text-sm font-medium">
+                  Berapa ramai orang? <span className="text-destructive">*</span>
                 </label>
-
-                <label
-                  className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${paymentType === 'deposit'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50'
-                    }`}
-                >
-                  <input
-                    type="radio"
-                    name="paymentType"
-                    value="deposit"
-                    checked={paymentType === 'deposit'}
-                    onChange={() => setPaymentType('deposit')}
-                    className="mt-1"
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium">Deposit Sahaja</div>
-                    <div className="text-sm text-muted-foreground">
-                      Bayar deposit terlebih dahulu, baki kemudian
-                    </div>
-                  </div>
-                </label>
+                <input
+                  id="numberOfPax"
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={numberOfPax}
+                  onChange={(e) => setNumberOfPax(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Masukkan bilangan pax"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Sila nyatakan jumlah pax yang akan hadir
+                </p>
               </div>
             </Card>
 
-            {/* Payment Selection */}
-            <div className="scroll-animate delay-400">
-              <PaymentSelector
-                selectedPayment={selectedPayment}
-                onSelectPayment={setSelectedPayment}
-                onFileUpload={handleFileUpload}
-              />
-            </div>
-
             {/* Date Selection */}
-            <div className="scroll-animate delay-500">
+            <div>
               <DatePicker
                 selected={selectedDate}
                 onSelect={setSelectedDate}
@@ -775,14 +768,30 @@ const BrandBooking = () => {
             </div>
 
             {/* Time Selection */}
-            <div className="scroll-animate delay-600">
-              {selectedDate ? (
-                <TimeSlots
-                  slots={generateTimeSlots(selectedDate, selectedLayout)}
-                  selectedTime={selectedTime}
-                  onSelectTime={setSelectedTime}
-                />
-              ) : (
+            <div>
+              {selectedDate ? (() => {
+                const generatedSlots = generateTimeSlots(selectedDate, selectedLayout, timeInterval, operatingStartTime, operatingEndTime, bookedTimes);
+
+                console.log('🎰 Generated time slots:', {
+                  date: selectedDate.toISOString().split('T')[0],
+                  layoutId: selectedLayout,
+                  timeInterval,
+                  operatingHours: `${operatingStartTime} - ${operatingEndTime}`,
+                  bookedTimes,
+                  totalSlots: generatedSlots.length,
+                  availableSlots: generatedSlots.filter(s => s.available).length,
+                  bookedSlots: generatedSlots.filter(s => !s.available).length,
+                  slots: generatedSlots
+                });
+
+                return (
+                  <TimeSlots
+                    slots={generatedSlots}
+                    selectedTime={selectedTime}
+                    onSelectTime={setSelectedTime}
+                  />
+                );
+              })() : (
                 <Card variant="outline" className="p-4">
                   <h3 className="font-semibold mb-4">Pilih Masa</h3>
                   <div className="text-center py-8 text-muted-foreground">
@@ -792,47 +801,175 @@ const BrandBooking = () => {
               )}
             </div>
 
-            {/* Summary Card */}
-            {layout && (
+            {/* Payment Type Selection - Only show after time is selected */}
+            {selectedTime && (
               <Card variant="outline" className="p-4">
-                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <h3 className="font-semibold mb-4">Jenis Pembayaran</h3>
+                <div className="grid gap-3">
+                  <label
+                    className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${paymentType === 'full'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/50'
+                      }`}
+                  >
+                    <input
+                      type="radio"
+                      name="paymentType"
+                      value="full"
+                      checked={paymentType === 'full'}
+                      onChange={() => setPaymentType('full')}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium">Bayaran Penuh</div>
+                      <div className="text-sm text-muted-foreground">
+                        Bayar keseluruhan jumlah tempahan
+                      </div>
+                    </div>
+                  </label>
+
+                  {depositEnabled && (
+                    <label
+                      className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${paymentType === 'deposit'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-primary/50'
+                        }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentType"
+                        value="deposit"
+                        checked={paymentType === 'deposit'}
+                        onChange={() => setPaymentType('deposit')}
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium">Deposit Sahaja</div>
+                        <div className="text-sm text-muted-foreground">
+                          Bayar deposit RM {depositAmount.toFixed(2)} terlebih dahulu, baki kemudian
+                        </div>
+                      </div>
+                      <div className="font-semibold text-primary">RM {depositAmount.toFixed(2)}</div>
+                    </label>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {/* Payment Method Selection - Only show after time is selected */}
+            {selectedTime && (
+              <div>
+                <PaymentSelector
+                  selectedPayment={selectedPayment}
+                  onSelectPayment={setSelectedPayment}
+                  onFileUpload={handleFileUpload}
+                />
+              </div>
+            )}
+
+            {/* Payment Summary Card - Only show after time is selected */}
+            {layout && selectedTime && (
+              <Card variant="outline" className="p-6 border-primary/20 bg-primary/5">
+                <h3 className="font-semibold mb-4 flex items-center gap-2 text-lg">
                   <CheckCircle className="h-5 w-5 text-green-600" />
-                  Ringkasan Tempahan
+                  Ringkasan Pembayaran
                 </h3>
 
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Layout:</span>
-                    <span className="font-medium">{layout.name}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Kaedah Pembayaran:</span>
-                    <span className="font-medium">
-                      {selectedPayment === 'cash' ? 'Bayar melalui cash/QR di studio' :
-                        selectedPayment === 'qr' ? 'Bayar melalui QR sekarang' :
-                          selectedPayment === 'bank' ? 'Pemindahan Bank' : '-'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Jenis Pembayaran:</span>
-                    <span className="font-medium">
-                      {paymentType === 'full' ? 'Bayaran Penuh' : 'Deposit Sahaja'}
-                    </span>
-                  </div>
-                  {selectedAddon && (
+                <div className="space-y-4">
+                  {/* Booking Details */}
+                  <div className="space-y-2 pb-4 border-b">
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Pakej Tambahan:</span>
-                      <span className="font-medium">
-                        {addonPackages.find(p => p.id === selectedAddon)?.name}
-                        <span className="text-primary ml-2">
-                          +RM {addonPackages.find(p => p.id === selectedAddon)?.price}
+                      <span className="text-muted-foreground">Layout:</span>
+                      <span className="font-medium">{layout.name}</span>
+                    </div>
+                    {selectedDate && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Tarikh:</span>
+                        <span className="font-medium">{selectedDate.toLocaleDateString('ms-MY')}</span>
+                      </div>
+                    )}
+                    {selectedTime && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Masa:</span>
+                        <span className="font-medium">{selectedTime}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Pelanggan:</span>
+                      <span className="font-medium">{formData.name || '-'}</span>
+                    </div>
+                  </div>
+
+                  {/* Price Breakdown */}
+                  <div className="space-y-2 pb-4 border-b">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Harga Asas:</span>
+                      <span className="font-medium">RM {(layout.pricePerHour * 2).toFixed(2)}</span>
+                    </div>
+                    {selectedAddon && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">
+                          Pakej Tambahan ({addonPackages.find(p => p.id === selectedAddon)?.name}):
                         </span>
+                        <span className="font-medium text-primary">
+                          +RM {addonPackages.find(p => p.id === selectedAddon)?.price.toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center font-semibold text-lg pt-2">
+                      <span>Jumlah Keseluruhan:</span>
+                      <span className="text-primary">
+                        RM {(layout.pricePerHour * 2 + (selectedAddon ? (addonPackages.find(p => p.id === selectedAddon)?.price || 0) : 0)).toFixed(2)}
                       </span>
                     </div>
-                  )}
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Pelanggan:</span>
-                    <span className="font-medium">{formData.name || '-'}</span>
+                  </div>
+
+                  {/* Payment Type & Amount to Pay */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Jenis Pembayaran:</span>
+                      <span className="font-medium">
+                        {paymentType === 'full' ? 'Bayaran Penuh' : 'Deposit Sahaja'}
+                      </span>
+                    </div>
+                    {selectedPayment && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Kaedah Pembayaran:</span>
+                        <span className="font-medium">
+                          {selectedPayment === 'cash' ? 'Cash/QR di Studio' :
+                            selectedPayment === 'qr' ? 'QR Sekarang' :
+                              selectedPayment === 'bank' ? 'Pemindahan Bank' : '-'}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Amount to Pay Now - Highlighted */}
+                    <div className="mt-4 p-4 bg-primary/10 rounded-lg border-2 border-primary">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <div className="font-semibold text-base">Jumlah Perlu Dibayar Sekarang:</div>
+                        </div>
+                        <div className="text-2xl font-bold text-primary">
+                          RM {paymentType === 'deposit'
+                            ? depositAmount.toFixed(2)
+                            : (layout.pricePerHour * 2 + (selectedAddon ? (addonPackages.find(p => p.id === selectedAddon)?.price || 0) : 0)).toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Balance to Pay Later - Only for Deposit */}
+                    {paymentType === 'deposit' && (
+                      <div className="mt-2 p-3 bg-gray-100 rounded-lg border-2 border-gray-300">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <div className="font-semibold text-sm text-gray-600">Baki Perlu Dibayar Kemudian:</div>
+                          </div>
+                          <div className="text-lg font-bold text-gray-700">
+                            RM {((layout.pricePerHour * 2 + (selectedAddon ? (addonPackages.find(p => p.id === selectedAddon)?.price || 0) : 0)) - depositAmount).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </Card>

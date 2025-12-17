@@ -286,29 +286,44 @@ export const mockBookings: Booking[] = [
   },
 ];
 
-export const generateTimeSlots = (date: Date | undefined, layoutId: string | null): { time: string; available: boolean }[] => {
+export const generateTimeSlots = (
+  date: Date | undefined,
+  layoutId: string | null,
+  intervalMinutes: number = 60,
+  operatingStartTime: string = '09:00',
+  operatingEndTime: string = '18:00',
+  bookedTimes: string[] = []
+): { time: string; available: boolean }[] => {
   const slots = [];
-  
+
   // Check if admin has configured specific time slots for this layout
   const adminConfiguredSlots = layoutId ? configuredTimeSlots[layoutId] : null;
   const hasAdminConfig = adminConfiguredSlots && adminConfiguredSlots.length > 0;
-  
-  // Mock booked times (in production, this comes from database)
-  const bookedTimes = date ? ['10:00', '14:00'] : [];
-  
-  for (let hour = defaultOperatingHours.start; hour <= defaultOperatingHours.end - 1; hour++) {
-    const time = `${hour.toString().padStart(2, '0')}:00`;
-    
+
+  // Parse operating hours
+  const [startHour, startMinute] = operatingStartTime.split(':').map(Number);
+  const [endHour, endMinute] = operatingEndTime.split(':').map(Number);
+
+  // Calculate total minutes in operating hours
+  const startMinutes = startHour * 60 + startMinute; // e.g., 9:00 = 540 minutes
+  const endMinutes = endHour * 60 + endMinute; // e.g., 18:00 = 1080 minutes
+
+  // Generate slots by adding interval minutes continuously
+  for (let totalMinutes = startMinutes; totalMinutes < endMinutes; totalMinutes += intervalMinutes) {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    const time = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+
     // If admin configured slots, only include those
     if (hasAdminConfig && !adminConfiguredSlots.includes(time)) {
       continue;
     }
-    
+
     slots.push({
       time,
       available: !bookedTimes.includes(time),
     });
   }
-  
+
   return slots;
 };

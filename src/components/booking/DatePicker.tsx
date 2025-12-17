@@ -9,6 +9,7 @@ interface DatePickerProps {
 
 export function DatePicker({ selected, onSelect }: DatePickerProps) {
   const today = new Date();
+  today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
   const maxDate = new Date();
   maxDate.setMonth(maxDate.getMonth() + 3);
 
@@ -19,7 +20,11 @@ export function DatePicker({ selected, onSelect }: DatePickerProps) {
         mode="single"
         selected={selected}
         onSelect={onSelect}
-        disabled={(date) => date < today || date > maxDate || date.getDay() === 0}
+        disabled={(date) => {
+          const dateOnly = new Date(date);
+          dateOnly.setHours(0, 0, 0, 0);
+          return dateOnly < today || date > maxDate || date.getDay() === 0;
+        }}
         className={cn("rounded-md pointer-events-auto")}
       />
       <p className="text-xs text-muted-foreground mt-3">

@@ -24,6 +24,7 @@ export function PackageManagement() {
         slug: '',
         price: 0,
         period: 'tahun',
+        minute_package: 0,
         is_popular: false,
         features: [''],
         is_active: true,
@@ -57,6 +58,7 @@ export function PackageManagement() {
             slug: '',
             price: 0,
             period: 'tahun',
+            minute_package: 0,
             is_popular: false,
             features: [''],
             is_active: true,
@@ -77,6 +79,7 @@ export function PackageManagement() {
             slug: pkg.slug,
             price: pkg.price,
             period: pkg.period,
+            minute_package: pkg.minute_package || 0,
             is_popular: pkg.is_popular,
             features: pkg.features.length > 0 ? pkg.features : [''],
             is_active: pkg.is_active,
@@ -422,6 +425,19 @@ export function PackageManagement() {
                                     placeholder="tahun"
                                 />
                             </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="minute_package">Duration (Minutes)</Label>
+                            <Input
+                                id="minute_package"
+                                type="number"
+                                min="0"
+                                value={formData.minute_package}
+                                onChange={(e) => setFormData(prev => ({ ...prev, minute_package: parseInt(e.target.value) || 0 }))}
+                                placeholder="e.g., 60, 120, 180"
+                            />
+                            <p className="text-xs text-muted-foreground">Package duration in minutes (e.g., 60 = 1 hour)</p>
                         </div>
 
                         <div className="space-y-2">

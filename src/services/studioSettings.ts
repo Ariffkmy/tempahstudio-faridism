@@ -92,6 +92,10 @@ export interface StudioSettings {
   operatingEndTime: string;
   breakStartTime: string;
   breakEndTime: string;
+
+  // Deposit settings
+  depositEnabled: boolean;
+  depositAmount: number;
 }
 
 export interface StudioSettingsWithLayouts extends StudioSettings {
@@ -248,6 +252,8 @@ export async function loadStudioSettings(studioId?: string): Promise<StudioSetti
       operatingEndTime: (studio as any).operating_end_time || '18:00',
       breakStartTime: (studio as any).break_start_time || '13:00',
       breakEndTime: (studio as any).break_end_time || '14:00',
+      depositEnabled: (studio as any).deposit_enabled || false,
+      depositAmount: (studio as any).deposit_amount || 0,
       layouts: layouts || []
     };
 
@@ -389,6 +395,8 @@ export async function saveStudioSettings(
         operating_end_time: settings.operatingEndTime,
         break_start_time: settings.breakStartTime,
         break_end_time: settings.breakEndTime,
+        deposit_enabled: settings.depositEnabled,
+        deposit_amount: settings.depositAmount,
         updated_at: new Date().toISOString()
       })
       .eq('id', targetStudioId)
@@ -503,6 +511,7 @@ export async function updateStudioLayouts(layouts: StudioLayout[], studioId?: st
           description: layout.description,
           capacity: layout.capacity,
           price_per_hour: layout.price_per_hour,
+          minute_package: layout.minute_package || 0,
           image: layout.image,
           layout_photos: layout.layout_photos || [],
           thumbnail_photo: layout.thumbnail_photo || null,
@@ -525,6 +534,7 @@ export async function updateStudioLayouts(layouts: StudioLayout[], studioId?: st
         description: layout.description,
         capacity: layout.capacity,
         price_per_hour: layout.price_per_hour,
+        minute_package: layout.minute_package || 0,
         image: layout.image,
         layout_photos: layout.layout_photos || [],
         thumbnail_photo: layout.thumbnail_photo || null,

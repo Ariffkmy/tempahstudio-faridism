@@ -14,6 +14,7 @@ import {
   ChevronRight,
   CreditCard,
   Users,
+  Mail,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,7 +24,7 @@ import { useSidebar } from '@/contexts/SidebarContext';
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Tempahan', href: '/admin/bookings', icon: Calendar },
-  { name: 'Pelanggan Anda', href: '/admin/customers', icon: Users },
+  { name: 'Pembayaran', href: '/admin/customers', icon: Users },
   { name: 'Whatsapp Blaster', href: '/admin/whatsapp-blaster', icon: Send },
   { name: 'Laporan', href: '/admin/reports', icon: FileText },
   { name: 'Package Payments', href: '/admin/package-payments', icon: CreditCard, superAdminOnly: true },
@@ -194,6 +195,20 @@ export function AdminSidebar() {
             </div>
           </div>
         )}
+
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full text-muted-foreground hover:text-foreground mb-2",
+            isCollapsed ? "justify-center px-0" : "justify-start"
+          )}
+          size="sm"
+          onClick={() => window.location.href = 'mailto:admin@tempahstudio.com?subject=Support Request&body=Hi, I need help with...'}
+          title={isCollapsed ? "Hubungi Sokongan" : undefined}
+        >
+          <Mail className="h-4 w-4" />
+          {!isCollapsed && <span className="ml-2">Hubungi Sokongan</span>}
+        </Button>
 
         <Button
           variant="ghost"

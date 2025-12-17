@@ -60,93 +60,130 @@ export function LayoutSelector({ layouts, selectedLayout, onSelectLayout }: Layo
               </div>
 
               {/* Layout Details */}
-              <div className="p-6 text-center space-y-3">
+              <div className="p-6 space-y-4">
                 {/* Layout Name */}
-                <h3 className="text-2xl font-bold uppercase tracking-tight">
-                  {layout.name}
-                </h3>
-
-                {/* Description */}
-                {layout.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {layout.description}
-                  </p>
-                )}
-
-                {/* Price */}
-                <div className="py-2">
-                  <p className="text-lg font-semibold">
-                    Price RM{layout.pricePerHour}
-                  </p>
-                </div>
-
-                {/* Capacity */}
-                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  <span>{layout.capacity} pax</span>
-                </div>
-
-                {/* Select Button */}
-                <Button
-                  variant={isSelected ? "default" : "outline"}
-                  className="w-full mt-4"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectLayout(layout.id);
-                  }}
-                >
-                  {isSelected ? (
-                    <>
-                      <Check className="h-4 w-4 mr-2" />
-                      Selected
-                    </>
-                  ) : (
-                    'Select Layout'
+                <div className="text-center">
+                  <h3 className="text-2xl font-bold uppercase tracking-tight">
+                    {layout.name}
+                  </h3>
+                  {/* Description */}
+                  {layout.description && (
+                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                      {layout.description}
+                    </p>
                   )}
-                </Button>
+                </div>
 
-                {/* See More Photos Button */}
-                {hasPhotos && (
-                  <Dialog open={photoGalleryOpen === layout.id} onOpenChange={(open) => setPhotoGalleryOpen(open ? layout.id : null)}>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                      >
-                        <ImageIcon className="h-4 w-4 mr-2" />
-                        See More Photos ({photoCount})
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>{layout.name} - Photo Gallery</DialogTitle>
-                      </DialogHeader>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                        {layout.layout_photos?.map((photoUrl, photoIndex) => (
-                          <div key={photoIndex} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
-                            <img
-                              src={photoUrl}
-                              alt={`${layout.name} photo ${photoIndex + 1}`}
-                              className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
-                              onClick={() => window.open(photoUrl, '_blank')}
-                            />
-                            {layout.thumbnail_photo === photoUrl && (
-                              <div className="absolute top-2 right-2">
-                                <Badge variant="default" className="text-xs">
-                                  Thumbnail
-                                </Badge>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                {/* Info Grid - Price, Duration, Capacity */}
+                <div className="grid grid-cols-3 gap-3 py-3 border-y">
+                  {/* Price */}
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Harga</p>
+                    <p className="text-lg font-bold text-primary">
+                      RM{layout.pricePerHour}
+                    </p>
+                  </div>
+
+                  {/* Duration Package */}
+                  <div className="text-center border-x">
+                    <p className="text-xs text-muted-foreground mb-1">Tempoh</p>
+                    <p className="text-lg font-bold">
+                      {layout.minute_package || 60}
+                      <span className="text-sm font-normal text-muted-foreground ml-1">minit</span>
+                    </p>
+                  </div>
+
+                  {/* Capacity */}
+                  <div className="text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Kapasiti</p>
+                    <div className="flex items-center justify-center gap-1">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <p className="text-lg font-bold">{layout.capacity}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Amenities */}
+                {layout.amenities && layout.amenities.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 justify-center">
+                    {layout.amenities.slice(0, 3).map((amenity, idx) => (
+                      <Badge key={idx} variant="outline" className="text-xs">
+                        {amenity}
+                      </Badge>
+                    ))}
+                    {layout.amenities.length > 3 && (
+                      <Badge variant="outline" className="text-xs">
+                        +{layout.amenities.length - 3} lagi
+                      </Badge>
+                    )}
+                  </div>
                 )}
+
+                {/* Action Buttons */}
+                <div className="space-y-2 pt-2">
+                  {/* Select Button */}
+                  <Button
+                    variant={isSelected ? "default" : "outline"}
+                    className="w-full"
+                    size="lg"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectLayout(layout.id);
+                    }}
+                  >
+                    {isSelected ? (
+                      <>
+                        <Check className="h-4 w-4 mr-2" />
+                        Dipilih
+                      </>
+                    ) : (
+                      'Pilih Layout Ini'
+                    )}
+                  </Button>
+
+                  {/* See More Photos Button */}
+                  {hasPhotos && (
+                    <Dialog open={photoGalleryOpen === layout.id} onOpenChange={(open) => setPhotoGalleryOpen(open ? layout.id : null)}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                        >
+                          <ImageIcon className="h-4 w-4 mr-2" />
+                          Lihat Foto ({photoCount})
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>{layout.name} - Galeri Foto</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                          {layout.layout_photos?.map((photoUrl, photoIndex) => (
+                            <div key={photoIndex} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                              <img
+                                src={photoUrl}
+                                alt={`${layout.name} photo ${photoIndex + 1}`}
+                                className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+                                onClick={() => window.open(photoUrl, '_blank')}
+                              />
+                              {layout.thumbnail_photo === photoUrl && (
+                                <div className="absolute top-2 right-2">
+                                  <Badge variant="default" className="text-xs">
+                                    Thumbnail
+                                  </Badge>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                </div>
               </div>
             </Card>
           );

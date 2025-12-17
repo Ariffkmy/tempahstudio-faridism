@@ -9,6 +9,13 @@ interface TimeSlotsProps {
 }
 
 export function TimeSlots({ slots, selectedTime, onSelectTime }: TimeSlotsProps) {
+  console.log('⏰ TimeSlots component received:', {
+    totalSlots: slots.length,
+    availableSlots: slots.filter(s => s.available).length,
+    unavailableSlots: slots.filter(s => !s.available).length,
+    slots: slots.map(s => ({ time: s.time, available: s.available }))
+  });
+
   return (
     <Card variant="outline" className="p-4">
       <h3 className="font-semibold mb-4">Select Start Time</h3>
@@ -20,7 +27,12 @@ export function TimeSlots({ slots, selectedTime, onSelectTime }: TimeSlotsProps)
             variant={selectedTime === slot.time ? 'default' : 'outline'}
             size="sm"
             disabled={!slot.available}
-            onClick={() => onSelectTime(slot.time)}
+            onClick={() => {
+              console.log('🖱️ Slot clicked:', { time: slot.time, available: slot.available });
+              if (slot.available) {
+                onSelectTime(slot.time);
+              }
+            }}
             className={cn(
               "font-mono",
               !slot.available && "opacity-40 cursor-not-allowed"

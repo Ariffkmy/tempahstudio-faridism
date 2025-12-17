@@ -129,6 +129,7 @@ export interface StudioLayout {
   description?: string | null;
   capacity: number;
   price_per_hour: number;
+  minute_package?: number | null;
   image?: string | null;
   amenities: string[];
   configured_time_slots: string[];
@@ -217,6 +218,9 @@ export interface Booking {
   end_time: string;
   duration: number;
   total_price: number;
+  balance_due?: number | null;
+  payment_type?: string | null;
+  number_of_pax?: number | null;
   status: BookingStatus;
   notes?: string | null;
   internal_notes?: string | null;
@@ -254,6 +258,7 @@ export interface Package {
   slug: string;
   price: number;
   period: string;
+  minute_package?: number | null;
   is_popular: boolean;
   features: string[];
   is_active: boolean;

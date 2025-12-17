@@ -351,6 +351,9 @@ export interface CreateBookingData {
   endTime: string;
   duration: number;
   totalPrice: number;
+  balanceDue?: number;
+  paymentType?: string;
+  numberOfPax?: number;
 
   // Optional
   notes?: string;
@@ -430,6 +433,9 @@ export async function createPublicBooking(bookingData: CreateBookingData): Promi
         end_time: bookingData.endTime,
         duration: bookingData.duration,
         total_price: bookingData.totalPrice,
+        balance_due: bookingData.balanceDue || 0,
+        payment_type: bookingData.paymentType || 'full',
+        number_of_pax: bookingData.numberOfPax || 1,
         status: 'done-payment',
         notes: bookingData.notes || null,
         addon_package_id: bookingData.addonPackageId || null,

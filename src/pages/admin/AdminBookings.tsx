@@ -639,7 +639,7 @@ const AdminBookings = () => {
                         </div>
                         <div className="flex items-center gap-1">
                           <CalendarDays className="h-3 w-3 text-muted-foreground" />
-                          <span>{booking.duration} jam</span>
+                          <span>{booking.duration} minit</span>
                         </div>
                       </div>
 
@@ -915,7 +915,7 @@ const AdminBookings = () => {
                           </div>
                           <div className="flex items-center gap-2">
                             <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                            <span>{booking.duration} jam</span>
+                            <span>{booking.duration} minit</span>
                           </div>
                         </div>
 

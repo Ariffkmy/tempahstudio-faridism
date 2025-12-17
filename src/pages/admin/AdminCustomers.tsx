@@ -47,6 +47,9 @@ interface CustomerBooking {
     latest_payment_method: string | null;
     latest_payment_verification: string | null;
     latest_booking_id: string;
+    latest_balance_due: number;
+    latest_payment_type: string | null;
+    latest_number_of_pax: number | null;
 }
 
 interface BookingDetail {
@@ -140,6 +143,9 @@ export default function AdminCustomers() {
           id,
           customer_id,
           total_price,
+          balance_due,
+          payment_type,
+          number_of_pax,
           date,
           status,
           payment_method,
@@ -177,6 +183,9 @@ export default function AdminCustomers() {
                         existing.latest_payment_method = booking.payment_method;
                         existing.latest_payment_verification = booking.payment_verification;
                         existing.latest_booking_id = booking.id;
+                        existing.latest_balance_due = Number(booking.balance_due) || 0;
+                        existing.latest_payment_type = booking.payment_type || null;
+                        existing.latest_number_of_pax = booking.number_of_pax || null;
                     }
                 } else {
                     customerMap.set(customerId, {
@@ -192,6 +201,9 @@ export default function AdminCustomers() {
                         latest_payment_method: booking.payment_method,
                         latest_payment_verification: booking.payment_verification,
                         latest_booking_id: booking.id,
+                        latest_balance_due: Number(booking.balance_due) || 0,
+                        latest_payment_type: booking.payment_type || null,
+                        latest_number_of_pax: booking.number_of_pax || null,
                     });
                 }
             });
@@ -351,9 +363,9 @@ export default function AdminCustomers() {
                     <div className="space-y-6">
                         {/* Header */}
                         <div>
-                            <h1 className="text-3xl font-bold tracking-tight">Pelanggan Anda</h1>
+                            <h1 className="text-3xl font-bold tracking-tight">Pembayaran</h1>
                             <p className="text-muted-foreground mt-2">
-                                Senarai pelanggan yang telah membuat tempahan di studio anda
+                                Senarai pembayaran daripada tempahan pelanggan di studio anda
                             </p>
                         </div>
 
@@ -414,13 +426,16 @@ export default function AdminCustomers() {
                                             </div>
                                         )}
 
-                                        <div className="rounded-lg border bg-card">
+                                        <div className="rounded-lg border bg-card overflow-x-auto">
                                             <Table>
                                                 <TableHeader>
                                                     {/* Column Headers */}
                                                     <TableRow>
                                                         <TableHead>Pelanggan</TableHead>
                                                         <TableHead>Jumlah Bayaran</TableHead>
+                                                        <TableHead>Baki</TableHead>
+                                                        <TableHead>Jenis Bayaran</TableHead>
+                                                        <TableHead>Bil. Pax</TableHead>
                                                         <TableHead>Status Terkini</TableHead>
                                                         <TableHead>Tempahan Terakhir</TableHead>
                                                         <TableHead>Kaedah Bayaran</TableHead>
@@ -459,6 +474,9 @@ export default function AdminCustomers() {
                                                                 />
                                                             </div>
                                                         </TableHead>
+                                                        <TableHead className="h-12"></TableHead>
+                                                        <TableHead className="h-12"></TableHead>
+                                                        <TableHead className="h-12"></TableHead>
                                                         <TableHead className="h-12">
                                                             <Select value={statusFilter} onValueChange={setStatusFilter}>
                                                                 <SelectTrigger className="h-8 text-xs">
@@ -545,6 +563,33 @@ export default function AdminCustomers() {
                                                                         RM {customer.total_spent.toFixed(2)}
                                                                     </span>
                                                                 </div>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {customer.latest_balance_due && customer.latest_balance_due > 0 ? (
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="font-medium text-orange-600">
+                                                                            RM {customer.latest_balance_due.toFixed(2)}
+                                                                        </span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-muted-foreground text-sm">-</span>
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {customer.latest_payment_type === 'deposit' ? (
+                                                                    <Badge variant="secondary">Deposit</Badge>
+                                                                ) : customer.latest_payment_type === 'full' ? (
+                                                                    <Badge variant="default">Penuh</Badge>
+                                                                ) : (
+                                                                    <span className="text-muted-foreground text-sm">-</span>
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {customer.latest_number_of_pax ? (
+                                                                    <span className="font-medium">{customer.latest_number_of_pax} orang</span>
+                                                                ) : (
+                                                                    <span className="text-muted-foreground text-sm">-</span>
+                                                                )}
                                                             </TableCell>
                                                             <TableCell>
                                                                 {getStatusBadge(customer.latest_status)}

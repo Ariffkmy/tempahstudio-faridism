@@ -71,7 +71,7 @@ const BookingConfirmation = () => {
                         {booking ? formatTimeRange(booking.start_time, booking.end_time) : '10:00 AM – 2:00 PM'}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {booking ? `${booking.duration} jam` : '4 jam'}
+                        {booking ? `${booking.duration} minit` : '240 minit'}
                       </p>
                     </div>
                   </div>

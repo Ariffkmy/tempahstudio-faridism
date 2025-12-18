@@ -43,6 +43,9 @@ import type { AddonPackage } from '@/types/booking';
 import { createStudioUser, getStudioAdmins, updateStudioUser, deleteStudioUser } from '@/services/adminAuth';
 import type { AdminUser } from '@/types/database';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { usePackageAccess } from '@/hooks/usePackageAccess';
+import { FEATURES } from '@/config/packageFeatures';
+import { UpgradePrompt } from '@/components/access/UpgradePrompt';
 
 
 const navigation = [

@@ -4,7 +4,7 @@ import { StudioSelector } from '@/components/admin/StudioSelector';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Send, Calendar, Clock, User, Phone, Mail, ChevronDown, ChevronUp } from 'lucide-react';
+import { Send, Calendar, Clock, User, Phone, Mail, ChevronDown, ChevronUp, Lock } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,6 +17,9 @@ import { getStudioBookingsWithDetails, updateBookingStatus, updateBookingDeliver
 import { Booking } from '@/types/booking';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
+import { usePackageAccess } from '@/hooks/usePackageAccess';
+import { FEATURES } from '@/config/packageFeatures';
+import { UpgradePrompt } from '@/components/access/UpgradePrompt';
 
 const AdminWhatsappBlaster = () => {
   const { user, studio, isSuperAdmin } = useAuth();
@@ -46,6 +49,12 @@ const AdminWhatsappBlaster = () => {
   const [isBlastDialogOpen, setIsBlastDialogOpen] = useState(false);
   const defaultMessage = "Assalammualaikum {{name}}, ini adalah link gambar raya ye: {{link}}\n\nTerima kasih kerana memilih Raya Studio. Selamat Hari Raya, Maaf Zahir Batin";
   const [blastMessage, setBlastMessage] = useState(defaultMessage);
+
+  // Package access control
+  const { hasFeature, getRequiredTier } = usePackageAccess();
+  const canUseWhatsAppBlast = hasFeature(FEATURES.WHATSAPP_BLAST);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const requiredTier = getRequiredTier(FEATURES.WHATSAPP_BLAST);
 
   // Fetch bookings from database
   useEffect(() => {
@@ -196,6 +205,10 @@ const AdminWhatsappBlaster = () => {
   };
 
   const handleWhatsAppBlast = () => {
+    if (!canUseWhatsAppBlast) {
+      setShowUpgradePrompt(true);
+      return;
+    }
     setIsBlastDialogOpen(true);
   };
 
@@ -566,9 +579,12 @@ const AdminWhatsappBlaster = () => {
                   onClick={handleWhatsAppBlast}
                   size="sm"
                   className="w-full text-xs"
+                  disabled={!canUseWhatsAppBlast}
+                  variant={canUseWhatsAppBlast ? 'default' : 'outline'}
                 >
                   <Send className="w-3 h-3 mr-1" />
                   Blast WhatsApp
+                  {!canUseWhatsAppBlast && <Lock className="w-3 h-3 ml-1" />}
                 </Button>
               </div>
             </div>
@@ -614,7 +630,7 @@ const AdminWhatsappBlaster = () => {
                       </CardContent>
                     </Card>
                   ))}
-                  {bookingsData['done-delivery'].filter(b => b.totalPrice > 200).length === 0 && (
+                  {bookingsData['done-delivery'].filter(b => !!b.addonPackageId).length === 0 && (
                     <p className="text-xs text-muted-foreground text-center py-4">No bookings</p>
                   )}
                 </div>
@@ -654,7 +670,7 @@ const AdminWhatsappBlaster = () => {
                       </CardContent>
                     </Card>
                   ))}
-                  {bookingsData['done-delivery'].filter(b => b.totalPrice <= 200).length === 0 && (
+                  {bookingsData['done-delivery'].filter(b => !b.addonPackageId).length === 0 && (
                     <p className="text-xs text-muted-foreground text-center py-4">No bookings</p>
                   )}
                 </div>
@@ -963,9 +979,12 @@ const AdminWhatsappBlaster = () => {
                     onClick={handleWhatsAppBlast}
                     className="w-full"
                     size="sm"
+                    disabled={!canUseWhatsAppBlast}
+                    variant={canUseWhatsAppBlast ? 'default' : 'outline'}
                   >
                     <Send className="w-4 h-4 mr-2" />
                     Blast WhatsApp
+                    {!canUseWhatsAppBlast && <Lock className="w-4 h-4 ml-2" />}
                   </Button>
                 </div>
               </div>
@@ -1176,6 +1195,16 @@ const AdminWhatsappBlaster = () => {
                 </div>
               </DialogContent>
             </Dialog>
+
+            {/* Upgrade Prompt */}
+            {requiredTier && (
+              <UpgradePrompt
+                open={showUpgradePrompt}
+                onClose={() => setShowUpgradePrompt(false)}
+                requiredTier={requiredTier}
+                feature={FEATURES.WHATSAPP_BLAST}
+              />
+            )}
           </div>
         </main>
       </div>

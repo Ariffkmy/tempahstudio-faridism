@@ -72,6 +72,16 @@ const AdminSettings = () => {
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
   const [deletingPhotoUrl, setDeletingPhotoUrl] = useState<string | null>(null);
 
+  // Package access control
+  const { hasFeature, getRequiredTier, getSubAccountLimit } = usePackageAccess();
+  const canCustomizeBookingForm = hasFeature(FEATURES.BOOKING_CUSTOMIZATION);
+  const canEnableFPX = hasFeature(FEATURES.FPX_PAYMENT);
+  const maxSubAccounts = getSubAccountLimit();
+  const [showCustomizationUpgradePrompt, setShowCustomizationUpgradePrompt] = useState(false);
+  const [showFpxUpgradePrompt, setShowFpxUpgradePrompt] = useState(false);
+  const customizationRequiredTier = getRequiredTier(FEATURES.BOOKING_CUSTOMIZATION);
+  const fpxRequiredTier = getRequiredTier(FEATURES.FPX_PAYMENT);
+
   const [settings, setSettings] = useState({
     studioName: '',
     slug: '',

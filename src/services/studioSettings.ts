@@ -96,6 +96,14 @@ export interface StudioSettings {
   // Deposit settings
   depositEnabled: boolean;
   depositAmount: number;
+
+  // Payment methods
+  paymentStudioEnabled: boolean;
+  paymentQrEnabled: boolean;
+  paymentBankTransferEnabled: boolean;
+  paymentFpxEnabled: boolean;
+  paymentTngEnabled: boolean;
+  tngQrCode: string;
 }
 
 export interface StudioSettingsWithLayouts extends StudioSettings {
@@ -254,6 +262,13 @@ export async function loadStudioSettings(studioId?: string): Promise<StudioSetti
       breakEndTime: (studio as any).break_end_time || '14:00',
       depositEnabled: (studio as any).deposit_enabled || false,
       depositAmount: (studio as any).deposit_amount || 0,
+      // Payment methods
+      paymentStudioEnabled: (studio as any).payment_studio_enabled || false,
+      paymentQrEnabled: (studio as any).payment_qr_enabled || false,
+      paymentBankTransferEnabled: (studio as any).payment_bank_transfer_enabled || false,
+      paymentFpxEnabled: (studio as any).payment_fpx_enabled || false,
+      paymentTngEnabled: (studio as any).payment_tng_enabled || false,
+      tngQrCode: (studio as any).tng_qr_code || '',
       layouts: layouts || []
     };
 
@@ -397,6 +412,13 @@ export async function saveStudioSettings(
         break_end_time: settings.breakEndTime,
         deposit_enabled: settings.depositEnabled,
         deposit_amount: settings.depositAmount,
+        // Payment methods
+        payment_studio_enabled: settings.paymentStudioEnabled,
+        payment_qr_enabled: settings.paymentQrEnabled,
+        payment_bank_transfer_enabled: settings.paymentBankTransferEnabled,
+        payment_fpx_enabled: settings.paymentFpxEnabled,
+        payment_tng_enabled: settings.paymentTngEnabled,
+        tng_qr_code: settings.tngQrCode,
         updated_at: new Date().toISOString()
       })
       .eq('id', targetStudioId)

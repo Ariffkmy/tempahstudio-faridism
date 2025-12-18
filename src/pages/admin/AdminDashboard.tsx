@@ -39,8 +39,8 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState<DashboardStats>({
     todayBookings: 0,
     pendingBookings: 0,
-    weeklyRevenue: 0,
-    weeklyBookingsCount: 0,
+    totalRevenue: 0,
+    totalBookingsCount: 0,
     monthlyCustomers: 0,
     upcomingSlots: 0,
     tomorrowSlots: 0,
@@ -265,9 +265,9 @@ const AdminDashboard = () => {
               icon={Calendar}
             />
             <StatsCard
-              title="Hasil (Minggu Ini)"
-              value={isLoading ? '...' : formatCurrency(stats.weeklyRevenue)}
-              description={isLoading ? 'Memuatkan...' : `Daripada ${stats.weeklyBookingsCount} tempahan`}
+              title="Hasil (Setakat Ini)"
+              value={isLoading ? '...' : formatCurrency(stats.totalRevenue)}
+              description={isLoading ? 'Memuatkan...' : `Daripada ${stats.totalBookingsCount} tempahan`}
               icon={DollarSign}
             />
             <StatsCard
@@ -383,9 +383,9 @@ const AdminDashboard = () => {
                 icon={Calendar}
               />
               <StatsCard
-                title="Hasil (Minggu Ini)"
-                value={isLoading ? '...' : formatCurrency(stats.weeklyRevenue)}
-                description={isLoading ? 'Memuatkan...' : `Daripada ${stats.weeklyBookingsCount} tempahan`}
+                title="Hasil (Setakat Ini)"
+                value={isLoading ? '...' : formatCurrency(stats.totalRevenue)}
+                description={isLoading ? 'Memuatkan...' : `Daripada ${stats.totalBookingsCount} tempahan`}
                 icon={DollarSign}
               />
               <StatsCard

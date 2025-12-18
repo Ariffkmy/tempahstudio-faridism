@@ -339,14 +339,13 @@ const BrandBooking = () => {
           date: dateString
         });
 
-        // Fetch bookings for this specific layout and date
         const { data: bookings, error } = await supabase
           .from('bookings')
-          .select('start_time')
+          .select('start_time, duration')
           .eq('studio_id', studio.id)
           .eq('layout_id', selectedLayout)
           .eq('date', dateString)
-          .in('status', ['done-payment', 'done-photoshoot', 'start-editing', 'ready-for-delivery', 'completed']);
+          .in('status', ['done-payment', 'done-photoshoot', 'start-editing', 'ready-for-delivery', 'completed', 'rescheduled']);
 
         if (error) {
           console.error('❌ Error fetching booked times:', error);
@@ -354,15 +353,16 @@ const BrandBooking = () => {
           return;
         }
 
-        // Extract start times and normalize to HH:MM format (remove seconds)
-        const times = bookings?.map(b => {
-          // Remove seconds from time format (e.g., "12:00:00" -> "12:00")
-          const timeWithoutSeconds = b.start_time.substring(0, 5);
-          return timeWithoutSeconds;
-        }) || [];
+        // Extract occupied ranges
+        const times = bookings?.map(b => b.start_time.substring(0, 5)) || [];
         setBookedTimes(times);
+
+        // Log additional info for debugging overlaps
         console.log(`✅ Booked times for layout ${selectedLayout} on ${dateString}:`, times);
-        console.log(`📊 Total booked slots: ${times.length}`);
+        if (bookings && bookings.length > 0) {
+          console.log('📊 Occupied ranges:', bookings.map(b => `${b.start_time} (${b.duration}m)`));
+        }
+
       } catch (error) {
         console.error('Error fetching booked times:', error);
         setBookedTimes([]);

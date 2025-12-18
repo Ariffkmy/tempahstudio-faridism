@@ -78,9 +78,23 @@ export function BookingDetailModal({ booking, open, onOpenChange }: BookingDetai
         console.log('[BookingDetailModal] onOpenChange called with:', isOpen);
     };
 
-    if (!booking) {
-        console.log('[BookingDetailModal] No booking data, returning null');
+    if (!booking && !open) {
+        console.log('[BookingDetailModal] No booking data and dialog closed, returning null');
         return null;
+    }
+
+    if (!booking) {
+        console.log('[BookingDetailModal] No booking data but dialog is open, returning empty dialog');
+        return (
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Tiada Data</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-muted-foreground">Tiada maklumat tempahan untuk dipaparkan.</p>
+                </DialogContent>
+            </Dialog>
+        );
     }
 
     const getDefaultWhatsAppMessage = () => {

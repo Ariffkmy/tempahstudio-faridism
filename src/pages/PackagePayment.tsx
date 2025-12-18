@@ -656,7 +656,14 @@ export default function PackagePayment() {
                             <Button
                                 onClick={() => {
                                     setShowSuccessDialog(false);
-                                    navigate('/onboarding');
+                                    navigate('/onboarding', {
+                                        state: {
+                                            fullName: formData.fullName,
+                                            email: formData.email,
+                                            phone: formData.phone,
+                                            studioName: formData.studioName,
+                                        }
+                                    });
                                 }}
                                 className="w-full"
                                 size="lg"

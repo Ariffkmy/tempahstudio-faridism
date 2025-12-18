@@ -17,6 +17,12 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -24,7 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink, Palette, Image as ImageIcon, Users as UsersIcon, Trash, Trash2, MessageCircle, Paintbrush, Layout, Edit, Save, Clock } from 'lucide-react';
+import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink, Palette, Image as ImageIcon, Users as UsersIcon, Trash, Trash2, MessageCircle, Paintbrush, Layout, Edit, Save, Clock, CheckCircle2, AlertCircle, Check } from 'lucide-react';
 import { loadStudioSettings, saveStudioSettings, updateStudioLayouts, saveGoogleCredentials, initiateGoogleAuth, exchangeGoogleCode, loadStudioPortfolioPhotos, deleteStudioPortfolioPhoto } from '@/services/studioSettings';
 import { supabase } from '@/lib/supabase';
 import { uploadLogo, uploadTermsPdf } from '@/services/fileUploadService';
@@ -203,6 +209,76 @@ const AdminSettings = () => {
     description: '',
     price: 100
   });
+
+  // Checklist state
+  const [isChecklistOpen, setIsChecklistOpen] = useState(false);
+
+  const checklistItems = [
+    {
+      id: 'basic-info',
+      label: 'Maklumat asas studio',
+      isComplete: !!(settings.studioName && settings.studioEmail && settings.studioPhone && settings.studioLocation),
+      description: 'Lengkapkan nama, emel, telefon dan lokasi studio'
+    },
+    {
+      id: 'packages',
+      label: 'Pakej',
+      isComplete: layouts.length > 0,
+      description: 'Tambah sekurang-kurangnya satu layout studio'
+    },
+    {
+      id: 'booking-form',
+      label: 'Booking Form',
+      isComplete: !!(settings.slug && settings.studioLogo),
+      description: 'Tetapkan slug URL dan muat naik logo studio'
+    },
+    {
+      id: 'operating-hours',
+      label: 'Waktu operasi',
+      isComplete: !!(settings.operatingStartTime && settings.operatingEndTime),
+      description: 'Tetapkan waktu buka dan tutup studio'
+    }
+  ];
+
+  const completedCount = checklistItems.filter(item => item.isComplete).length;
+  const progressPercentage = Math.round((completedCount / checklistItems.length) * 100);
+
+  // Donut Chart Component
+  const ProgressDonut = ({ percentage, size = 48 }: { percentage: number, size?: number }) => {
+    const strokeWidth = 5;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = radius * 2 * Math.PI;
+    const offset = circumference - (percentage / 100) * circumference;
+
+    return (
+      <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="transform -rotate-90">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            fill="transparent"
+            className="text-muted/20"
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            fill="transparent"
+            strokeDasharray={circumference}
+            style={{ strokeDashoffset: offset }}
+            className="text-primary transition-all duration-500 ease-out"
+            strokeLinecap="round"
+          />
+        </svg>
+        <span className="absolute text-[10px] font-bold">{percentage}%</span>
+      </div>
+    );
+  };
 
   // Helper functions
   const getInitials = (name: string | undefined) => {
@@ -1527,7 +1603,466 @@ const AdminSettings = () => {
             {isSuperAdmin && <StudioSelector />}
           </div>
 
-          {/* Settings Form */}
+          {/* Checklist Button & Progress */}
+          <div className="mb-6 flex items-center justify-between gap-4 p-4 bg-muted/30 rounded-xl border border-border/50">
+            <div className="flex items-center gap-4">
+              <ProgressDonut percentage={progressPercentage} size={56} />
+              <div>
+                <h3 className="font-semibold text-sm">Kemajuan Konfigurasi</h3>
+                <p className="text-xs text-muted-foreground">{completedCount} daripada {checklistItems.length} langkah selesai</p>
+              </div>
+            </div>
+            <Dialog open={isChecklistOpen} onOpenChange={setIsChecklistOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="bg-background">
+                  Lihat Konfigurasi Wajib
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl">
+                <DialogHeader>
+                  <DialogTitle>Konfigurasi Wajib Studio</DialogTitle>
+                  <DialogDescription>
+                    Lengkapkan langkah-langkah berikut untuk memastikan studio anda sedia untuk menerima tempahan.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <Accordion type="single" collapsible className="w-full">
+                    {checklistItems.map((item) => (
+                      <AccordionItem key={item.id} value={item.id} className="border-none">
+                        <div className="flex items-start gap-3 p-3 rounded-lg border bg-muted/20 mb-2">
+                          {item.isComplete ? (
+                            <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
+                          ) : (
+                            <AlertCircle className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            {item.id === 'basic-info' || item.id === 'packages' || item.id === 'booking-form' || item.id === 'operating-hours' ? (
+                              <AccordionTrigger className="p-0 hover:no-underline py-0">
+                                <div className="text-left">
+                                  <p className={cn("text-sm font-medium", item.isComplete ? "text-foreground" : "text-muted-foreground")}>
+                                    {item.label}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {item.description}
+                                  </p>
+                                </div>
+                              </AccordionTrigger>
+                            ) : (
+                              <div>
+                                <p className={cn("text-sm font-medium", item.isComplete ? "text-foreground" : "text-muted-foreground")}>
+                                  {item.label}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {item.description}
+                                </p>
+                              </div>
+                            )}
+
+                            {item.id === 'basic-info' && (
+                              <AccordionContent className="pt-4 pb-0">
+                                <div className="grid grid-cols-2 min-[600px]:grid-cols-4 gap-3">
+                                  {[
+                                    { label: 'Nama Studio', key: 'studioName', placeholder: 'Nama studio' },
+                                    { label: 'Telefon Studio', key: 'studioPhone', placeholder: '012-3456789' },
+                                    { label: 'Lokasi Studio', key: 'studioLocation', placeholder: 'Alamat' },
+                                    { label: 'Google Map Link', key: 'googleMapsLink', placeholder: 'Link' },
+                                    { label: 'Emel studio', key: 'studioEmail', type: 'email', placeholder: 'info@studio.com' },
+                                    { label: 'Akaun Bank', key: 'bankAccountNumber', placeholder: '1234567890' },
+                                    { label: 'Pemilik Akaun', key: 'accountOwnerName', placeholder: 'Nama' },
+                                  ].map((field) => (
+                                    <div key={field.key} className="space-y-1 min-w-0">
+                                      <div className="flex items-center gap-1.5 overflow-hidden">
+                                        <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold truncate">
+                                          {field.label}
+                                        </Label>
+                                        {(settings as any)[field.key] && <Check className="h-2.5 w-2.5 text-green-600 shrink-0" />}
+                                      </div>
+                                      <Input
+                                        className="h-8 text-[10px] bg-background px-2"
+                                        placeholder={field.placeholder}
+                                        value={(settings as any)[field.key]}
+                                        type={field.type || 'text'}
+                                        onChange={(e) => handleSettingChange(field.key, e.target.value)}
+                                      />
+                                    </div>
+                                  ))}
+                                  <div className="space-y-1 min-w-0">
+                                    <div className="flex items-center gap-1.5 overflow-hidden">
+                                      <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold truncate">
+                                        Kod QR
+                                      </Label>
+                                      {settings.qrCode && <Check className="h-2.5 w-2.5 text-green-600 shrink-0" />}
+                                    </div>
+                                    <Input
+                                      type="file"
+                                      accept="image/*"
+                                      className="h-8 text-[10px] bg-background cursor-pointer px-1 file:text-[9px] file:mr-1 file:px-1"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) handleSettingChange('qrCode', file.name);
+                                      }}
+                                    />
+                                  </div>
+                                </div>
+                              </AccordionContent>
+                            )}
+
+                            {item.id === 'packages' && (
+                              <AccordionContent className="pt-4 pb-0">
+                                <div className="space-y-4">
+                                  {/* Existing Packages List with Photos */}
+                                  {layouts.length > 0 && (
+                                    <div className="space-y-3 pb-2">
+                                      {layouts.map((layout, idx) => (
+                                        <div key={layout.id} className="p-3 rounded-lg bg-background border border-border/50 shadow-sm space-y-3">
+                                          <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border/50">
+                                                {layout.thumbnail_photo ? (
+                                                  <img src={layout.thumbnail_photo} className="w-full h-full object-cover" alt={layout.name} />
+                                                ) : (
+                                                  <ImageIcon className="h-5 w-5 text-muted-foreground/30" />
+                                                )}
+                                              </div>
+                                              <div className="flex flex-col min-w-0">
+                                                <span className="text-xs font-bold text-foreground truncate">{layout.name}</span>
+                                                <span className="text-[10px] text-muted-foreground">RM{layout.price_per_hour}/jam • {layout.capacity} Pax</span>
+                                              </div>
+                                            </div>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                              onClick={() => removeLayout(idx)}
+                                            >
+                                              <X className="h-4 w-4" />
+                                            </Button>
+                                          </div>
+
+                                          {/* Mini Photo Grid */}
+                                          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                                            {(layout.layout_photos || []).map((photoUrl, pIdx) => {
+                                              const deleteKey = `${layout.id}-${photoUrl}`;
+                                              return (
+                                                <div key={pIdx} className="relative w-14 h-14 rounded-md overflow-hidden border border-border/50 shrink-0 group">
+                                                  <img src={photoUrl} className="w-full h-full object-cover" alt={`Layout ${idx} photo ${pIdx}`} />
+                                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <button
+                                                      onClick={() => handleDeleteLayoutPhoto(idx, photoUrl)}
+                                                      disabled={deletingLayoutPhoto[deleteKey]}
+                                                      className="p-1 bg-destructive text-white rounded hover:bg-destructive/80 transition-colors"
+                                                    >
+                                                      {deletingLayoutPhoto[deleteKey] ? (
+                                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                                      ) : (
+                                                        <Trash className="h-3 w-3" />
+                                                      )}
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                            {(layout.layout_photos || []).length < 5 && (
+                                              <div className="shrink-0">
+                                                <input
+                                                  type="file"
+                                                  accept="image/*"
+                                                  id={`checklist-photo-mobile-${layout.id}`}
+                                                  className="hidden"
+                                                  onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) {
+                                                      await handleUploadLayoutPhoto(idx, file);
+                                                      e.target.value = '';
+                                                    }
+                                                  }}
+                                                />
+                                                <button
+                                                  onClick={() => document.getElementById(`checklist-photo-mobile-${layout.id}`)?.click()}
+                                                  disabled={uploadingLayoutPhoto[layout.id]}
+                                                  className="w-14 h-14 rounded-md border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center hover:border-primary/40 hover:bg-primary/5 transition-all disabled:opacity-50"
+                                                >
+                                                  {uploadingLayoutPhoto[layout.id] ? (
+                                                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                                                  ) : (
+                                                    <Plus className="h-4 w-4 text-muted-foreground/50" />
+                                                  )}
+                                                  <span className="text-[7px] text-muted-foreground/60 font-bold mt-1 uppercase">Foto</span>
+                                                </button>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {/* Add New Package Grid */}
+                                  <div className="grid grid-cols-2 min-[600px]:grid-cols-4 gap-3 pt-2 border-t border-border/50">
+                                    <div className="space-y-1 min-w-0">
+                                      <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold truncate block">Nama Pakej</Label>
+                                      <Input
+                                        className="h-8 text-[10px] bg-background px-2"
+                                        placeholder="e.g. Studio A"
+                                        value={newLayout.name}
+                                        onChange={(e) => setNewLayout(prev => ({ ...prev, name: e.target.value }))}
+                                      />
+                                    </div>
+                                    <div className="space-y-1 min-w-0">
+                                      <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold truncate block">Perihal</Label>
+                                      <Input
+                                        className="h-8 text-[10px] bg-background px-2"
+                                        placeholder="e.g. Studio luas..."
+                                        value={newLayout.description}
+                                        onChange={(e) => setNewLayout(prev => ({ ...prev, description: e.target.value }))}
+                                      />
+                                    </div>
+                                    <div className="space-y-1 min-w-0">
+                                      <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold truncate block">Kapasiti / Harga</Label>
+                                      <div className="flex gap-1">
+                                        <Input
+                                          type="number"
+                                          className="h-8 w-1/2 text-[10px] bg-background px-1"
+                                          placeholder="Pax"
+                                          value={newLayout.capacity}
+                                          onChange={(e) => setNewLayout(prev => ({ ...prev, capacity: parseInt(e.target.value) || 0 }))}
+                                        />
+                                        <Input
+                                          type="number"
+                                          className="h-8 w-1/2 text-[10px] bg-background px-1"
+                                          placeholder="RM"
+                                          value={newLayout.price_per_hour}
+                                          onChange={(e) => setNewLayout(prev => ({ ...prev, price_per_hour: parseInt(e.target.value) || 0 }))}
+                                        />
+                                      </div>
+                                    </div>
+                                    <div className="flex items-end">
+                                      <Button size="sm" className="h-8 w-full text-[10px] px-2 shadow-sm font-bold bg-primary hover:bg-primary/90" onClick={addNewLayout}>
+                                        <Plus className="h-3 w-3 mr-1" /> Simpan Pakej
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </AccordionContent>
+                            )}
+
+                            {item.id === 'booking-form' && (
+                              <AccordionContent className="pt-4 pb-0">
+                                <div className="space-y-4">
+                                  {/* Slot Masa */}
+                                  <div className="p-3 rounded-lg bg-background border border-border/50 shadow-sm space-y-3">
+                                    <div className="flex items-center gap-2">
+                                      <Clock className="h-4 w-4 text-primary" />
+                                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Slot Masa</span>
+                                    </div>
+                                    <div className="space-y-2">
+                                      <Label className="text-[10px] text-muted-foreground font-bold">JARAK SLOT MASA</Label>
+                                      <Select value={settings.timeSlotGap.toString()} onValueChange={(value) => handleSettingChange('timeSlotGap', parseInt(value))}>
+                                        <SelectTrigger className="h-9 text-xs">
+                                          <SelectValue placeholder="Pilih jarak" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="15">15 minit</SelectItem>
+                                          <SelectItem value="30">30 minit</SelectItem>
+                                          <SelectItem value="45">45 minit</SelectItem>
+                                          <SelectItem value="60">1 jam</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </div>
+
+                                  {/* Deposit Settings */}
+                                  <div className="p-3 rounded-lg bg-background border border-border/50 shadow-sm space-y-3">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <CreditCard className="h-4 w-4 text-primary" />
+                                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Deposit</span>
+                                      </div>
+                                      <Switch
+                                        checked={settings.depositEnabled}
+                                        onCheckedChange={(checked) => handleSettingChange('depositEnabled', checked)}
+                                      />
+                                    </div>
+                                    {settings.depositEnabled && (
+                                      <div className="space-y-2 pt-2 border-t border-border/10">
+                                        <Label className="text-[10px] text-muted-foreground font-bold uppercase">JUMLAH DEPOSIT (RM)</Label>
+                                        <Input
+                                          type="number"
+                                          className="h-9 text-xs"
+                                          value={settings.depositAmount}
+                                          onChange={(e) => handleSettingChange('depositAmount', parseFloat(e.target.value) || 0)}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Cara Pembayaran */}
+                                  <div className="p-3 rounded-lg bg-background border border-border/50 shadow-sm space-y-4">
+                                    <div className="flex items-center gap-2">
+                                      <CreditCard className="h-4 w-4 text-primary" />
+                                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cara Pembayaran</span>
+                                    </div>
+                                    <div className="space-y-3">
+                                      {[
+                                        { id: 'paymentStudioEnabled', label: 'Pembayaran di Studio' },
+                                        { id: 'paymentQrEnabled', label: 'QR Sekarang' },
+                                        { id: 'paymentBankTransferEnabled', label: 'Pindahan Bank' },
+                                        { id: 'paymentFpxEnabled', label: 'FPX (Online Banking)' },
+                                        { id: 'paymentTngEnabled', label: 'Touch n Go eWallet' },
+                                      ].map((method) => (
+                                        <div key={method.id} className="flex items-center justify-between">
+                                          <Label className="text-xs font-medium">{method.label}</Label>
+                                          <Switch
+                                            checked={(settings as any)[method.id]}
+                                            onCheckedChange={(checked) => handleSettingChange(method.id, checked)}
+                                          />
+                                        </div>
+                                      ))}
+
+                                      {settings.paymentTngEnabled && (
+                                        <div className="pt-3 border-t border-border/10 space-y-2">
+                                          <Label className="text-[10px] text-muted-foreground font-bold uppercase">TNG QR CODE</Label>
+                                          <div className="flex flex-col gap-2">
+                                            {settings.tngQrCode && (
+                                              <div className="relative w-full aspect-square max-w-[120px] rounded-lg border overflow-hidden mx-auto bg-white">
+                                                <img src={settings.tngQrCode} className="w-full h-full object-contain" alt="TNG QR" />
+                                              </div>
+                                            )}
+                                            <Input
+                                              type="file"
+                                              accept="image/*"
+                                              className="h-8 text-[10px] file:text-[10px]"
+                                              onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (!file || !effectiveStudioId) return;
+                                                setIsUploadingTngQr(true);
+                                                try {
+                                                  const { uploadLogo } = await import('@/services/fileUploadService');
+                                                  const result = await uploadLogo(file, effectiveStudioId);
+                                                  if (result.success && result.url) {
+                                                    handleSettingChange('tngQrCode', result.url);
+                                                    toast({ title: "QR Uploaded", description: "TNG QR updated successfully" });
+                                                  }
+                                                } finally {
+                                                  setIsUploadingTngQr(false);
+                                                }
+                                              }}
+                                            />
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </AccordionContent>
+                            )}
+
+                            {item.id === 'operating-hours' && (
+                              <AccordionContent className="pt-4 pb-0">
+                                <div className="space-y-4">
+                                  {/* Killer Switch */}
+                                  <div className={cn(
+                                    "p-4 rounded-lg border flex items-center justify-between gap-4 transition-colors",
+                                    settings.isOperational ? "bg-green-500/5 border-green-500/20" : "bg-red-500/5 border-red-500/20"
+                                  )}>
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <div className={cn("h-2 w-2 rounded-full", settings.isOperational ? "bg-green-500 animate-pulse" : "bg-red-500")} />
+                                        <span className="text-xs font-bold uppercase tracking-tight">Status Studio</span>
+                                      </div>
+                                      <p className="text-[10px] text-muted-foreground leading-tight">
+                                        {settings.isOperational ? "Buka untuk semua tempahan" : "Tutup untuk semua tempahan"}
+                                      </p>
+                                    </div>
+                                    <Switch
+                                      checked={settings.isOperational}
+                                      onCheckedChange={(checked) => handleSettingChange('isOperational', checked)}
+                                    />
+                                  </div>
+
+                                  {/* Waktu Operasi Row */}
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div className="p-3 rounded-lg bg-background border border-border/50 shadow-sm space-y-2">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <Clock className="h-3 w-3 text-primary" />
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Waktu Buka</span>
+                                      </div>
+                                      <Input
+                                        type="time"
+                                        className="h-9 text-xs"
+                                        value={settings.operatingStartTime}
+                                        onChange={(e) => handleSettingChange('operatingStartTime', e.target.value)}
+                                      />
+                                    </div>
+                                    <div className="p-3 rounded-lg bg-background border border-border/50 shadow-sm space-y-2">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <Clock className="h-3 w-3 text-primary" />
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Waktu Tutup</span>
+                                      </div>
+                                      <Input
+                                        type="time"
+                                        className="h-9 text-xs"
+                                        value={settings.operatingEndTime}
+                                        onChange={(e) => handleSettingChange('operatingEndTime', e.target.value)}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Waktu Rehat */}
+                                  <div className="p-3 rounded-lg bg-muted/20 border border-border/50 shadow-sm space-y-4">
+                                    <div className="flex items-center gap-2">
+                                      <CalendarDays className="h-3 w-3 text-primary" />
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Waktu Rehat (Tutup Tempahan)</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                      <div className="space-y-1.5">
+                                        <Label className="text-[9px] uppercase font-bold text-muted-foreground/70">DARI</Label>
+                                        <Input
+                                          type="time"
+                                          className="h-8 text-[11px] bg-background"
+                                          value={settings.breakStartTime}
+                                          onChange={(e) => handleSettingChange('breakStartTime', e.target.value)}
+                                        />
+                                      </div>
+                                      <div className="space-y-1.5">
+                                        <Label className="text-[9px] uppercase font-bold text-muted-foreground/70">HINGGA</Label>
+                                        <Input
+                                          type="time"
+                                          className="h-8 text-[11px] bg-background"
+                                          value={settings.breakEndTime}
+                                          onChange={(e) => handleSettingChange('breakEndTime', e.target.value)}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </AccordionContent>
+                            )}
+                          </div>
+                        </div>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </div>
+                <DialogFooter className="flex-col gap-2 min-[480px]:flex-row">
+                  <Button variant="outline" onClick={() => setIsChecklistOpen(false)} className="w-full min-[480px]:flex-1">
+                    Tutup
+                  </Button>
+                  <Button onClick={saveSettings} disabled={isSaving} className="w-full min-[480px]:flex-1">
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Simpan...
+                      </>
+                    ) : (
+                      'Simpan Perubahan'
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
           <div className="space-y-6">
             {/* Basic Information */}
             <Card>
@@ -2018,12 +2553,574 @@ const AdminSettings = () => {
         <main className={cn("transition-all duration-300", isCollapsed ? "pl-16" : "pl-64")}>
           <div className="p-8">
             {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold">Tetapan</h1>
-              <p className="text-muted-foreground">Konfigurasi studio dan maklumat perniagaan</p>
-              {/* Studio Selector for Super Admins */}
-              {isSuperAdmin && <StudioSelector />}
+            <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-bold">Tetapan</h1>
+                <p className="text-muted-foreground">Konfigurasi studio dan maklumat perniagaan</p>
+              </div>
+              <div className="flex items-center gap-6 p-4 bg-muted/30 rounded-xl border border-border/50">
+                <div className="flex items-center gap-3">
+                  <ProgressDonut percentage={progressPercentage} size={64} />
+                  <div>
+                    <h3 className="font-semibold text-sm">Kemajuan Konfigurasi</h3>
+                    <p className="text-xs text-muted-foreground">{completedCount} daripada {checklistItems.length} langkah selesai</p>
+                  </div>
+                </div>
+                <Dialog open={isChecklistOpen} onOpenChange={setIsChecklistOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="bg-background shadow-sm hover:translate-y-[-2px] transition-all">
+                      Lihat Konfigurasi Wajib
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-6xl">
+                    <DialogHeader>
+                      <DialogTitle>Konfigurasi Wajib Studio</DialogTitle>
+                      <DialogDescription>
+                        Lengkapkan langkah-langkah berikut untuk memastikan studio anda sedia untuk menerima tempahan.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <Accordion type="single" collapsible className="w-full">
+                        {checklistItems.map((item) => (
+                          <AccordionItem key={item.id} value={item.id} className="border-none">
+                            <div className="flex items-start gap-4 p-4 rounded-xl border bg-muted/10 mb-3">
+                              {item.isComplete ? (
+                                <div className="h-6 w-6 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+                                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                </div>
+                              ) : (
+                                <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center shrink-0">
+                                  <div className="h-2 w-2 rounded-full bg-muted-foreground/30" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                {item.id === 'basic-info' || item.id === 'packages' || item.id === 'booking-form' || item.id === 'operating-hours' ? (
+                                  <AccordionTrigger className="p-0 hover:no-underline py-0">
+                                    <div className="text-left">
+                                      <p className={cn("text-sm font-semibold", item.isComplete ? "text-foreground" : "text-muted-foreground")}>
+                                        {item.label}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        {item.description}
+                                      </p>
+                                    </div>
+                                  </AccordionTrigger>
+                                ) : (
+                                  <div>
+                                    <p className={cn("text-sm font-semibold", item.isComplete ? "text-foreground" : "text-muted-foreground")}>
+                                      {item.label}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {item.description}
+                                    </p>
+                                  </div>
+                                )}
+
+                                {item.id === 'basic-info' && (
+                                  <AccordionContent className="pt-4 pb-0">
+                                    <div className="grid grid-cols-4 gap-4 mt-2">
+                                      {[
+                                        { label: 'Nama Studio', key: 'studioName', placeholder: 'Nama studio' },
+                                        { label: 'Telefon Studio', key: 'studioPhone', placeholder: '012-3456789' },
+                                        { label: 'Lokasi Studio', key: 'studioLocation', placeholder: 'Alamat' },
+                                        { label: 'Google Map Link', key: 'googleMapsLink', placeholder: 'Link' },
+                                        { label: 'Emel studio', key: 'studioEmail', type: 'email', placeholder: 'info@studio.com' },
+                                        { label: 'Akaun Bank', key: 'bankAccountNumber', placeholder: '1234567890' },
+                                        { label: 'Pemilik Akaun', key: 'accountOwnerName', placeholder: 'Nama' },
+                                      ].map((field) => (
+                                        <div key={field.key} className="space-y-1.5 p-3 rounded-xl bg-background border border-border/50 shadow-sm min-w-0">
+                                          <div className="flex items-center gap-2 overflow-hidden">
+                                            <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold truncate">
+                                              {field.label}
+                                            </Label>
+                                            {(settings as any)[field.key] && (
+                                              <div className="h-4 w-4 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+                                                <Check className="h-2.5 w-2.5 text-green-600 font-bold" />
+                                              </div>
+                                            )}
+                                          </div>
+                                          <Input
+                                            className="h-9 text-xs bg-muted/30 border-none focus-visible:ring-1 focus-visible:ring-primary"
+                                            placeholder={field.placeholder}
+                                            value={(settings as any)[field.key]}
+                                            type={field.type || 'text'}
+                                            onChange={(e) => handleSettingChange(field.key, e.target.value)}
+                                          />
+                                        </div>
+                                      ))}
+                                      <div className="space-y-1.5 p-3 rounded-xl bg-background border border-border/50 shadow-sm min-w-0">
+                                        <div className="flex items-center gap-2 overflow-hidden">
+                                          <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold truncate">
+                                            Kod QR
+                                          </Label>
+                                          {settings.qrCode && (
+                                            <div className="h-4 w-4 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+                                              <Check className="h-2.5 w-2.5 text-green-600 font-bold" />
+                                            </div>
+                                          )}
+                                        </div>
+                                        <Input
+                                          type="file"
+                                          accept="image/*"
+                                          className="h-9 text-xs bg-muted/30 border-none cursor-pointer file:bg-primary file:text-primary-foreground file:border-none file:px-2 file:py-1 file:rounded-md file:mr-2 file:text-[9px]"
+                                          onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) handleSettingChange('qrCode', file.name);
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+                                  </AccordionContent>
+                                )}
+
+                                {item.id === 'packages' && (
+                                  <AccordionContent className="pt-4 pb-0">
+                                    <div className="space-y-6">
+                                      {/* Existing Packages Items with Photos */}
+                                      {layouts.length > 0 && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                          {layouts.map((layout, idx) => (
+                                            <div key={layout.id} className="p-4 rounded-xl bg-background border border-border/50 shadow-sm hover:border-primary/50 transition-all space-y-4">
+                                              <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-4">
+                                                  <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center overflow-hidden shrink-0 border border-border/50 shadow-inner">
+                                                    {layout.thumbnail_photo ? (
+                                                      <img src={layout.thumbnail_photo} className="w-full h-full object-cover" alt={layout.name} />
+                                                    ) : (
+                                                      <ImageIcon className="h-6 w-6 text-muted-foreground/20" />
+                                                    )}
+                                                  </div>
+                                                  <div className="flex flex-col min-w-0">
+                                                    <span className="text-sm font-bold text-foreground truncate">{layout.name}</span>
+                                                    <span className="text-xs text-muted-foreground font-medium">RM{layout.price_per_hour}/jam • {layout.capacity} Pax</span>
+                                                  </div>
+                                                </div>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-full"
+                                                  onClick={() => removeLayout(idx)}
+                                                >
+                                                  <X className="h-4 w-4" />
+                                                </Button>
+                                              </div>
+
+                                              {/* Mini Gallery Scrollable */}
+                                              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                                                {(layout.layout_photos || []).map((photoUrl, pIdx) => {
+                                                  const deleteKey = `${layout.id}-${photoUrl}`;
+                                                  const isThumbnail = layout.thumbnail_photo === photoUrl;
+                                                  return (
+                                                    <div key={pIdx} className={cn(
+                                                      "relative w-16 h-16 rounded-lg overflow-hidden border shrink-0 group transition-all",
+                                                      isThumbnail ? "border-primary ring-1 ring-primary/20" : "border-border/50"
+                                                    )}>
+                                                      <img src={photoUrl} className="w-full h-full object-cover" alt={`Gallery ${pIdx}`} />
+                                                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                                                        <button
+                                                          onClick={() => handleDeleteLayoutPhoto(idx, photoUrl)}
+                                                          disabled={deletingLayoutPhoto[deleteKey]}
+                                                          className="p-1.5 bg-destructive text-white rounded-md hover:bg-destructive/80 transition-colors"
+                                                          title="Hapus"
+                                                        >
+                                                          {deletingLayoutPhoto[deleteKey] ? (
+                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                          ) : (
+                                                            <Trash className="h-3.5 w-3.5" />
+                                                          )}
+                                                        </button>
+                                                        {!isThumbnail && (
+                                                          <button
+                                                            onClick={() => handleSetThumbnail(idx, photoUrl)}
+                                                            className="p-1.5 bg-primary text-white rounded-md hover:bg-primary/80 transition-colors"
+                                                            title="Set Thumbnail"
+                                                          >
+                                                            <ImageIcon className="h-3.5 w-3.5" />
+                                                          </button>
+                                                        )}
+                                                      </div>
+                                                      {isThumbnail && (
+                                                        <div className="absolute bottom-0 left-0 right-0 bg-primary/80 text-[7px] text-white font-bold py-0.5 text-center uppercase tracking-tighter">
+                                                          Main
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  );
+                                                })}
+
+                                                {(layout.layout_photos || []).length < 5 && (
+                                                  <div className="shrink-0">
+                                                    <input
+                                                      type="file"
+                                                      accept="image/*"
+                                                      id={`checklist-photo-desktop-${layout.id}`}
+                                                      className="hidden"
+                                                      onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                          await handleUploadLayoutPhoto(idx, file);
+                                                          e.target.value = '';
+                                                        }
+                                                      }}
+                                                    />
+                                                    <button
+                                                      onClick={() => document.getElementById(`checklist-photo-desktop-${layout.id}`)?.click()}
+                                                      disabled={uploadingLayoutPhoto[layout.id]}
+                                                      className="w-16 h-16 rounded-lg border-2 border-dashed border-muted-foreground/20 flex flex-col items-center justify-center hover:border-primary/40 hover:bg-primary/5 transition-all group disabled:opacity-50"
+                                                    >
+                                                      {uploadingLayoutPhoto[layout.id] ? (
+                                                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                                                      ) : (
+                                                        <Upload className="h-5 w-5 text-muted-foreground/40 group-hover:text-primary/60 transition-colors" />
+                                                      )}
+                                                      <span className="text-[8px] text-muted-foreground/50 font-bold mt-1 uppercase group-hover:text-primary/60">Muat Naik</span>
+                                                    </button>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+
+                                      {/* Add Package Form Matching Basic Info Style */}
+                                      <div className="grid grid-cols-4 gap-4 p-5 rounded-2xl bg-primary/5 border border-primary/10 shadow-inner">
+                                        <div className="space-y-1.5 min-w-0">
+                                          <Label className="text-[10px] uppercase tracking-wider text-primary/80 font-bold block">Nama Pakej</Label>
+                                          <Input
+                                            className="h-10 text-sm bg-background border-primary/20 focus-visible:ring-primary shadow-sm"
+                                            placeholder="e.g. Studio A (Full Set)"
+                                            value={newLayout.name}
+                                            onChange={(e) => setNewLayout(prev => ({ ...prev, name: e.target.value }))}
+                                          />
+                                        </div>
+                                        <div className="space-y-1.5 min-w-0">
+                                          <Label className="text-[10px] uppercase tracking-wider text-primary/80 font-bold block">Penerangan Ringkas</Label>
+                                          <Input
+                                            className="h-10 text-sm bg-background border-primary/20 focus-visible:ring-primary shadow-sm"
+                                            placeholder="Penerangan ringkas tentang kemudahan layout ini..."
+                                            value={newLayout.description}
+                                            onChange={(e) => setNewLayout(prev => ({ ...prev, description: e.target.value }))}
+                                          />
+                                        </div>
+                                        <div className="space-y-1.5 min-w-0">
+                                          <Label className="text-[10px] uppercase tracking-wider text-primary/80 font-bold block">Kapasiti & Harga</Label>
+                                          <div className="flex gap-2">
+                                            <Input
+                                              type="number"
+                                              className="h-10 w-1/2 text-sm bg-background border-primary/20 focus-visible:ring-primary shadow-sm"
+                                              placeholder="Pax"
+                                              value={newLayout.capacity}
+                                              onChange={(e) => setNewLayout(prev => ({ ...prev, capacity: parseInt(e.target.value) || 0 }))}
+                                            />
+                                            <Input
+                                              type="number"
+                                              className="h-10 w-1/2 text-sm bg-background border-primary/20 focus-visible:ring-primary shadow-sm"
+                                              placeholder="RM"
+                                              value={newLayout.price_per_hour}
+                                              onChange={(e) => setNewLayout(prev => ({ ...prev, price_per_hour: parseInt(e.target.value) || 0 }))}
+                                            />
+                                          </div>
+                                        </div>
+                                        <div className="flex items-end">
+                                          <Button onClick={addNewLayout} className="h-10 w-full font-bold shadow-lg shadow-primary/20 hover:translate-y-[-1px] transition-all">
+                                            <Plus className="h-4 w-4 mr-2" /> Simpan Layout
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </AccordionContent>
+                                )}
+
+                                {item.id === 'booking-form' && (
+                                  <AccordionContent className="pt-4 pb-0">
+                                    <div className="grid grid-cols-3 gap-6">
+                                      {/* Slot Masa & Deposit Column */}
+                                      <div className="col-span-1 space-y-6">
+                                        {/* Slot Masa */}
+                                        <div className="p-5 rounded-2xl bg-primary/5 border border-primary/10 shadow-sm space-y-4">
+                                          <div className="flex items-center gap-2">
+                                            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                              <Clock className="h-4 w-4 text-primary" />
+                                            </div>
+                                            <div>
+                                              <h4 className="text-xs font-bold text-primary tracking-tight">SLOT MASA</h4>
+                                              <p className="text-[10px] text-muted-foreground">Konfigurasi jarak slot</p>
+                                            </div>
+                                          </div>
+                                          <div className="space-y-2">
+                                            <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest pl-1">JARAK ANTARA SLOT</Label>
+                                            <Select value={settings.timeSlotGap.toString()} onValueChange={(value) => handleSettingChange('timeSlotGap', parseInt(value))}>
+                                              <SelectTrigger className="h-10 bg-background border-primary/20">
+                                                <SelectValue placeholder="Pilih jarak" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="15">15 minit</SelectItem>
+                                                <SelectItem value="30">30 minit</SelectItem>
+                                                <SelectItem value="45">45 minit</SelectItem>
+                                                <SelectItem value="60">1 jam</SelectItem>
+                                                <SelectItem value="120">2 jam</SelectItem>
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                        </div>
+
+                                        {/* Deposit */}
+                                        <div className="p-5 rounded-2xl bg-primary/5 border border-primary/10 shadow-sm space-y-4">
+                                          <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                                <CreditCard className="h-4 w-4 text-primary" />
+                                              </div>
+                                              <div>
+                                                <h4 className="text-xs font-bold text-primary tracking-tight">DEPOSIT</h4>
+                                                <p className="text-[10px] text-muted-foreground font-medium">Bayaran separa</p>
+                                              </div>
+                                            </div>
+                                            <Switch
+                                              checked={settings.depositEnabled}
+                                              onCheckedChange={(checked) => handleSettingChange('depositEnabled', checked)}
+                                            />
+                                          </div>
+                                          {settings.depositEnabled && (
+                                            <div className="space-y-2 pt-2 border-t border-primary/10">
+                                              <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest pl-1">JUMLAH DEPOSIT (RM)</Label>
+                                              <Input
+                                                type="number"
+                                                className="h-10 bg-background border-primary/20"
+                                                placeholder="0.00"
+                                                value={settings.depositAmount}
+                                                onChange={(e) => handleSettingChange('depositAmount', parseFloat(e.target.value) || 0)}
+                                              />
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Cara Pembayaran Column */}
+                                      <div className="col-span-2 p-6 rounded-2xl bg-muted/30 border border-border/50 shadow-sm">
+                                        <div className="flex items-center gap-2 mb-6">
+                                          <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                                            <CreditCard className="h-5 w-5 text-primary" />
+                                          </div>
+                                          <div>
+                                            <h4 className="text-sm font-bold text-foreground">Kaedah Pembayaran</h4>
+                                            <p className="text-xs text-muted-foreground">Aktifkan pilihan untuk pelanggan</p>
+                                          </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                                          {[
+                                            { id: 'paymentStudioEnabled', label: 'Pembayaran di Studio', desc: 'Bayar di kaunter' },
+                                            { id: 'paymentQrEnabled', label: 'QR Sekarang (Main)', desc: 'Kod QR studio standard' },
+                                            { id: 'paymentBankTransferEnabled', label: 'Pindahan Bank Direct', desc: 'Manual transfer' },
+                                            { id: 'paymentFpxEnabled', label: 'FPX (Online Banking)', desc: 'Pembayaran automatik' },
+                                            { id: 'paymentTngEnabled', label: 'Touch n Go eWallet', desc: 'Scan & Pay TNG' },
+                                          ].map((method) => (
+                                            <div key={method.id} className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/50 group hover:border-primary/30 transition-all">
+                                              <div className="flex flex-col gap-0.5">
+                                                <Label className="text-xs font-bold leading-none">{method.label}</Label>
+                                                <span className="text-[10px] text-muted-foreground">{method.desc}</span>
+                                              </div>
+                                              <Switch
+                                                checked={(settings as any)[method.id]}
+                                                onCheckedChange={(checked) => handleSettingChange(method.id, checked)}
+                                              />
+                                            </div>
+                                          ))}
+                                        </div>
+
+                                        {settings.paymentTngEnabled && (
+                                          <div className="mt-6 pt-6 border-t border-border/50 flex gap-6 items-start">
+                                            <div className="flex-1 space-y-3">
+                                              <Label className="text-[10px] font-bold text-primary uppercase tracking-widest block">MUAT NAIK TNG QR CODE</Label>
+                                              <p className="text-xs text-muted-foreground mb-4">Fail gambar sahaja (JPEG/PNG). Maksimum 5MB.</p>
+                                              <div className="relative">
+                                                <Input
+                                                  type="file"
+                                                  accept="image/*"
+                                                  className="h-10 cursor-pointer file:font-bold file:text-xs"
+                                                  onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (!file || !effectiveStudioId) return;
+                                                    setIsUploadingTngQr(true);
+                                                    try {
+                                                      const { uploadLogo } = await import('@/services/fileUploadService');
+                                                      const result = await uploadLogo(file, effectiveStudioId);
+                                                      if (result.success && result.url) {
+                                                        handleSettingChange('tngQrCode', result.url);
+                                                        toast({ title: "QR Diupload", description: "Kod QR TNG telah berjaya kemaskini" });
+                                                      }
+                                                    } finally {
+                                                      setIsUploadingTngQr(false);
+                                                    }
+                                                  }}
+                                                />
+                                                {isUploadingTngQr && <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-primary" />}
+                                              </div>
+                                            </div>
+                                            <div className="w-24 h-24 rounded-2xl border border-dashed border-primary/20 bg-background flex items-center justify-center overflow-hidden p-1 shadow-inner shrink-0">
+                                              {settings.tngQrCode ? (
+                                                <img src={settings.tngQrCode} className="w-full h-full object-contain rounded-xl" alt="TNG QR" />
+                                              ) : (
+                                                <ImageIcon className="h-8 w-8 text-primary/20" />
+                                              )}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </AccordionContent>
+                                )}
+
+                                {item.id === 'operating-hours' && (
+                                  <AccordionContent className="pt-4 pb-0">
+                                    <div className="grid grid-cols-2 gap-6">
+                                      {/* Operational Status & Operating Hours */}
+                                      <div className="space-y-6">
+                                        <div className={cn(
+                                          "p-6 rounded-2xl border flex items-center justify-between gap-6 transition-all duration-300",
+                                          settings.isOperational
+                                            ? "bg-green-500/5 border-green-500/20 shadow-[0_0_15px_-5px_rgba(34,197,94,0.1)]"
+                                            : "bg-red-500/5 border-red-500/20 shadow-[0_0_15px_-5px_rgba(239,68,68,0.1)]"
+                                        )}>
+                                          <div className="flex-1">
+                                            <div className="flex items-center gap-3 mb-2">
+                                              <div className={cn(
+                                                "h-3 w-3 rounded-full shadow-sm",
+                                                settings.isOperational ? "bg-green-500 animate-pulse" : "bg-red-500"
+                                              )} />
+                                              <h4 className={cn(
+                                                "text-sm font-bold tracking-tight uppercase",
+                                                settings.isOperational ? "text-green-700" : "text-red-700"
+                                              )}>Status Studio Sekarang</h4>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground font-medium">
+                                              {settings.isOperational
+                                                ? "Studio terbuka untuk semua tempahan pelanggan melalui borang tempahan."
+                                                : "Studio ditutup sementara. Borang tempahan tidak akan menerima sebarang slot baru."}
+                                            </p>
+                                          </div>
+                                          <Switch
+                                            className="scale-125 data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-red-600"
+                                            checked={settings.isOperational}
+                                            onCheckedChange={(checked) => handleSettingChange('isOperational', checked)}
+                                          />
+                                        </div>
+
+                                        <div className="p-6 rounded-2xl bg-muted/30 border border-border/50 shadow-sm space-y-6">
+                                          <div className="flex items-center gap-3">
+                                            <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                                              <Clock className="h-5 w-5 text-primary" />
+                                            </div>
+                                            <div>
+                                              <h4 className="text-sm font-bold text-foreground">Waktu Kerja</h4>
+                                              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Setiap Hari</p>
+                                            </div>
+                                          </div>
+
+                                          <div className="flex items-center gap-4">
+                                            <div className="flex-1 space-y-2">
+                                              <Label className="text-[10px] uppercase font-extrabold text-muted-foreground/70 tracking-widest pl-1">JAM BUKA</Label>
+                                              <div className="relative">
+                                                <Input
+                                                  type="time"
+                                                  className="h-12 bg-background border-primary/10 focus-visible:ring-primary text-base font-medium pl-10"
+                                                  value={settings.operatingStartTime}
+                                                  onChange={(e) => handleSettingChange('operatingStartTime', e.target.value)}
+                                                />
+                                                <Clock className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground/50" />
+                                              </div>
+                                            </div>
+                                            <div className="self-end pb-3 text-muted-foreground font-light text-2xl">→</div>
+                                            <div className="flex-1 space-y-2">
+                                              <Label className="text-[10px] uppercase font-extrabold text-muted-foreground/70 tracking-widest pl-1">JAM TUTUP</Label>
+                                              <div className="relative">
+                                                <Input
+                                                  type="time"
+                                                  className="h-12 bg-background border-primary/10 focus-visible:ring-primary text-base font-medium pl-10"
+                                                  value={settings.operatingEndTime}
+                                                  onChange={(e) => handleSettingChange('operatingEndTime', e.target.value)}
+                                                />
+                                                <Clock className="absolute left-3 top-3.5 h-5 w-5 text-muted-foreground/50" />
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* Break Time & Preview */}
+                                      <div className="space-y-6">
+                                        <div className="p-6 rounded-2xl bg-muted/30 border border-border/50 shadow-sm space-y-6">
+                                          <div className="flex items-center gap-3">
+                                            <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                                              <CalendarDays className="h-5 w-5 text-primary" />
+                                            </div>
+                                            <div>
+                                              <h4 className="text-sm font-bold text-foreground">Waktu Rehat</h4>
+                                              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Tutup Tempahan Sementara</p>
+                                            </div>
+                                          </div>
+
+                                          <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                              <Label className="text-[10px] uppercase font-extrabold text-muted-foreground/70 tracking-widest pl-1">MULA REHAT</Label>
+                                              <Input
+                                                type="time"
+                                                className="h-11 bg-background border-primary/10"
+                                                value={settings.breakStartTime}
+                                                onChange={(e) => handleSettingChange('breakStartTime', e.target.value)}
+                                              />
+                                            </div>
+                                            <div className="space-y-2">
+                                              <Label className="text-[10px] uppercase font-extrabold text-muted-foreground/70 tracking-widest pl-1">TAMAT REHAT</Label>
+                                              <Input
+                                                type="time"
+                                                className="h-11 bg-background border-primary/10"
+                                                value={settings.breakEndTime}
+                                                onChange={(e) => handleSettingChange('breakEndTime', e.target.value)}
+                                              />
+                                            </div>
+                                          </div>
+
+                                          <div className="p-3 bg-primary/5 rounded-xl text-[11px] text-muted-foreground leading-relaxed italic border border-primary/10">
+                                            "Dalam tempoh waktu rehat ini, slot tempahan pada borang tempahan akan ditanda sebagai tidak tersedia (grayed out) secara automatik."
+                                          </div>
+                                        </div>
+
+
+                                      </div>
+                                    </div>
+                                  </AccordionContent>
+                                )}
+                              </div>
+                            </div>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsChecklistOpen(false)} className="flex-1">
+                        Tutup
+                      </Button>
+                      <Button onClick={saveSettings} disabled={isSaving} className="flex-1">
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Menyimpan...
+                          </>
+                        ) : (
+                          'Simpan Semua'
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
+
+            {/* Studio Selector for Super Admins */}
+            {isSuperAdmin && <div className="mb-8"><StudioSelector /></div>}
 
             {/* Settings Tabs */}
             <Tabs defaultValue="maklumat-asas" className="w-full">

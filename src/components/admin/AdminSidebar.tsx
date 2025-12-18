@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
@@ -15,11 +16,14 @@ import {
   CreditCard,
   Users,
   Mail,
+  Award,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { supabase } from '@/lib/supabase';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -37,6 +41,30 @@ export function AdminSidebar() {
   const { toast } = useToast();
   const { user, studio, logout, isSuperAdmin } = useAuth();
   const { isCollapsed, setIsCollapsed } = useSidebar();
+  const [fetchedPackage, setFetchedPackage] = useState<string | null>(null);
+
+  // Fallback: Fetch package from payments table if not in studio record
+  useEffect(() => {
+    const getPackageFromPayments = async () => {
+      if (!isSuperAdmin && studio?.email && !studio.package_name) {
+        const { data } = await supabase
+          .from('package_payments')
+          .select('package_name')
+          .eq('email', studio.email)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (data) {
+          setFetchedPackage(data.package_name);
+        }
+      }
+    };
+
+    getPackageFromPayments();
+  }, [studio?.email, studio?.package_name, isSuperAdmin]);
+
+  const activePackage = studio?.package_name || fetchedPackage;
 
   // Get user initials for avatar
   const getInitials = (name: string | undefined) => {
@@ -55,6 +83,15 @@ export function AdminSidebar() {
       description: 'Anda telah log keluar dari sistem',
     });
     navigate('/admin/login');
+  };
+
+  const getPackageBadgeStyles = (packageName: string | null | undefined) => {
+    if (!packageName) return '';
+    const name = packageName.toLowerCase();
+    if (name.includes('gold')) return 'bg-gradient-to-r from-yellow-400 to-yellow-600 text-white border-yellow-700 shadow-[0_0_10px_rgba(234,179,8,0.3)]';
+    if (name.includes('silver')) return 'bg-gradient-to-r from-gray-300 to-gray-500 text-white border-gray-600 shadow-[0_0_10px_rgba(107,114,128,0.2)]';
+    if (name.includes('platinum')) return 'bg-gradient-to-r from-purple-400 to-purple-600 text-white border-purple-700 shadow-[0_0_10px_rgba(168,85,247,0.3)]';
+    return '';
   };
 
   return (
@@ -89,7 +126,20 @@ export function AdminSidebar() {
           <div className="flex items-center gap-2 px-2 py-1.5 bg-muted/50 rounded-md">
             <Building2 className="h-4 w-4 text-muted-foreground" />
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium truncate">{studio.name}</p>
+              <div className="flex items-center justify-between gap-1 mb-0.5">
+                <p className="text-xs font-medium truncate">{studio.name}</p>
+                {activePackage && (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "text-[8px] px-1 py-0 h-3.5 border-none font-bold uppercase tracking-wider",
+                      getPackageBadgeStyles(activePackage)
+                    )}
+                  >
+                    {activePackage}
+                  </Badge>
+                )}
+              </div>
               {studio.location && (
                 <p className="text-[10px] text-muted-foreground truncate">{studio.location}</p>
               )}

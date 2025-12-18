@@ -450,8 +450,7 @@ const BrandBooking = () => {
       const formattedDate = `${year}-${month}-${day}`;
 
       // Calculate total price based on payment type (using hours for price calculation)
-      const durationInHours = durationInMinutes / 60;
-      const basePrice = layout.pricePerHour * durationInHours;
+      const basePrice = layout.pricePerHour;
       const addonPrice = selectedAddon ? (addonPackages.find(p => p.id === selectedAddon)?.price || 0) : 0;
       const fullPrice = basePrice + addonPrice;
       const totalPrice = paymentType === 'deposit' ? depositAmount : fullPrice;

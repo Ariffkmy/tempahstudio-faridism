@@ -4,6 +4,8 @@
 
 export type AdminRole = 'super_admin' | 'admin' | 'staff';
 export type BookingStatus =
+  | 'pending'
+  | 'confirmed'
   | 'done-payment'
   | 'done-photoshoot'
   | 'start-editing'

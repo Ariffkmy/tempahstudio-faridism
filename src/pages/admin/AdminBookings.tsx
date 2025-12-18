@@ -5,6 +5,7 @@ import { StudioSelector } from '@/components/admin/StudioSelector';
 import { BookingTable } from '@/components/admin/BookingTable';
 import { BookingDetailModal } from '@/components/admin/BookingDetailModal';
 import { RescheduleDialog } from '@/components/admin/RescheduleDialog';
+import { AdminCreateBookingDialog } from '@/components/admin/AdminCreateBookingDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -97,6 +98,9 @@ const AdminBookings = () => {
   // Reschedule dialog state
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
   const [bookingToReschedule, setBookingToReschedule] = useState<Booking | null>(null);
+
+  // Create booking dialog state
+  const [createBookingDialogOpen, setCreateBookingDialogOpen] = useState(false);
 
   // Helper functions
   const getInitials = (name: string | undefined) => {
@@ -474,7 +478,7 @@ const AdminBookings = () => {
             <h1 className="text-xl font-bold">Tempahan</h1>
             <p className="text-muted-foreground text-sm">Urus dan lihat semua tempahan studio</p>
             <div className="flex flex-col gap-2 mt-4">
-              <Button onClick={() => navigate(`/book/${effectiveStudioId}`)}>
+              <Button onClick={() => setCreateBookingDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Tambah Tempahan
               </Button>
@@ -785,7 +789,7 @@ const AdminBookings = () => {
                 <p className="text-muted-foreground">Urus dan lihat semua tempahan studio</p>
               </div>
               <div className="flex gap-2">
-                <Button onClick={() => navigate(`/book/${effectiveStudioId}`)}>
+                <Button onClick={() => setCreateBookingDialogOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Tambah Tempahan
                 </Button>
@@ -1063,6 +1067,14 @@ const AdminBookings = () => {
           booking={selectedBooking}
           open={isModalOpen}
           onOpenChange={setIsModalOpen}
+        />
+
+        {/* Create Booking Dialog */}
+        <AdminCreateBookingDialog
+          open={createBookingDialogOpen}
+          onOpenChange={setCreateBookingDialogOpen}
+          studioId={effectiveStudioId || ''}
+          onSuccess={refreshBookings}
         />
 
         {/* Reschedule Dialog */}

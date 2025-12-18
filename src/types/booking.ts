@@ -1,4 +1,6 @@
 export type BookingStatus =
+  | 'pending'
+  | 'confirmed'
   | 'done-payment'
   | 'done-photoshoot'
   | 'start-editing'

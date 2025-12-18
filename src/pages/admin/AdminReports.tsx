@@ -34,8 +34,8 @@ const AdminReports = () => {
   const [stats, setStats] = useState({
     todayBookings: 0,
     pendingBookings: 0,
-    weeklyRevenue: 0,
-    weeklyBookingsCount: 0,
+    totalRevenue: 0,
+    totalBookingsCount: 0,
     monthlyCustomers: 0,
     upcomingSlots: 0,
     tomorrowSlots: 0,

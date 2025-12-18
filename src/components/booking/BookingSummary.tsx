@@ -22,7 +22,7 @@ export function BookingSummary({
   onConfirm,
   isValid,
 }: BookingSummaryProps) {
-  const subtotal = layout ? layout.pricePerHour * duration : 0;
+  const subtotal = layout ? layout.pricePerHour : 0;
   const serviceFee = subtotal * 0.05;
   const total = subtotal + serviceFee;
 
@@ -69,7 +69,7 @@ export function BookingSummary({
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">
-                  RM {layout.pricePerHour} × {duration} jam
+                  {layout.name}
                 </span>
                 <span>RM {subtotal.toFixed(2)}</span>
               </div>

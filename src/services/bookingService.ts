@@ -126,8 +126,8 @@ export async function getUpcomingBookings(studioId: string, limit: number = 10):
 export interface DashboardStats {
   todayBookings: number;
   pendingBookings: number;
-  weeklyRevenue: number;
-  weeklyBookingsCount: number;
+  totalRevenue: number;
+  totalBookingsCount: number;
   monthlyCustomers: number;
   upcomingSlots: number;
   tomorrowSlots: number;
@@ -171,17 +171,15 @@ export async function getDashboardStats(studioId: string): Promise<DashboardStat
     const todayBookings = todayData?.length || 0;
     const pendingBookings = todayData?.filter(b => b.status === 'pending').length || 0;
 
-    // Get this week's bookings for revenue
-    const { data: weekData } = await supabase
+    // Get all paid bookings for total revenue
+    const { data: totalData } = await supabase
       .from('bookings')
       .select('total_price')
       .eq('studio_id', studioId)
-      .gte('date', weekStartStr)
-      .lte('date', weekEndStr)
-      .in('status', ['confirmed', 'completed']);
+      .in('status', ['confirmed', 'completed', 'done-payment', 'done-photoshoot', 'start-editing', 'ready-for-delivery']);
 
-    const weeklyRevenue = weekData?.reduce((sum, b) => sum + (Number(b.total_price) || 0), 0) || 0;
-    const weeklyBookingsCount = weekData?.length || 0;
+    const totalRevenue = totalData?.reduce((sum, b) => sum + (Number(b.total_price) || 0), 0) || 0;
+    const totalBookingsCount = totalData?.length || 0;
 
     // Get unique customers this month
     const { data: monthData } = await supabase
@@ -207,8 +205,8 @@ export async function getDashboardStats(studioId: string): Promise<DashboardStat
     return {
       todayBookings,
       pendingBookings,
-      weeklyRevenue,
-      weeklyBookingsCount,
+      totalRevenue,
+      totalBookingsCount,
       monthlyCustomers,
       upcomingSlots,
       tomorrowSlots,
@@ -218,8 +216,8 @@ export async function getDashboardStats(studioId: string): Promise<DashboardStat
     return {
       todayBookings: 0,
       pendingBookings: 0,
-      weeklyRevenue: 0,
-      weeklyBookingsCount: 0,
+      totalRevenue: 0,
+      totalBookingsCount: 0,
       monthlyCustomers: 0,
       upcomingSlots: 0,
       tomorrowSlots: 0,
@@ -354,6 +352,7 @@ export interface CreateBookingData {
   balanceDue?: number;
   paymentType?: string;
   numberOfPax?: number;
+  status?: string;
 
   // Optional
   notes?: string;
@@ -436,7 +435,7 @@ export async function createPublicBooking(bookingData: CreateBookingData): Promi
         balance_due: bookingData.balanceDue || 0,
         payment_type: bookingData.paymentType || 'full',
         number_of_pax: bookingData.numberOfPax || 1,
-        status: 'done-payment',
+        status: bookingData.status || 'done-payment',
         notes: bookingData.notes || null,
         addon_package_id: bookingData.addonPackageId || null,
         payment_method: bookingData.paymentMethod || null,

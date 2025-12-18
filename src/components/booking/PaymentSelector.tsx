@@ -11,14 +11,18 @@ interface PaymentSelectorProps {
   selectedPayment: string;
   onSelectPayment: (payment: string) => void;
   onFileUpload?: (type: 'receipt' | 'proof', file: File | null) => void;
+  enabledMethods?: {
+    studio?: boolean;
+    qr?: boolean;
+    bank?: boolean;
+    fpx?: boolean;
+    tng?: boolean;
+  };
+  generalQrCode?: string;
+  tngQrCode?: string;
+  bankAccountNumber?: string;
+  accountOwnerName?: string;
 }
-
-// Mock admin settings - in production this would come from a context or API
-const adminSettings = {
-  bankAccountNumber: '1234567890123',
-  accountOwnerName: 'Raya Studio KL Sdn Bhd',
-  qrCode: '/placeholder.svg', // This would be the actual QR code file path
-};
 
 const paymentMethods = [
   {
@@ -39,24 +43,70 @@ const paymentMethods = [
     description: 'Bayar melalui bank transfer dan muat naik bukti pembayaran',
     icon: Building2,
   },
+  {
+    id: 'fpx',
+    name: 'FPX Online Banking',
+    description: 'Bayar secara dalam talian melalui FPX',
+    icon: CreditCard,
+  },
+  {
+    id: 'tng',
+    name: 'Touch n Go eWallet',
+    description: 'Bayar menggunakan aplikasi Touch n Go eWallet',
+    icon: Wallet,
+  },
 ];
 
-export function PaymentSelector({ selectedPayment, onSelectPayment, onFileUpload }: PaymentSelectorProps) {
+export function PaymentSelector({
+  selectedPayment,
+  onSelectPayment,
+  onFileUpload,
+  enabledMethods,
+  generalQrCode,
+  tngQrCode,
+  bankAccountNumber,
+  accountOwnerName
+}: PaymentSelectorProps) {
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
 
+  // Filter payment methods based on enabled flags
+  const filteredMethods = paymentMethods.filter(method => {
+    if (!enabledMethods) return true; // Show all if no flags provided (fallback)
+
+    switch (method.id) {
+      case 'cash': return enabledMethods.studio;
+      case 'qr': return enabledMethods.qr;
+      case 'bank': return enabledMethods.bank;
+      case 'fpx': return enabledMethods.fpx;
+      case 'tng': return enabledMethods.tng;
+      default: return true;
+    }
+  });
+
   const handleCopyAccountNumber = () => {
-    navigator.clipboard.writeText(adminSettings.bankAccountNumber);
-    // Could add toast notification here
+    if (bankAccountNumber) {
+      navigator.clipboard.writeText(bankAccountNumber);
+    }
   };
 
-  const handleDownloadQR = () => {
-    // In production, this would trigger a download of the QR code file
-    const link = document.createElement('a');
-    link.href = adminSettings.qrCode;
-    link.download = 'payment-qr-code.png';
-    link.click();
+  const handleDownloadQR = (qrUrl?: string) => {
+    if (qrUrl) {
+      const link = document.createElement('a');
+      link.href = qrUrl;
+      link.download = 'payment-qr-code.png';
+      link.click();
+    }
   };
+
+  if (filteredMethods.length === 0) {
+    return (
+      <Card variant="outline" className="p-4">
+        <h3 className="font-semibold mb-2">Kaedah Pembayaran</h3>
+        <p className="text-sm text-muted-foreground">Tiada kaedah pembayaran tersedia buat masa ini.</p>
+      </Card>
+    );
+  }
 
   return (
     <Card variant="outline" className="p-4">
@@ -64,7 +114,7 @@ export function PaymentSelector({ selectedPayment, onSelectPayment, onFileUpload
 
       <RadioGroup value={selectedPayment} onValueChange={onSelectPayment}>
         <div className="space-y-3">
-          {paymentMethods.map((method) => {
+          {filteredMethods.map((method) => {
             const Icon = method.icon;
             return (
               <div key={method.id} className="flex items-center space-x-3">
@@ -83,20 +133,29 @@ export function PaymentSelector({ selectedPayment, onSelectPayment, onFileUpload
       </RadioGroup>
 
       {/* QR Payment Details */}
-      {selectedPayment === 'qr' && (
+      {(selectedPayment === 'qr' || selectedPayment === 'tng') && (
         <>
           <Separator className="my-4" />
           <div className="space-y-4">
-            <h4 className="font-medium">Maklumat Pembayaran QR</h4>
+            <h4 className="font-medium">
+              {selectedPayment === 'qr' ? 'Maklumat Pembayaran QR' : 'Maklumat Pembayaran Touch n Go'}
+            </h4>
 
             <div className="flex flex-col items-center space-y-4 p-4 border rounded-lg">
-              <div className="text-sm text-muted-foreground">Scan kod QR berikut untuk membuat pembayaran:</div>
+              <div className="text-sm text-muted-foreground">
+                Scan kod QR berikut untuk membuat pembayaran:
+              </div>
               <img
-                src={adminSettings.qrCode}
+                src={selectedPayment === 'qr' ? generalQrCode || '/placeholder.svg' : tngQrCode || '/placeholder.svg'}
                 alt="Payment QR Code"
                 className="w-48 h-48 object-contain border rounded"
               />
-              <Button variant="outline" onClick={handleDownloadQR} className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => handleDownloadQR(selectedPayment === 'qr' ? generalQrCode : tngQrCode)}
+                className="flex items-center gap-2"
+                disabled={!(selectedPayment === 'qr' ? generalQrCode : tngQrCode)}
+              >
                 <Download className="h-4 w-4" />
                 Muat Turun Kod QR
               </Button>
@@ -136,15 +195,15 @@ export function PaymentSelector({ selectedPayment, onSelectPayment, onFileUpload
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">No Akaun Bank:</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm">{adminSettings.bankAccountNumber}</span>
-                  <Button variant="outline" size="sm" onClick={handleCopyAccountNumber}>
+                  <span className="text-sm">{bankAccountNumber || '-'}</span>
+                  <Button variant="outline" size="sm" onClick={handleCopyAccountNumber} disabled={!bankAccountNumber}>
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Nama Pemilik Akaun:</span>
-                <span className="text-sm">{adminSettings.accountOwnerName}</span>
+                <span className="text-sm">{accountOwnerName || '-'}</span>
               </div>
             </div>
 

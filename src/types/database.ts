@@ -102,6 +102,13 @@ export interface Studio {
   whatsapp_message?: string | null;
   brand_color_primary?: string | null;
   brand_color_secondary?: string | null;
+  // Payment methods
+  payment_studio_enabled?: boolean | null;
+  payment_qr_enabled?: boolean | null;
+  payment_bank_transfer_enabled?: boolean | null;
+  payment_fpx_enabled?: boolean | null;
+  payment_tng_enabled?: boolean | null;
+  tng_qr_code?: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

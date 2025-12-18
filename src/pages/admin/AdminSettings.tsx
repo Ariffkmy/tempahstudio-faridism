@@ -58,6 +58,7 @@ const AdminSettings = () => {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
   const [isUploadingAboutPhoto, setIsUploadingAboutPhoto] = useState(false);
+  const [isUploadingTngQr, setIsUploadingTngQr] = useState(false);
   const [portfolioPhotos, setPortfolioPhotos] = useState<string[]>([]);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
   const [deletingPhotoUrl, setDeletingPhotoUrl] = useState<string | null>(null);
@@ -133,7 +134,14 @@ const AdminSettings = () => {
     breakEndTime: '14:00',
     // Deposit settings
     depositEnabled: false,
-    depositAmount: 0
+    depositAmount: 0,
+    // Payment methods
+    paymentStudioEnabled: false,
+    paymentQrEnabled: false,
+    paymentBankTransferEnabled: false,
+    paymentFpxEnabled: false,
+    paymentTngEnabled: false,
+    tngQrCode: ''
   });
 
   const [layouts, setLayouts] = useState<StudioLayout[]>([]);
@@ -283,7 +291,14 @@ const AdminSettings = () => {
             breakStartTime: data.breakStartTime || '13:00',
             breakEndTime: data.breakEndTime || '14:00',
             depositEnabled: data.depositEnabled || false,
-            depositAmount: data.depositAmount || 0
+            depositAmount: data.depositAmount || 0,
+            // Payment methods
+            paymentStudioEnabled: data.paymentStudioEnabled || false,
+            paymentQrEnabled: data.paymentQrEnabled || false,
+            paymentBankTransferEnabled: data.paymentBankTransferEnabled || false,
+            paymentFpxEnabled: data.paymentFpxEnabled || false,
+            paymentTngEnabled: data.paymentTngEnabled || false,
+            tngQrCode: data.tngQrCode || ''
           });
           setLayouts(data.layouts);
 
@@ -3022,6 +3037,12 @@ const AdminSettings = () => {
                       >
                         Penyesuaian Borang Tempahan
                       </TabsTrigger>
+                      <TabsTrigger
+                        value="cara-pembayaran"
+                        className="text-xs px-3 py-1.5 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                      >
+                        Cara Pembayaran
+                      </TabsTrigger>
                     </TabsList>
                   </div>
 
@@ -3920,6 +3941,149 @@ const AdminSettings = () => {
                             brandColorSecondary: settings.brandColorSecondary
                           }}
                         />
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Sub-tab 7: Cara Pembayaran */}
+                  <TabsContent value="cara-pembayaran" className="space-y-6 mt-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Cara Pembayaran</CardTitle>
+                        <CardDescription>Aktifkan atau matikan kaedah pembayaran yang tersedia untuk pelanggan dalam borang tempahan</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label className="text-base text-gray-900">Pembayaran di studio</Label>
+                            <p className="text-sm text-gray-500">Pelanggan membayar secara tunai atau kad di studio</p>
+                          </div>
+                          <Switch
+                            checked={settings.paymentStudioEnabled}
+                            onCheckedChange={(checked) => handleSettingChange('paymentStudioEnabled', checked)}
+                          />
+                        </div>
+
+                        <Separator className="bg-gray-100" />
+
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label className="text-base text-gray-900">QR Code</Label>
+                            <p className="text-sm text-gray-500">Pelanggan mengimbas kod QR untuk pembayaran</p>
+                          </div>
+                          <Switch
+                            checked={settings.paymentQrEnabled}
+                            onCheckedChange={(checked) => handleSettingChange('paymentQrEnabled', checked)}
+                          />
+                        </div>
+
+                        <Separator className="bg-gray-100" />
+
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label className="text-base text-gray-900">Direct Bank Transfer</Label>
+                            <p className="text-sm text-gray-500">Pelanggan memindahkan wang terus ke akaun bank studio</p>
+                          </div>
+                          <Switch
+                            checked={settings.paymentBankTransferEnabled}
+                            onCheckedChange={(checked) => handleSettingChange('paymentBankTransferEnabled', checked)}
+                          />
+                        </div>
+
+                        <Separator className="bg-gray-100" />
+
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label className="text-base text-gray-900">FPX</Label>
+                            <p className="text-sm text-gray-500">Pembayaran melalui perbankan dalam talian (FPX)</p>
+                          </div>
+                          <Switch
+                            checked={settings.paymentFpxEnabled}
+                            onCheckedChange={(checked) => handleSettingChange('paymentFpxEnabled', checked)}
+                          />
+                        </div>
+
+                        <Separator className="bg-gray-100" />
+
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label className="text-base text-gray-900">Touch n Go</Label>
+                            <p className="text-sm text-gray-500">Pembayaran menggunakan aplikasi Touch n Go eWallet</p>
+                          </div>
+                          <Switch
+                            checked={settings.paymentTngEnabled}
+                            onCheckedChange={(checked) => handleSettingChange('paymentTngEnabled', checked)}
+                          />
+                        </div>
+
+                        {settings.paymentTngEnabled && (
+                          <div className="mt-4 pl-4 border-l-2 border-primary/20 space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="tngQrCode" className="text-sm">Touch n Go QR Code</Label>
+                              <Input
+                                id="tngQrCode"
+                                type="file"
+                                accept="image/*"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+
+                                  if (!effectiveStudioId) {
+                                    toast({
+                                      title: "Studio not ready",
+                                      description: "Please select a studio before uploading a QR code.",
+                                      variant: "destructive",
+                                    });
+                                    return;
+                                  }
+
+                                  setIsUploadingTngQr(true);
+                                  try {
+                                    const { uploadLogo } = await import('@/services/fileUploadService');
+                                    // We can reuse uploadLogo as it's generic enough for QR codes
+                                    const result = await uploadLogo(file, effectiveStudioId);
+                                    if (result.success && result.url) {
+                                      handleSettingChange('tngQrCode', result.url);
+                                      toast({ title: "QR Code uploaded", description: "TNG QR updated successfully." });
+                                    } else {
+                                      toast({
+                                        title: "Upload failed",
+                                        description: result.error || "Failed to upload QR code",
+                                        variant: "destructive",
+                                      });
+                                    }
+                                  } catch (error) {
+                                    console.error('TNG QR upload error:', error);
+                                    toast({
+                                      title: "Upload failed",
+                                      description: "Unexpected error while uploading QR code",
+                                      variant: "destructive",
+                                    });
+                                  } finally {
+                                    setIsUploadingTngQr(false);
+                                  }
+                                }}
+                              />
+                              {settings.tngQrCode && (
+                                <div className="mt-2 relative h-32 w-32 border rounded-md overflow-hidden bg-white flex items-center justify-center">
+                                  <img
+                                    src={settings.tngQrCode}
+                                    alt="Touch n Go QR Code"
+                                    className="h-full w-full object-contain"
+                                  />
+                                  {isUploadingTngQr && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-white/70">
+                                      <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              <p className="text-xs text-muted-foreground">
+                                Muat naik kod QR Touch n Go studio anda untuk dipaparkan kepada pelanggan semasa membuat tempahan.
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   </TabsContent>

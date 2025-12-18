@@ -140,7 +140,17 @@ const BrandBooking = () => {
     bookingTitleFont: 'default',
     bookingTitleSize: 'xl',
     bookingSubtitleFont: 'default',
-    bookingSubtitleSize: 'base'
+    bookingSubtitleSize: 'base',
+    // Payment methods
+    paymentStudioEnabled: false,
+    paymentQrEnabled: false,
+    paymentBankTransferEnabled: false,
+    paymentFpxEnabled: false,
+    paymentTngEnabled: false,
+    qrCode: '',
+    tngQrCode: '',
+    bankAccountNumber: '',
+    accountOwnerName: ''
   });
 
   // Debug: Component mounted
@@ -235,7 +245,17 @@ const BrandBooking = () => {
           bookingTitleFont: (studioData as any).booking_title_font || 'default',
           bookingTitleSize: (studioData as any).booking_title_size || 'xl',
           bookingSubtitleFont: (studioData as any).booking_subtitle_font || 'default',
-          bookingSubtitleSize: (studioData as any).booking_subtitle_size || 'base'
+          bookingSubtitleSize: (studioData as any).booking_subtitle_size || 'base',
+          // Payment methods
+          paymentStudioEnabled: (studioData as any).payment_studio_enabled || false,
+          paymentQrEnabled: (studioData as any).payment_qr_enabled || false,
+          paymentBankTransferEnabled: (studioData as any).payment_bank_transfer_enabled || false,
+          paymentFpxEnabled: (studioData as any).payment_fpx_enabled || false,
+          paymentTngEnabled: (studioData as any).payment_tng_enabled || false,
+          qrCode: studioData.qr_code || '',
+          tngQrCode: (studioData as any).tng_qr_code || '',
+          bankAccountNumber: studioData.bank_account_number || '',
+          accountOwnerName: studioData.account_owner_name || ''
         });
 
         // Load time interval configuration
@@ -862,6 +882,17 @@ const BrandBooking = () => {
                   selectedPayment={selectedPayment}
                   onSelectPayment={setSelectedPayment}
                   onFileUpload={handleFileUpload}
+                  enabledMethods={{
+                    studio: customization.paymentStudioEnabled,
+                    qr: customization.paymentQrEnabled,
+                    bank: customization.paymentBankTransferEnabled,
+                    fpx: customization.paymentFpxEnabled,
+                    tng: customization.paymentTngEnabled
+                  }}
+                  generalQrCode={customization.qrCode}
+                  tngQrCode={customization.tngQrCode}
+                  bankAccountNumber={customization.bankAccountNumber}
+                  accountOwnerName={customization.accountOwnerName}
                 />
               </div>
             )}

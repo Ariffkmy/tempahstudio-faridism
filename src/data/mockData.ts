@@ -174,7 +174,7 @@ export const mockBookings: Booking[] = [
     endTime: '12:00',
     duration: 3,
     totalPrice: 600,
-    status: 'confirmed',
+    status: 'done-payment',
     notes: 'Sesi fotografi yoga untuk jenama kesejahteraan',
     createdAt: '2024-12-03T09:00:00Z',
     updatedAt: '2024-12-03T09:00:00Z',
@@ -308,6 +308,12 @@ export const generateTimeSlots = (
   const startMinutes = startHour * 60 + startMinute; // e.g., 9:00 = 540 minutes
   const endMinutes = endHour * 60 + endMinute; // e.g., 18:00 = 1080 minutes
 
+  const now = new Date();
+  const isToday = date &&
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear();
+
   // Generate slots by adding interval minutes continuously
   for (let totalMinutes = startMinutes; totalMinutes < endMinutes; totalMinutes += intervalMinutes) {
     const hours = Math.floor(totalMinutes / 60);
@@ -319,9 +325,17 @@ export const generateTimeSlots = (
       continue;
     }
 
+    // Check if slot is in the past (only if date is today)
+    let isPast = false;
+    if (isToday) {
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      // Add a 5 minute buffer for convenience
+      isPast = totalMinutes < (currentMinutes + 5);
+    }
+
     slots.push({
       time,
-      available: !bookedTimes.includes(time),
+      available: !bookedTimes.includes(time) && !isPast,
     });
   }
 

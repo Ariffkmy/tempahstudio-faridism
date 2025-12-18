@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { StudioSelector } from '@/components/admin/StudioSelector';
 import { BookingTable } from '@/components/admin/BookingTable';
 import { BookingDetailModal } from '@/components/admin/BookingDetailModal';
+import { RescheduleDialog } from '@/components/admin/RescheduleDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -29,7 +30,29 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Search, Download, CalendarDays, List, Clock, User, Plus, Copy, ExternalLink, Menu, Home, BarChart3, Cog, LogOut, Building2, Send, MoreHorizontal, Eye } from 'lucide-react';
+import {
+  CalendarDays,
+  Plus,
+  Download,
+  Menu,
+  Building2,
+  LogOut,
+  LayoutDashboard,
+  Users,
+  Calendar,
+  Package,
+  BarChart3,
+  Cog,
+  Send,
+  List,
+  MoreHorizontal,
+  Eye,
+  Clock,
+  User,
+  Copy,
+  ExternalLink,
+  Home,
+} from 'lucide-react';
 import { Booking } from '@/types/booking';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveStudioId } from '@/contexts/StudioContext';
@@ -71,6 +94,10 @@ const AdminBookings = () => {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Reschedule dialog state
+  const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
+  const [bookingToReschedule, setBookingToReschedule] = useState<Booking | null>(null);
+
   // Helper functions
   const getInitials = (name: string | undefined) => {
     if (!name) return 'AD';
@@ -91,66 +118,110 @@ const AdminBookings = () => {
   };
 
   // Fetch real bookings and studio settings from database
+  const fetchData = async () => {
+    if (!effectiveStudioId) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Fetch bookings
+      const bookingsData = await getStudioBookingsWithDetails(effectiveStudioId);
+
+      // Convert database bookings to the format expected by BookingTable
+      const formattedBookings: Booking[] = bookingsData.map((b: BookingWithDetails) => ({
+        id: b.id,
+        reference: b.reference,
+        customerId: b.customer_id,
+        customerName: b.customer?.name || 'Unknown',
+        customerEmail: b.customer?.email || '',
+        customerPhone: b.customer?.phone || '',
+        companyId: b.company_id,
+        studioId: b.studio_id,
+        layoutId: b.layout_id,
+        layoutName: b.studio_layout?.name || 'Unknown',
+        date: b.date,
+        startTime: b.start_time,
+        endTime: b.end_time,
+        duration: b.duration,
+        totalPrice: Number(b.total_price),
+        status: b.status,
+        notes: b.notes || undefined,
+        internalNotes: b.internal_notes || undefined,
+        createdAt: b.created_at,
+        updatedAt: b.updated_at,
+      }));
+
+      setBookings(formattedBookings);
+
+      // Fetch studio slug for cleaner booking link
+      const { data: studioData } = await supabase
+        .from('studios')
+        .select('slug')
+        .eq('id', effectiveStudioId)
+        .single();
+
+      // Generate booking link for this studio - use slug if available
+      const baseUrl = window.location.origin;
+      const studioBookingLink = studioData?.slug
+        ? `${baseUrl}/${studioData.slug}`
+        : `${baseUrl}/book/${effectiveStudioId}`;
+      setBookingLink(studioBookingLink);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      if (!effectiveStudioId) {
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-
-      try {
-        // Fetch bookings
-        const bookingsData = await getStudioBookingsWithDetails(effectiveStudioId);
-
-        // Convert database bookings to the format expected by BookingTable
-        const formattedBookings: Booking[] = bookingsData.map((b: BookingWithDetails) => ({
-          id: b.id,
-          reference: b.reference,
-          customerId: b.customer_id,
-          customerName: b.customer?.name || 'Unknown',
-          customerEmail: b.customer?.email || '',
-          customerPhone: b.customer?.phone || '',
-          companyId: b.company_id,
-          studioId: b.studio_id,
-          layoutId: b.layout_id,
-          layoutName: b.studio_layout?.name || 'Unknown',
-          date: b.date,
-          startTime: b.start_time,
-          endTime: b.end_time,
-          duration: b.duration,
-          totalPrice: Number(b.total_price),
-          status: b.status,
-          notes: b.notes || undefined,
-          internalNotes: b.internal_notes || undefined,
-          createdAt: b.created_at,
-          updatedAt: b.updated_at,
-        }));
-
-        setBookings(formattedBookings);
-
-        // Fetch studio slug for cleaner booking link
-        const { data: studioData } = await supabase
-          .from('studios')
-          .select('slug')
-          .eq('id', effectiveStudioId)
-          .single();
-
-        // Generate booking link for this studio - use slug if available
-        const baseUrl = window.location.origin;
-        const studioBookingLink = studioData?.slug
-          ? `${baseUrl}/${studioData.slug}`
-          : `${baseUrl}/book/${effectiveStudioId}`;
-        setBookingLink(studioBookingLink);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchData();
+  }, [effectiveStudioId]);
+
+  // Refresh bookings without full loading state
+  const refreshBookings = useCallback(async () => {
+    console.log('[AdminBookings] refreshBookings started');
+    if (!effectiveStudioId) {
+      console.log('[AdminBookings] No effectiveStudioId, returning');
+      return;
+    }
+
+    try {
+      console.log('[AdminBookings] Fetching bookings data...');
+      const bookingsData = await getStudioBookingsWithDetails(effectiveStudioId);
+      console.log('[AdminBookings] Bookings data fetched:', bookingsData.length);
+
+      const formattedBookings: Booking[] = bookingsData.map((b: BookingWithDetails) => ({
+        id: b.id,
+        reference: b.reference,
+        customerId: b.customer_id,
+        customerName: b.customer?.name || 'Unknown',
+        customerEmail: b.customer?.email || '',
+        customerPhone: b.customer?.phone || '',
+        companyId: b.company_id,
+        studioId: b.studio_id,
+        layoutId: b.layout_id,
+        layoutName: b.studio_layout?.name || 'Unknown',
+        date: b.date,
+        startTime: b.start_time,
+        endTime: b.end_time,
+        duration: b.duration,
+        totalPrice: Number(b.total_price),
+        status: b.status,
+        notes: b.notes || undefined,
+        internalNotes: b.internal_notes || undefined,
+        createdAt: b.created_at,
+        updatedAt: b.updated_at,
+      }));
+
+      console.log('[AdminBookings] Setting bookings state...');
+      setBookings(formattedBookings);
+      console.log('[AdminBookings] Bookings state updated successfully');
+    } catch (error) {
+      console.error('[AdminBookings] Error refreshing bookings:', error);
+    }
   }, [effectiveStudioId]);
 
 
@@ -158,6 +229,20 @@ const AdminBookings = () => {
   const handleViewBooking = (booking: Booking) => {
     setSelectedBooking(booking);
     setIsModalOpen(true);
+  };
+
+  const handleOpenReschedule = (booking: Booking) => {
+    setBookingToReschedule(booking);
+    setRescheduleDialogOpen(true);
+  };
+
+  const handleRescheduleSuccess = () => {
+    console.log('[AdminBookings] handleRescheduleSuccess called');
+    setRescheduleDialogOpen(false);
+    setBookingToReschedule(null);
+    console.log('[AdminBookings] Calling refreshBookings');
+    refreshBookings();
+    console.log('[AdminBookings] refreshBookings called');
   };
 
   const handleExportCSV = () => {
@@ -509,7 +594,7 @@ const AdminBookings = () => {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'done-photoshoot')}>Photoshoot Selesai</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'rescheduled')}>Dijadual Semula</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenReschedule(booking)}>Dijadual Semula</DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'no-show')}>Tidak Hadir</DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'cancelled')}>Dibatalkan</DropdownMenuItem>
                           </DropdownMenuContent>
@@ -667,7 +752,7 @@ const AdminBookings = () => {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'done-photoshoot')}>Photoshoot Selesai</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'rescheduled')}>Dijadual Semula</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenReschedule(booking)}>Dijadual Semula</DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'no-show')}>Tidak Hadir</DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'cancelled')}>Dibatalkan</DropdownMenuItem>
                           </DropdownMenuContent>
@@ -785,6 +870,7 @@ const AdminBookings = () => {
                     bookings={bookings}
                     onViewBooking={handleViewBooking}
                     onStatusUpdate={handleStatusUpdate}
+                    onRescheduleSuccess={refreshBookings}
                   />
                 ) : (
                   <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed">
@@ -953,7 +1039,7 @@ const AdminBookings = () => {
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'done-photoshoot')}>Photoshoot Selesai</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'rescheduled')}>Dijadual Semula</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOpenReschedule(booking)}>Dijadual Semula</DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'no-show')}>Tidak Hadir</DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'cancelled')}>Dibatalkan</DropdownMenuItem>
                             </DropdownMenuContent>
@@ -977,6 +1063,14 @@ const AdminBookings = () => {
           booking={selectedBooking}
           open={isModalOpen}
           onOpenChange={setIsModalOpen}
+        />
+
+        {/* Reschedule Dialog */}
+        <RescheduleDialog
+          booking={bookingToReschedule}
+          open={rescheduleDialogOpen}
+          onOpenChange={setRescheduleDialogOpen}
+          onSuccess={handleRescheduleSuccess}
         />
       </div>
     );

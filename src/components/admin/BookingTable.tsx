@@ -27,11 +27,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { RescheduleDialog } from './RescheduleDialog';
 
 interface BookingTableProps {
   bookings: Booking[];
   onViewBooking: (booking: Booking) => void;
   onStatusUpdate?: (bookingId: string, newStatus: BookingStatus) => void;
+  onRescheduleSuccess?: () => void;
 }
 
 const statusVariants: Record<BookingStatus, 'success' | 'warning' | 'destructive' | 'secondary' | 'default'> = {
@@ -56,7 +58,7 @@ const statusLabels: Record<BookingStatus, string> = {
   'cancelled': 'Dibatalkan',
 };
 
-export function BookingTable({ bookings, onViewBooking, onStatusUpdate }: BookingTableProps) {
+export function BookingTable({ bookings, onViewBooking, onStatusUpdate, onRescheduleSuccess }: BookingTableProps) {
   const [referenceFilter, setReferenceFilter] = useState('');
   const [customerFilter, setCustomerFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
@@ -64,6 +66,10 @@ export function BookingTable({ bookings, onViewBooking, onStatusUpdate }: Bookin
   const [maxPriceFilter, setMaxPriceFilter] = useState('');
   const [layoutFilter, setLayoutFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  // Reschedule dialog state
+  const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
+  const [bookingToReschedule, setBookingToReschedule] = useState<Booking | null>(null);
 
   // Get unique layouts for filter
   const uniqueLayouts = Array.from(new Set(bookings.map(b => b.layoutName)));
@@ -90,6 +96,23 @@ export function BookingTable({ bookings, onViewBooking, onStatusUpdate }: Bookin
     setMaxPriceFilter('');
     setLayoutFilter('all');
     setStatusFilter('all');
+  };
+
+  const handleOpenReschedule = (booking: Booking) => {
+    setBookingToReschedule(booking);
+    setRescheduleDialogOpen(true);
+  };
+
+  const handleRescheduleSuccess = () => {
+    console.log('[BookingTable] handleRescheduleSuccess called');
+    console.log('[BookingTable] Closing dialog and resetting state');
+    setRescheduleDialogOpen(false);
+    setBookingToReschedule(null);
+    console.log('[BookingTable] Calling parent onRescheduleSuccess');
+    if (onRescheduleSuccess) {
+      onRescheduleSuccess();
+    }
+    console.log('[BookingTable] handleRescheduleSuccess completed');
   };
 
   const hasActiveFilters = referenceFilter || customerFilter || dateFilter || minPriceFilter || maxPriceFilter || layoutFilter !== 'all' || statusFilter !== 'all';
@@ -259,7 +282,7 @@ export function BookingTable({ bookings, onViewBooking, onStatusUpdate }: Bookin
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => onStatusUpdate?.(booking.id, 'done-photoshoot')}>Photoshoot Selesai</DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onStatusUpdate?.(booking.id, 'rescheduled')}>Dijadual Semula</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOpenReschedule(booking)}>Dijadual Semula</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive" onClick={() => onStatusUpdate?.(booking.id, 'no-show')}>Tidak Hadir</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive" onClick={() => onStatusUpdate?.(booking.id, 'cancelled')}>Dibatalkan</DropdownMenuItem>
                       </DropdownMenuContent>
@@ -278,6 +301,14 @@ export function BookingTable({ bookings, onViewBooking, onStatusUpdate }: Bookin
           Menunjukkan {filteredBookings.length} daripada {bookings.length} tempahan
         </p>
       )}
+
+      {/* Reschedule Dialog */}
+      <RescheduleDialog
+        booking={bookingToReschedule}
+        open={rescheduleDialogOpen}
+        onOpenChange={setRescheduleDialogOpen}
+        onSuccess={handleRescheduleSuccess}
+      />
     </div>
   );
 }

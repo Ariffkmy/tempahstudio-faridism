@@ -18,7 +18,7 @@ export function TimeSlots({ slots, selectedTime, onSelectTime }: TimeSlotsProps)
 
   return (
     <Card variant="outline" className="p-4">
-      <h3 className="font-semibold mb-4">Select Start Time</h3>
+      <h3 className="font-semibold mb-4">Pilih Slot Masa</h3>
 
       <div className="grid grid-cols-3 gap-2">
         {slots.map((slot) => (

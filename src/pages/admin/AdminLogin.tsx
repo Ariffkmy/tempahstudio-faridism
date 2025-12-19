@@ -283,12 +283,7 @@ const AdminLogin = () => {
                 <p className="text-sm text-muted-foreground">
                   Belum mempunyai akaun?
                 </p>
-                <Link
-                  to="/admin/register"
-                  className="text-sm text-primary hover:underline font-medium"
-                >
-                  Daftar sebagai admin
-                </Link>
+
               </div>
             )}
           </CardContent>

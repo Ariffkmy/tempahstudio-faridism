@@ -17,6 +17,7 @@ import {
   Users,
   Mail,
   Award,
+  KanbanSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,8 +29,9 @@ import { supabase } from '@/lib/supabase';
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Tempahan', href: '/admin/bookings', icon: Calendar },
+  { name: 'Task Tracker', href: '/admin/task-tracker', icon: KanbanSquare },
+  { name: 'WhatsApp Blaster', href: '/admin/whatsapp', icon: Send },
   { name: 'Pembayaran', href: '/admin/customers', icon: Users },
-  { name: 'Whatsapp Blaster', href: '/admin/whatsapp-blaster', icon: Send },
   { name: 'Laporan', href: '/admin/reports', icon: FileText },
   { name: 'Package Payments', href: '/admin/package-payments', icon: CreditCard, superAdminOnly: true },
   { name: 'Tetapan', href: '/admin/settings', icon: Settings },

@@ -29,7 +29,7 @@ import { supabase } from '@/lib/supabase';
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Tempahan', href: '/admin/bookings', icon: Calendar },
-  { name: 'Task Tracker', href: '/admin/task-tracker', icon: KanbanSquare },
+  { name: 'Status Tugasan', href: '/admin/task-tracker', icon: KanbanSquare },
   { name: 'WhatsApp Blaster', href: '/admin/whatsapp', icon: Send },
   { name: 'Pembayaran', href: '/admin/customers', icon: Users },
   { name: 'Laporan', href: '/admin/reports', icon: FileText },

@@ -19,6 +19,7 @@ import VerifyEmail from "./pages/admin/VerifyEmail";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminBookings from "./pages/admin/AdminBookings";
 import AdminCustomers from "./pages/admin/AdminCustomers";
+import AdminTaskTracker from "./pages/admin/AdminTaskTracker";
 import AdminWhatsappBlaster from "./pages/admin/AdminWhatsappBlaster";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminSettings from "./pages/admin/AdminSettings";
@@ -90,7 +91,15 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="/admin/whatsapp-blaster"
+                  path="/admin/task-tracker"
+                  element={
+                    <ProtectedRoute>
+                      <AdminTaskTracker />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/whatsapp"
                   element={
                     <ProtectedRoute>
                       <AdminWhatsappBlaster />

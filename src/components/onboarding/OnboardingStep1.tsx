@@ -9,19 +9,25 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 
 interface OnboardingStep1Props {
     onComplete: () => void;
+    initialData?: {
+        fullName?: string;
+        email?: string;
+        phone?: string;
+        studioName?: string;
+    } | null;
 }
 
-export default function OnboardingStep1({ onComplete }: OnboardingStep1Props) {
+export default function OnboardingStep1({ onComplete, initialData }: OnboardingStep1Props) {
     const { toast } = useToast();
     const { register } = useAuth();
 
-    // Form state
-    const [fullName, setFullName] = useState('');
-    const [email, setEmail] = useState('');
-    const [phone, setPhone] = useState('');
+    // Form state - pre-fill with payment data if available
+    const [fullName, setFullName] = useState(initialData?.fullName || '');
+    const [email, setEmail] = useState(initialData?.email || '');
+    const [phone, setPhone] = useState(initialData?.phone || '');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [studioName, setStudioName] = useState('');
+    const [studioName, setStudioName] = useState(initialData?.studioName || '');
     const [studioLocation, setStudioLocation] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);

@@ -36,6 +36,7 @@ export interface UpdatePackagePaymentInput {
     notes?: string;
     verified_by?: string;
     verified_at?: string;
+    package_name?: string;
 }
 
 /**

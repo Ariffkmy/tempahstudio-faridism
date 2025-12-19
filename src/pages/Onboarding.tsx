@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -17,11 +17,20 @@ import OnboardingStep4 from '@/components/onboarding/OnboardingStep4';
 
 export default function Onboarding() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { toast } = useToast();
     const { user } = useAuth();
     const [currentStep, setCurrentStep] = useState(1);
     const [completedSteps, setCompletedSteps] = useState<number[]>([]);
     const [isInitialized, setIsInitialized] = useState(false);
+
+    // Get payment data from navigation state
+    const paymentData = location.state as {
+        fullName?: string;
+        email?: string;
+        phone?: string;
+        studioName?: string;
+    } | null;
 
     const steps = [
         { number: 1, title: 'Daftar akaun', canSkip: false },
@@ -235,7 +244,7 @@ export default function Onboarding() {
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    {currentStep === 1 && <OnboardingStep1 onComplete={() => handleStepComplete(1)} />}
+                                    {currentStep === 1 && <OnboardingStep1 onComplete={() => handleStepComplete(1)} initialData={paymentData} />}
                                     {currentStep === 2 && <OnboardingStep2 onComplete={() => handleStepComplete(2)} />}
                                     {currentStep === 3 && <OnboardingStep3 onComplete={() => handleStepComplete(3)} />}
                                     {currentStep === 4 && <OnboardingStep4 onComplete={() => handleStepComplete(4)} />}

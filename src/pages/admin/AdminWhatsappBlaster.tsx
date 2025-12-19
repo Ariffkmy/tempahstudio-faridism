@@ -172,11 +172,11 @@ const AdminWhatsappBlaster = () => {
       <AdminSidebar />
 
       <main className={cn("transition-all duration-300", isCollapsed ? "pl-16" : "pl-64")}>
-        <div className="p-6 space-y-6">
-          <div className="flex items-center justify-between">
+        <div className="p-8">
+          <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold">WhatsApp Blaster</h1>
-              <p className="text-muted-foreground mt-1">
+              <h1 className="text-2xl font-bold">WhatsApp Blaster</h1>
+              <p className="text-muted-foreground">
                 Send Google Drive links to customers with ready-for-delivery bookings
               </p>
             </div>

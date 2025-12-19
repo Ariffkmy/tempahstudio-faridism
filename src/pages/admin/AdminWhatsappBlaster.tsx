@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffectiveStudioId } from '@/hooks/useEffectiveStudioId';
+import { useEffectiveStudioId } from '@/contexts/StudioContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,12 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { Send, Loader2, Lock, ExternalLink } from 'lucide-react';
-import { getBookingsByStudio } from '@/services/bookingService';
+import { getStudioBookingsWithDetails } from '@/services/bookingService';
 import { sendWhatsAppMessage } from '@/services/twilioService';
 import { usePackageAccess } from '@/hooks/usePackageAccess';
 import { FEATURES } from '@/config/packageFeatures';
 import { UpgradePrompt } from '@/components/access/UpgradePrompt';
-import type { Booking } from '@/types/database';
 
 /**
  * WhatsApp Blaster - Simplified page for sending WhatsApp messages to ready-for-delivery bookings
@@ -31,7 +30,7 @@ const AdminWhatsappBlaster = () => {
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const requiredTier = getRequiredTier(FEATURES.WHATSAPP_BLAST);
 
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [blasting, setBlasting] = useState(false);
   const [bookingLinks, setBookingLinks] = useState<Record<string, string>>({});
@@ -43,14 +42,25 @@ const AdminWhatsappBlaster = () => {
 
       try {
         setLoading(true);
-        const result = await getBookingsByStudio(effectiveStudioId);
+        const result = await getStudioBookingsWithDetails(effectiveStudioId);
 
-        if (result.success && result.bookings) {
+        if (result) {
           // Filter only ready-for-delivery bookings
-          const readyBookings = result.bookings.filter(
-            (booking) => booking.status === 'ready-for-delivery'
+          const readyBookings = result.filter(
+            (booking: any) => booking.status === 'ready-for-delivery'
           );
-          setBookings(readyBookings);
+
+          // Map to expected format
+          const mappedBookings = readyBookings.map((b: any) => ({
+            id: b.id,
+            reference_number: b.reference,
+            name: b.customer?.name || 'Unknown',
+            phone: b.customer?.phone || '',
+            package_name: b.studio_layout?.name || '',
+            status: b.status,
+          }));
+
+          setBookings(mappedBookings);
         }
       } catch (error) {
         console.error('Error fetching bookings:', error);

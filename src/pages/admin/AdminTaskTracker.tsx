@@ -408,7 +408,7 @@ const AdminTaskTracker = () => {
           <div className="mb-6">
             <div className="flex justify-between items-start">
               <div>
-                <h1 className="text-xl font-bold">Whatsapp Blaster</h1>
+                <h1 className="text-xl font-bold">Status tugasan</h1>
                 <p className="text-muted-foreground text-sm">Urus proses kerja dan hantar mesej WhatsApp</p>
               </div>
               <Button
@@ -731,17 +731,10 @@ const AdminTaskTracker = () => {
             <div className="mb-8">
               <div className="flex justify-between items-start">
                 <div>
-                  <h1 className="text-2xl font-bold">Whatsapp Blaster</h1>
+                  <h1 className="text-2xl font-bold">Status tugasan</h1>
                   <p className="text-muted-foreground">Urus proses kerja dan hantar mesej WhatsApp</p>
                 </div>
-                <Button
-                  onClick={handleTestSend}
-                  variant="outline"
-                  className="text-sm"
-                >
-                  <Send className="w-4 h-4 mr-2" />
-                  Test WhatsApp API
-                </Button>
+
               </div>
             </div>
 
@@ -978,20 +971,7 @@ const AdminTaskTracker = () => {
                   })}
                 </div>
 
-                {/* Footer with Blast WhatsApp Button */}
-                <div className="mt-4 pt-4 border-t">
-                  <Button
-                    onClick={handleWhatsAppBlast}
-                    className="w-full"
-                    size="sm"
-                    disabled={!canUseWhatsAppBlast}
-                    variant={canUseWhatsAppBlast ? 'default' : 'outline'}
-                  >
-                    <Send className="w-4 h-4 mr-2" />
-                    Blast WhatsApp
-                    {!canUseWhatsAppBlast && <Lock className="w-4 h-4 ml-2" />}
-                  </Button>
-                </div>
+
               </div>
 
               {/* Done Delivery Column */}

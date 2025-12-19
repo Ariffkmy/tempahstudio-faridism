@@ -159,14 +159,6 @@ const AdminWhatsappBlaster = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <AdminSidebar />
@@ -181,7 +173,11 @@ const AdminWhatsappBlaster = () => {
               </p>
             </div>
             <Badge variant="outline" className="text-lg px-4 py-2">
-              {bookings.length} Ready for Delivery
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                `${bookings.length} Ready for Delivery`
+              )}
             </Badge>
           </div>
 
@@ -193,7 +189,12 @@ const AdminWhatsappBlaster = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {bookings.length === 0 ? (
+              {loading ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin" />
+                  <p>Loading bookings...</p>
+                </div>
+              ) : bookings.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <Send className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No bookings ready for delivery</p>

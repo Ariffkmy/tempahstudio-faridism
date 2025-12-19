@@ -147,128 +147,123 @@ const AdminWhatsappBlaster = () => {
 
   if (loading) {
     return (
-      <div className=\"flex items-center justify-center h-screen\">
-        < Loader2 className =\"h-8 w-8 animate-spin text-muted-foreground\" />
-      </div >
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
     );
   }
 
-return (
-  <div className=\"p-6 space-y-6\">
-    < div className =\"flex items-center justify-between\">
-      < div >
-      <h1 className=\"text-3xl font-bold\">WhatsApp Blaster</h1>
-        < p className =\"text-muted-foreground mt-1\">
-            Send Google Drive links to customers with ready -for-delivery bookings
-          </p >
-        </div >
-  <Badge variant=\"outline\" className=\"text-lg px-4 py-2\">
-{ bookings.length } Ready for Delivery
-        </Badge >
-      </div >
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">WhatsApp Blaster</h1>
+          <p className="text-muted-foreground mt-1">
+            Send Google Drive links to customers with ready-for-delivery bookings
+          </p>
+        </div>
+        <Badge variant="outline" className="text-lg px-4 py-2">
+          {bookings.length} Ready for Delivery
+        </Badge>
+      </div>
 
-  <Card>
-    <CardHeader>
-      <CardTitle>Ready for Delivery Bookings</CardTitle>
-      <CardDescription>
-        Add Google Drive links and blast WhatsApp messages to customers
-      </CardDescription>
-    </CardHeader>
-    <CardContent>
-      {bookings.length === 0 ? (
-        <div className=\"text-center py-12 text-muted-foreground\">
-      <Send className=\"h-12 w-12 mx-auto mb-4 opacity-50\" />
-      <p>No bookings ready for delivery</p>
-    </div>
-    ) : (
-    <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Reference</TableHead>
-            <TableHead>Customer Name</TableHead>
-            <TableHead>Phone</TableHead>
-            <TableHead>Package</TableHead>
-            <TableHead>Google Drive Link</TableHead>
-            <TableHead className=\"text-center\">Status</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {bookings.map((booking) => (
+      <Card>
+        <CardHeader>
+          <CardTitle>Ready for Delivery Bookings</CardTitle>
+          <CardDescription>
+            Add Google Drive links and blast WhatsApp messages to customers
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {bookings.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Send className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No bookings ready for delivery</p>
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Reference</TableHead>
+                    <TableHead>Customer Name</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Package</TableHead>
+                    <TableHead>Google Drive Link</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {bookings.map((booking) => (
                     <TableRow key={booking.id}>
-                      <TableCell className=\"font-medium\">
+                      <TableCell className="font-medium">
                         {booking.reference_number}
                       </TableCell>
                       <TableCell>{booking.name}</TableCell>
                       <TableCell>{booking.phone}</TableCell>
                       <TableCell>{booking.package_name || '-'}</TableCell>
                       <TableCell>
-                        <div className=\"flex items-center gap-2\">
+                        <div className="flex items-center gap-2">
                           <Input
-                            placeholder=\"https://drive.google.com/...\"
+                            placeholder="https://drive.google.com/..."
                             value={bookingLinks[booking.id] || ''}
                             onChange={(e) => handleLinkChange(booking.id, e.target.value)}
-                            className=\"max-w-md\"
+                            className="max-w-md"
                           />
                           {bookingLinks[booking.id] && (
                             <a
                               href={bookingLinks[booking.id]}
-                              target=\"_blank\"
-                              rel=\"noopener noreferrer\"
-                              className=\"text-primary hover:text-primary/80\"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:text-primary/80"
                             >
-                              <ExternalLink className=\"h-4 w-4\" />
+                              <ExternalLink className="h-4 w-4" />
                             </a>
-        )}
-      </div>
-    </TableCell>
-    <TableCell className=\"text-center\">
-    {bookingLinks[booking.id] ? (
-      <Badge variant=\"default\" className=\"bg-green-500\">
-    Ready
-  </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {bookingLinks[booking.id] ? (
+                          <Badge variant="default" className="bg-green-500">
+                            Ready
+                          </Badge>
                         ) : (
-  <Badge variant=\"secondary\">Pending</Badge>
+                          <Badge variant="secondary">Pending</Badge>
                         )}
-                      </TableCell >
-                    </TableRow >
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </TableBody >
-              </Table >
+                </TableBody>
+              </Table>
 
-  <div className=\"mt-6 flex justify-end\">
-    < Button
-onClick = { handleWhatsAppBlast }
-disabled = { blasting || !canBlast}
-size =\"lg\"
-className =\"gap-2\"
-  >
-  {!canBlast && <Lock className=\"h-5 w-5\" />}
-{
-  blasting && <Loader2 className=\"h-5 w-5 animate-spin\" />}
-  {
-    !blasting && canBlast && <Send className=\"h-5 w-5\" />}
-    { blasting ? 'Sending...' : 'Blast WhatsApp' }
-                </Button >
-              </div >
+              <div className="mt-6 flex justify-end">
+                <Button
+                  onClick={handleWhatsAppBlast}
+                  disabled={blasting || !canBlast}
+                  size="lg"
+                  className="gap-2"
+                >
+                  {!canBlast && <Lock className="h-5 w-5" />}
+                  {blasting && <Loader2 className="h-5 w-5 animate-spin" />}
+                  {!blasting && canBlast && <Send className="h-5 w-5" />}
+                  {blasting ? 'Sending...' : 'Blast WhatsApp'}
+                </Button>
+              </div>
             </>
-          )
-  }
-        </CardContent >
-      </Card >
+          )}
+        </CardContent>
+      </Card>
 
-    {/* Upgrade Prompt */ }
-  {
-    requiredTier && (
-      <UpgradePrompt
-        open={showUpgradePrompt}
-        onClose={() => setShowUpgradePrompt(false)}
-        requiredTier={requiredTier}
-        feature={FEATURES.WHATSAPP_BLAST}
-      />
-    )
-  }
-    </div >
+      {/* Upgrade Prompt */}
+      {requiredTier && (
+        <UpgradePrompt
+          open={showUpgradePrompt}
+          onClose={() => setShowUpgradePrompt(false)}
+          requiredTier={requiredTier}
+          feature={FEATURES.WHATSAPP_BLAST}
+        />
+      )}
+    </div>
   );
 };
 

@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, X, Upload, MapPin, Phone, Mail, CreditCard, User, Link as LinkIcon, Copy, Loader2, Menu, Home, CalendarDays, BarChart3, Cog, LogOut, Building2, ExternalLink, Palette, Image as ImageIcon, Users as UsersIcon, Trash, Trash2, MessageCircle, Paintbrush, Layout, Edit, Save, Clock, CheckCircle2, AlertCircle, Check, Lock } from 'lucide-react';
-import { loadStudioSettings, saveStudioSettings, updateStudioLayouts, saveGoogleCredentials, initiateGoogleAuth, exchangeGoogleCode, loadStudioPortfolioPhotos, deleteStudioPortfolioPhoto } from '@/services/studioSettings';
+import { loadStudioSettings, saveStudioSettings, updateStudioLayouts, initiateGoogleAuth, exchangeGoogleCode, loadStudioPortfolioPhotos, deleteStudioPortfolioPhoto } from '@/services/studioSettings';
 import { supabase } from '@/lib/supabase';
 import { uploadLogo, uploadTermsPdf } from '@/services/fileUploadService';
 import BookingFormPreview, { PreviewSettings } from '@/components/booking/preview/BookingFormPreview';
@@ -756,26 +756,7 @@ const AdminSettings = () => {
 
       const handleOAuthCallback = async () => {
         try {
-          // Get client credentials
-          const clientId = settings.googleClientId || sessionStorage.getItem('googleClientId');
-          const clientSecret = settings.googleClientSecret || sessionStorage.getItem('googleClientSecret');
-
-          if (!clientId || !clientSecret) {
-            toast({
-              title: "Configuration Error",
-              description: "Client credentials not found. Please refresh and try again.",
-              variant: "destructive",
-            });
-            return;
-          }
-
-          // Exchange code for tokens
-          toast({
-            title: "Processing...",
-            description: "Exchanging authorization code for tokens...",
-          });
-
-          const result = await exchangeGoogleCode(code, clientId, clientSecret);
+          const result = await exchangeGoogleCode(code);
 
           if (result.success) {
             toast({
@@ -783,17 +764,11 @@ const AdminSettings = () => {
               description: "Google Calendar authorization completed. Integration is now active.",
             });
 
-            // Clear session storage
-            sessionStorage.removeItem('googleClientId');
-            sessionStorage.removeItem('googleClientSecret');
-
             // Reload settings to reflect new state
             const data = await loadStudioSettings();
             if (data) {
               setSettings(prev => ({
                 ...prev,
-                googleClientId: data.googleClientId,
-                googleClientSecret: data.googleClientSecret,
                 googleClientIdConfigured: data.googleClientIdConfigured,
                 googleRefreshTokenConfigured: data.googleRefreshTokenConfigured
               }));
@@ -3641,14 +3616,13 @@ const AdminSettings = () => {
                                       description: "Redirecting to Google for authorization...",
                                     });
 
-                                    const { authUrl } = await initiateGoogleAuth(settings.googleClientId);
-                                    sessionStorage.setItem('googleClientId', settings.googleClientId);
-                                    sessionStorage.setItem('googleClientSecret', settings.googleClientSecret);
+                                    // Fetch global credentials and initiate OAuth
+                                    const { authUrl } = await initiateGoogleAuth();
                                     window.location.href = authUrl;
                                   } catch (error) {
                                     toast({
                                       title: "Error",
-                                      description: "Failed to initiate authorization",
+                                      description: error instanceof Error ? error.message : "Failed to initiate authorization",
                                       variant: "destructive",
                                     });
                                   }

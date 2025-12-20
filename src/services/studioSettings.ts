@@ -608,59 +608,26 @@ export async function updateStudioLayouts(layouts: StudioLayout[], studioId?: st
   }
 }
 
+
+
 // =============================================
 // GOOGLE CALENDAR OAUTH
 // =============================================
 
 /**
- * Save Google OAuth credentials for a studio
- */
-export async function saveGoogleCredentials(
-  clientId: string,
-  clientSecret: string
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
-      return { success: false, error: 'No authenticated user' };
-    }
-
-    const { data: adminUser, error: adminError } = await supabase
-      .from('admin_users')
-      .select('studio_id')
-      .eq('auth_user_id', session.user.id)
-      .eq('is_active', true)
-      .single();
-
-    if (adminError || !adminUser) {
-      return { success: false, error: 'Failed to find admin studio' };
-    }
-
-    const { error } = await supabase
-      .from('studios')
-      .update({
-        google_client_id: clientId,
-        google_client_secret: clientSecret,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', adminUser.studio_id);
-
-    if (error) {
-      console.error('Failed to save Google credentials:', error);
-      return { success: false, error: 'Failed to save credentials' };
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error('Error saving Google credentials:', error);
-    return { success: false, error: 'Unexpected error occurred' };
-  }
-}
-
-/**
  * Initiate Google OAuth authorization flow
+ * Fetches global OAuth credentials from google_oauth_settings table
  */
-export async function initiateGoogleAuth(clientId: string): Promise<{ authUrl: string; state: string }> {
+export async function initiateGoogleAuth(): Promise<{ authUrl: string; state: string }> {
+  // Fetch global client ID from google_oauth_settings
+  const { getGoogleOAuthSettings } = await import('@/services/googleOAuthService');
+  const result = await getGoogleOAuthSettings();
+
+  if (!result.success || !result.settings?.client_id) {
+    throw new Error('Google OAuth not configured. Please contact super admin.');
+  }
+
+  const clientId = result.settings.client_id;
   const redirectUri = `${window.location.origin}/admin/settings`;
   const state = crypto.randomUUID();
 
@@ -681,17 +648,25 @@ export async function initiateGoogleAuth(clientId: string): Promise<{ authUrl: s
 
 /**
  * Exchange authorization code for tokens and save them
+ * Fetches global OAuth credentials from google_oauth_settings table
  */
-export async function exchangeGoogleCode(
-  code: string,
-  clientId: string,
-  clientSecret: string
-): Promise<{ success: boolean; error?: string }> {
+export async function exchangeGoogleCode(code: string): Promise<{ success: boolean; error?: string }> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
       return { success: false, error: 'No authenticated user' };
     }
+
+    // Fetch global credentials from google_oauth_settings
+    const { getGoogleOAuthSettings } = await import('@/services/googleOAuthService');
+    const result = await getGoogleOAuthSettings();
+
+    if (!result.success || !result.settings) {
+      return { success: false, error: 'Google OAuth not configured. Please contact super admin.' };
+    }
+
+    const clientId = result.settings.client_id;
+    const clientSecret = result.settings.client_secret;
 
     // Exchange code for tokens directly (since Edge Functions aren't deployed)
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {

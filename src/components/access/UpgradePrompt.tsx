@@ -46,38 +46,38 @@ export function UpgradePrompt({ requiredTier, feature, open, onClose }: UpgradeP
                         </div>
                     </div>
                     <DialogTitle className="text-center text-2xl">
-                        Upgrade to {tierDisplayName}
+                        Naik Taraf ke {tierDisplayName}
                     </DialogTitle>
                     <DialogDescription className="text-center pt-2">
-                        <span className="font-semibold">{featureDisplayName}</span> is available on the{' '}
+                        Penyesuaian borang tempahan tersedia pada pakej{' '}
                         <Badge
                             variant="outline"
                             className={`bg-gradient-to-r ${getTierColor(requiredTier)} text-white border-none`}
                         >
                             {tierDisplayName}
                         </Badge>{' '}
-                        plan and above.
+                        dan ke atas.
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="bg-muted/50 rounded-lg p-4 my-4">
                     <p className="text-sm text-muted-foreground text-center">
-                        Unlock this feature and more by upgrading your package.
+                        Buka ciri ini dan banyak lagi dengan menaik taraf pakej anda.
                     </p>
                 </div>
 
                 <DialogFooter className="flex-col gap-2 sm:flex-row">
                     <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
-                        Maybe Later
+                        Mungkin Kemudian
                     </Button>
                     <Button
                         className={`w-full sm:w-auto bg-gradient-to-r ${getTierColor(requiredTier)} text-white hover:opacity-90`}
                         onClick={() => {
                             // TODO: Navigate to package upgrade page or contact sales
-                            window.open('mailto:support@rayastudio.com?subject=Package Upgrade Request', '_blank');
+                            window.open('mailto:support@rayastudio.com?subject=Permintaan Naik Taraf Pakej', '_blank');
                         }}
                     >
-                        Contact Sales
+                        Hubungi Jualan
                     </Button>
                 </DialogFooter>
             </DialogContent>

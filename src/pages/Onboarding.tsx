@@ -14,6 +14,7 @@ import OnboardingStep1 from '@/components/onboarding/OnboardingStep1';
 import OnboardingStep2 from '@/components/onboarding/OnboardingStep2';
 import OnboardingStep3 from '@/components/onboarding/OnboardingStep3';
 import OnboardingStep4 from '@/components/onboarding/OnboardingStep4';
+import OnboardingStep5 from '@/components/onboarding/OnboardingStep5';
 
 export default function Onboarding() {
     const navigate = useNavigate();
@@ -22,6 +23,7 @@ export default function Onboarding() {
     const { user } = useAuth();
     const [currentStep, setCurrentStep] = useState(1);
     const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+    const [furthestStepReached, setFurthestStepReached] = useState(1); // Track furthest step reached
     const [isInitialized, setIsInitialized] = useState(false);
 
     // Get payment data from navigation state
@@ -37,12 +39,17 @@ export default function Onboarding() {
         { number: 2, title: 'Maklumat studio', canSkip: true },
         { number: 3, title: 'Pakej', canSkip: true },
         { number: 4, title: 'Waktu operasi', canSkip: true },
+        { number: 5, title: 'Pengesahan emel', canSkip: false },
     ];
 
     // Check if user has already completed onboarding and set initial step
     useEffect(() => {
         const checkOnboardingStatus = async () => {
             console.log('🔍 Onboarding: Checking if user already completed onboarding...');
+
+            // Check for step query parameter
+            const searchParams = new URLSearchParams(location.search);
+            const stepParam = searchParams.get('step');
 
             const { data: { user: authUser } } = await supabase.auth.getUser();
 
@@ -66,11 +73,20 @@ export default function Onboarding() {
                     navigate('/admin');
                 } else {
                     // User is authenticated but hasn't completed onboarding
-                    // This means Step 1 (registration) is done, start at Step 2
-                    console.log('✨ Onboarding: User registered but onboarding not complete');
-                    console.log('📍 Onboarding: Starting at Step 2 (Step 1 already completed)');
-                    setCurrentStep(2);
-                    setCompletedSteps([1]); // Mark Step 1 as completed
+                    if (stepParam && parseInt(stepParam) === 5) {
+                        // Direct navigation to Step 5 (email verification)
+                        console.log('📧 Onboarding: Navigating to Step 5 (email verification)');
+                        setCurrentStep(5);
+                        setCompletedSteps([1, 2, 3, 4]); // Mark previous steps as completed
+                        setFurthestStepReached(5);
+                    } else {
+                        // This means Step 1 (registration) is done, start at Step 2
+                        console.log('✨ Onboarding: User registered but onboarding not complete');
+                        console.log('📍 Onboarding: Starting at Step 2 (Step 1 already completed)');
+                        setCurrentStep(2);
+                        setCompletedSteps([1]); // Mark Step 1 as completed
+                        setFurthestStepReached(2);
+                    }
                     setIsInitialized(true);
                 }
             } else {
@@ -82,7 +98,32 @@ export default function Onboarding() {
         };
 
         checkOnboardingStatus();
-    }, [navigate]);
+    }, [navigate, location.search]);
+
+    // Ensure users with created accounts can always navigate to at least Step 2
+    useEffect(() => {
+        const ensureMinimumAccess = async () => {
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+
+            if (authUser) {
+                // Check if admin_users record exists (account created)
+                const { data: userData } = await supabase
+                    .from('admin_users')
+                    .select('id')
+                    .eq('auth_user_id', authUser.id)
+                    .single();
+
+                if (userData && furthestStepReached < 2) {
+                    console.log('🔓 Onboarding: Account exists, enabling access to Step 2');
+                    setFurthestStepReached(2);
+                }
+            }
+        };
+
+        if (isInitialized) {
+            ensureMinimumAccess();
+        }
+    }, [isInitialized, furthestStepReached]);
 
     const markOnboardingComplete = async () => {
         if (!user?.id) return;
@@ -120,27 +161,31 @@ export default function Onboarding() {
             setCompletedSteps([...completedSteps, stepNumber]);
         }
 
-        if (stepNumber < 4) {
-            setCurrentStep(stepNumber + 1);
+        if (stepNumber < 5) {
+            const nextStep = stepNumber + 1;
+            setCurrentStep(nextStep);
+            // Update furthest step reached
+            setFurthestStepReached(prev => Math.max(prev, nextStep));
         } else {
-            // All steps completed, mark onboarding as complete
-            await markOnboardingComplete();
-
+            // All steps completed (Step 5 marks onboarding as complete internally)
             toast({
                 title: 'Tahniah!',
-                description: 'Proses onboarding telah selesai. Selamat datang ke Tempah Studio!',
+                description: 'Sila sahkan emel anda untuk mengakses dashboard.',
             });
-            navigate('/admin');
+            // User stays on Step 5 until they verify email
         }
     };
 
     const handleSkip = async () => {
-        if (currentStep < 4) {
+        if (currentStep < 5) {
             setCurrentStep(currentStep + 1);
         } else {
-            // Skipping last step, mark onboarding as complete
-            await markOnboardingComplete();
-            navigate('/admin');
+            // Cannot skip Step 5 (email verification)
+            toast({
+                title: 'Pengesahan Emel Diperlukan',
+                description: 'Sila sahkan emel anda untuk meneruskan.',
+                variant: 'destructive',
+            });
         }
     };
 
@@ -188,36 +233,61 @@ export default function Onboarding() {
                     </div>
 
                     {/* Step Indicators */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                        {steps.map((step) => (
-                            <div
-                                key={step.number}
-                                className={`relative flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${currentStep === step.number
-                                    ? 'border-primary bg-primary/5 shadow-md'
-                                    : completedSteps.includes(step.number)
-                                        ? 'border-green-500 bg-green-50 dark:bg-green-950/20'
-                                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
-                                    }`}
-                            >
-                                <div
-                                    className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-semibold ${completedSteps.includes(step.number)
-                                        ? 'bg-green-500 text-white'
-                                        : currentStep === step.number
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                                        }`}
-                                >
-                                    {completedSteps.includes(step.number) ? (
-                                        <CheckCircle2 className="h-5 w-5" />
-                                    ) : (
-                                        step.number
-                                    )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-medium truncate">{step.title}</p>
-                                </div>
-                            </div>
-                        ))}
+                    <div className="mb-8">
+                        <div className="grid grid-cols-5 gap-2">
+                            {steps.map((step) => {
+                                // Allow clicking on any step up to the furthest reached step
+                                const isClickable = step.number <= furthestStepReached;
+
+                                // Debug logging
+                                if (step.number === 2) {
+                                    console.log('Step 2 Debug:', {
+                                        stepNumber: step.number,
+                                        furthestStepReached,
+                                        isClickable,
+                                        currentStep,
+                                        completedSteps
+                                    });
+                                }
+
+                                return (
+                                    <div
+                                        key={step.number}
+                                        onClick={() => {
+                                            // Allow navigation to completed steps or current step
+                                            if (isClickable) {
+                                                setCurrentStep(step.number);
+                                            }
+                                        }}
+                                        className={`relative flex items-center gap-2 p-3 rounded-lg border-2 transition-all ${isClickable ? 'cursor-pointer hover:shadow-lg' : 'cursor-not-allowed opacity-60'
+                                            } ${currentStep === step.number
+                                                ? 'border-primary bg-primary/5 shadow-md'
+                                                : completedSteps.includes(step.number)
+                                                    ? 'border-green-500 bg-green-50 dark:bg-green-950/20'
+                                                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+                                            }`}
+                                    >
+                                        <div
+                                            className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${completedSteps.includes(step.number)
+                                                ? 'bg-green-500 text-white'
+                                                : currentStep === step.number
+                                                    ? 'bg-primary text-primary-foreground'
+                                                    : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                                                }`}
+                                        >
+                                            {completedSteps.includes(step.number) ? (
+                                                <CheckCircle2 className="h-4 w-4" />
+                                            ) : (
+                                                step.number
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-[10px] font-medium truncate leading-tight">{step.title}</p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
 
@@ -241,6 +311,7 @@ export default function Onboarding() {
                                         {currentStep === 2 && 'Masukkan maklumat asas tentang studio anda'}
                                         {currentStep === 3 && 'Tetapkan pakej-pakej yang ditawarkan'}
                                         {currentStep === 4 && 'Tetapkan waktu operasi studio anda'}
+                                        {currentStep === 5 && 'Sahkan emel anda untuk mengaktifkan akaun'}
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -248,6 +319,7 @@ export default function Onboarding() {
                                     {currentStep === 2 && <OnboardingStep2 onComplete={() => handleStepComplete(2)} />}
                                     {currentStep === 3 && <OnboardingStep3 onComplete={() => handleStepComplete(3)} />}
                                     {currentStep === 4 && <OnboardingStep4 onComplete={() => handleStepComplete(4)} />}
+                                    {currentStep === 5 && <OnboardingStep5 onComplete={() => handleStepComplete(5)} />}
 
                                     {/* Navigation Buttons */}
                                     <div className="flex justify-between mt-8 pt-6 border-t">

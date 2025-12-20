@@ -246,25 +246,33 @@ export async function loginAdmin(data: AdminLoginData): Promise<{
         studio: null
       } as AdminUserWithStudio;
     } else {
-      // For regular admins, fetch studio info
-      const { data: studio, error: studioError } = await supabase
-        .from('studios')
-        .select('*')
-        .eq('id', adminUser.studio_id)
-        .single();
+      // For regular admins, fetch studio info if they have one
+      if (adminUser.studio_id) {
+        const { data: studio, error: studioError } = await supabase
+          .from('studios')
+          .select('*')
+          .eq('id', adminUser.studio_id)
+          .single();
 
-      if (studioError || !studio) {
-        await supabase.auth.signOut();
-        return {
-          success: false,
-          error: 'Studio tidak dijumpai',
-        };
+        if (studioError || !studio) {
+          await supabase.auth.signOut();
+          return {
+            success: false,
+            error: 'Studio tidak dijumpai',
+          };
+        }
+
+        userWithStudio = {
+          ...adminUser,
+          studio
+        } as AdminUserWithStudio;
+      } else {
+        // Admin without studio (during onboarding)
+        userWithStudio = {
+          ...adminUser,
+          studio: null
+        } as AdminUserWithStudio;
       }
-
-      userWithStudio = {
-        ...adminUser,
-        studio
-      } as AdminUserWithStudio;
     }
 
     return {

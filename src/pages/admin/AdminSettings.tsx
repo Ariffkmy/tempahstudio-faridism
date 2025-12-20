@@ -242,8 +242,13 @@ const AdminSettings = () => {
     {
       id: 'booking-form',
       label: 'Booking Form',
-      isComplete: !!(settings.slug && settings.studioLogo),
-      description: 'Tetapkan slug URL dan muat naik logo studio'
+      isComplete: !!(
+        settings.timeSlotGap &&
+        (settings.paymentStudioEnabled || settings.paymentQrEnabled ||
+          settings.paymentBankTransferEnabled || settings.paymentFpxEnabled ||
+          settings.paymentTngEnabled)
+      ),
+      description: 'Tetapkan jarak slot masa dan aktifkan sekurang-kurangnya satu kaedah pembayaran'
     },
     {
       id: 'operating-hours',
@@ -1916,21 +1921,64 @@ const AdminSettings = () => {
                                       <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cara Pembayaran</span>
                                     </div>
                                     <div className="space-y-3">
-                                      {[
-                                        { id: 'paymentStudioEnabled', label: 'Pembayaran di Studio' },
-                                        { id: 'paymentQrEnabled', label: 'QR Sekarang' },
-                                        { id: 'paymentBankTransferEnabled', label: 'Pindahan Bank' },
-                                        { id: 'paymentFpxEnabled', label: 'FPX (Online Banking)' },
-                                        { id: 'paymentTngEnabled', label: 'Touch n Go eWallet' },
-                                      ].map((method) => (
-                                        <div key={method.id} className="flex items-center justify-between">
-                                          <Label className="text-xs font-medium">{method.label}</Label>
+                                      {/* Pembayaran di Studio */}
+                                      <div className="flex items-center justify-between">
+                                        <Label className="text-xs font-medium">Pembayaran di Studio</Label>
+                                        <Switch
+                                          checked={settings.paymentStudioEnabled}
+                                          onCheckedChange={(checked) => handleSettingChange('paymentStudioEnabled', checked)}
+                                        />
+                                      </div>
+
+                                      {/* QR Sekarang */}
+                                      <div className="flex items-center justify-between">
+                                        <Label className="text-xs font-medium">QR Sekarang</Label>
+                                        <Switch
+                                          checked={settings.paymentQrEnabled}
+                                          onCheckedChange={(checked) => handleSettingChange('paymentQrEnabled', checked)}
+                                        />
+                                      </div>
+
+                                      {/* Pindahan Bank */}
+                                      <div className="flex items-center justify-between">
+                                        <Label className="text-xs font-medium">Pindahan Bank</Label>
+                                        <Switch
+                                          checked={settings.paymentBankTransferEnabled}
+                                          onCheckedChange={(checked) => handleSettingChange('paymentBankTransferEnabled', checked)}
+                                        />
+                                      </div>
+
+                                      {/* FPX (Online Banking) - Package Restricted */}
+                                      <div className="flex items-center justify-between">
+                                        <Label className="text-xs font-medium">FPX (Online Banking)</Label>
+                                        <div className="flex items-center gap-2">
                                           <Switch
-                                            checked={(settings as any)[method.id]}
-                                            onCheckedChange={(checked) => handleSettingChange(method.id, checked)}
+                                            checked={settings.paymentFpxEnabled}
+                                            disabled={!canEnableFPX}
+                                            onCheckedChange={(checked) => {
+                                              if (!canEnableFPX) {
+                                                setShowFpxUpgradePrompt(true);
+                                              } else {
+                                                handleSettingChange('paymentFpxEnabled', checked);
+                                              }
+                                            }}
                                           />
+                                          {!canEnableFPX && (
+                                            <Badge variant="outline" className="bg-gradient-to-r from-purple-400 to-purple-600 text-white border-none text-[9px] px-1.5 py-0">
+                                              Platinum
+                                            </Badge>
+                                          )}
                                         </div>
-                                      ))}
+                                      </div>
+
+                                      {/* Touch n Go eWallet */}
+                                      <div className="flex items-center justify-between">
+                                        <Label className="text-xs font-medium">Touch n Go eWallet</Label>
+                                        <Switch
+                                          checked={settings.paymentTngEnabled}
+                                          onCheckedChange={(checked) => handleSettingChange('paymentTngEnabled', checked)}
+                                        />
+                                      </div>
 
                                       {settings.paymentTngEnabled && (
                                         <div className="pt-3 border-t border-border/10 space-y-2">
@@ -2923,24 +2971,79 @@ const AdminSettings = () => {
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                                          {[
-                                            { id: 'paymentStudioEnabled', label: 'Pembayaran di Studio', desc: 'Bayar di kaunter' },
-                                            { id: 'paymentQrEnabled', label: 'QR Sekarang (Main)', desc: 'Kod QR studio standard' },
-                                            { id: 'paymentBankTransferEnabled', label: 'Pindahan Bank Direct', desc: 'Manual transfer' },
-                                            { id: 'paymentFpxEnabled', label: 'FPX (Online Banking)', desc: 'Pembayaran automatik' },
-                                            { id: 'paymentTngEnabled', label: 'Touch n Go eWallet', desc: 'Scan & Pay TNG' },
-                                          ].map((method) => (
-                                            <div key={method.id} className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/50 group hover:border-primary/30 transition-all">
-                                              <div className="flex flex-col gap-0.5">
-                                                <Label className="text-xs font-bold leading-none">{method.label}</Label>
-                                                <span className="text-[10px] text-muted-foreground">{method.desc}</span>
-                                              </div>
-                                              <Switch
-                                                checked={(settings as any)[method.id]}
-                                                onCheckedChange={(checked) => handleSettingChange(method.id, checked)}
-                                              />
+                                          {/* Pembayaran di Studio */}
+                                          <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/50 group hover:border-primary/30 transition-all">
+                                            <div className="flex flex-col gap-0.5">
+                                              <Label className="text-xs font-bold leading-none">Pembayaran di Studio</Label>
+                                              <span className="text-[10px] text-muted-foreground">Bayar di kaunter</span>
                                             </div>
-                                          ))}
+                                            <Switch
+                                              checked={settings.paymentStudioEnabled}
+                                              onCheckedChange={(checked) => handleSettingChange('paymentStudioEnabled', checked)}
+                                            />
+                                          </div>
+
+                                          {/* QR Sekarang */}
+                                          <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/50 group hover:border-primary/30 transition-all">
+                                            <div className="flex flex-col gap-0.5">
+                                              <Label className="text-xs font-bold leading-none">QR Sekarang (Main)</Label>
+                                              <span className="text-[10px] text-muted-foreground">Kod QR studio standard</span>
+                                            </div>
+                                            <Switch
+                                              checked={settings.paymentQrEnabled}
+                                              onCheckedChange={(checked) => handleSettingChange('paymentQrEnabled', checked)}
+                                            />
+                                          </div>
+
+                                          {/* Pindahan Bank */}
+                                          <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/50 group hover:border-primary/30 transition-all">
+                                            <div className="flex flex-col gap-0.5">
+                                              <Label className="text-xs font-bold leading-none">Pindahan Bank Direct</Label>
+                                              <span className="text-[10px] text-muted-foreground">Manual transfer</span>
+                                            </div>
+                                            <Switch
+                                              checked={settings.paymentBankTransferEnabled}
+                                              onCheckedChange={(checked) => handleSettingChange('paymentBankTransferEnabled', checked)}
+                                            />
+                                          </div>
+
+                                          {/* FPX (Online Banking) - Package Restricted */}
+                                          <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/50 group hover:border-primary/30 transition-all">
+                                            <div className="flex flex-col gap-0.5">
+                                              <Label className="text-xs font-bold leading-none">FPX (Online Banking)</Label>
+                                              <span className="text-[10px] text-muted-foreground">Pembayaran automatik</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                              <Switch
+                                                checked={settings.paymentFpxEnabled}
+                                                disabled={!canEnableFPX}
+                                                onCheckedChange={(checked) => {
+                                                  if (!canEnableFPX) {
+                                                    setShowFpxUpgradePrompt(true);
+                                                  } else {
+                                                    handleSettingChange('paymentFpxEnabled', checked);
+                                                  }
+                                                }}
+                                              />
+                                              {!canEnableFPX && (
+                                                <Badge variant="outline" className="bg-gradient-to-r from-purple-400 to-purple-600 text-white border-none text-[9px] px-1.5 py-0.5">
+                                                  Platinum
+                                                </Badge>
+                                              )}
+                                            </div>
+                                          </div>
+
+                                          {/* Touch n Go eWallet */}
+                                          <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/50 group hover:border-primary/30 transition-all">
+                                            <div className="flex flex-col gap-0.5">
+                                              <Label className="text-xs font-bold leading-none">Touch n Go eWallet</Label>
+                                              <span className="text-[10px] text-muted-foreground">Scan & Pay TNG</span>
+                                            </div>
+                                            <Switch
+                                              checked={settings.paymentTngEnabled}
+                                              onCheckedChange={(checked) => handleSettingChange('paymentTngEnabled', checked)}
+                                            />
+                                          </div>
                                         </div>
 
                                         {settings.paymentTngEnabled && (
@@ -4468,14 +4571,14 @@ const AdminSettings = () => {
                   <TabsContent value="penyesuaian-borang" className="space-y-6 mt-6">
                     <div className="relative">
                       {!canCustomizeBookingForm && (
-                        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg min-h-[400px]">
+                        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-start justify-center pt-12 rounded-lg min-h-[400px]">
                           <Button
                             onClick={() => setShowCustomizationUpgradePrompt(true)}
                             size="lg"
                             className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-white hover:opacity-90"
                           >
                             <Lock className="mr-2 h-5 w-5" />
-                            Upgrade to Gold to Customize
+                            Naik taraf ke Pakej Gold
                           </Button>
                         </div>
                       )}

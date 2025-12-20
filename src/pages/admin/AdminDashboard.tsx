@@ -4,6 +4,7 @@ import { StudioSelector } from '@/components/admin/StudioSelector';
 import { StatsCard } from '@/components/admin/StatsCard';
 import { BookingTable } from '@/components/admin/BookingTable';
 import { BookingDetailModal } from '@/components/admin/BookingDetailModal';
+import { FirstTimeUserDialog } from '@/components/admin/FirstTimeUserDialog';
 import { Calendar, DollarSign, Users, TrendingUp, Menu, Home, BarChart3, BookOpen, Cog, LogOut, Building2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveStudioId } from '@/contexts/StudioContext';
@@ -335,6 +336,9 @@ const AdminDashboard = () => {
           </div>
         </main>
 
+        {/* First Time User Dialog */}
+        <FirstTimeUserDialog />
+
         {/* Booking Detail Modal */}
         <BookingDetailModal
           booking={selectedBooking}
@@ -432,6 +436,9 @@ const AdminDashboard = () => {
             </div>
           </div>
         </main>
+
+        {/* First Time User Dialog */}
+        <FirstTimeUserDialog />
 
         {/* Booking Detail Modal */}
         <BookingDetailModal

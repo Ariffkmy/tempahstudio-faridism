@@ -221,18 +221,46 @@ export default function PackagePayment() {
                 throw new Error(paymentResult.error || 'Failed to submit payment');
             }
 
+            // Create account immediately with email verification required
+            // Supabase will automatically send verification email
+            const { supabase } = await import('@/lib/supabase');
+
+            // Generate a temporary password that user will change after verification
+            const tempPassword = `Temp${Math.random().toString(36).substring(2, 15)}!`;
+
+            const { data: authData, error: signUpError } = await supabase.auth.signUp({
+                email: formData.email,
+                password: tempPassword,
+                options: {
+                    emailRedirectTo: `${window.location.origin}/complete-registration`,
+                    data: {
+                        full_name: formData.fullName,
+                        phone: formData.phone,
+                        studio_name: formData.studioName,
+                    }
+                }
+            });
+
+            if (signUpError) {
+                console.error('Failed to create account:', signUpError);
+                throw new Error('Gagal membuat akaun. Sila cuba lagi.');
+            }
+
+            // Store payment data and temp password in localStorage for later
+            localStorage.setItem('pendingRegistration', JSON.stringify({
+                email: formData.email,
+                fullName: formData.fullName,
+                phone: formData.phone,
+                studioName: formData.studioName,
+                paymentId: paymentResult.payment?.id,
+                tempPassword, // Store temp password so user can set new one
+                timestamp: Date.now(),
+            }));
+
+            console.log('Account created. Verification email sent by Supabase.');
+
             // Show success dialog
             setShowSuccessDialog(true);
-
-            // Reset form
-            setFormData({
-                studioName: '',
-                fullName: '',
-                email: '',
-                phone: '',
-            });
-            setReceiptFile(null);
-            setAgreedToTerms(false);
 
         } catch (error: any) {
             console.error('Error submitting payment:', error);
@@ -640,12 +668,26 @@ export default function PackagePayment() {
                         >
                             <DialogHeader className="space-y-3">
                                 <DialogTitle className="text-2xl font-bold">
-                                    Selamat datang ke platform Tempah Studio!
+                                    Pembayaran Berjaya!
                                 </DialogTitle>
-                                <DialogDescription className="text-base text-muted-foreground">
-                                    Terima kasih atas pembayaran anda. Resit akan dihantar ke email anda dalam masa terdekat.
-                                </DialogDescription>
                             </DialogHeader>
+                            <div className="space-y-4 mt-2">
+                                <p className="text-base text-muted-foreground">Terima kasih atas pembayaran anda.</p>
+                                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 space-y-2">
+                                    <p className="font-semibold text-amber-900 dark:text-amber-100">
+                                        📧 Sila Sahkan Emel Anda
+                                    </p>
+                                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                                        Kami telah menghantar emel pengesahan ke <strong>{formData.email}</strong>.
+                                    </p>
+                                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                                        Sila semak peti masuk anda dan klik pautan dalam emel untuk meneruskan pendaftaran akaun.
+                                    </p>
+                                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                                        Selepas mengesahkan emel, anda akan diarahkan untuk membuat kata laluan.
+                                    </p>
+                                </div>
+                            </div>
                         </motion.div>
                         <motion.div
                             className="w-full"
@@ -656,19 +698,11 @@ export default function PackagePayment() {
                             <Button
                                 onClick={() => {
                                     setShowSuccessDialog(false);
-                                    navigate('/onboarding', {
-                                        state: {
-                                            fullName: formData.fullName,
-                                            email: formData.email,
-                                            phone: formData.phone,
-                                            studioName: formData.studioName,
-                                        }
-                                    });
                                 }}
                                 className="w-full"
                                 size="lg"
                             >
-                                Seterusnya
+                                Tutup
                             </Button>
                         </motion.div>
                     </motion.div>

@@ -47,18 +47,8 @@ const AdminLogin = () => {
             .single();
 
           console.log('📊 AdminLogin useEffect: User data:', userData);
-          console.log('❌ AdminLogin useEffect: Error:', error);
-          console.log('✅ AdminLogin useEffect: onboarding_completed =', userData?.onboarding_completed);
-
-          if (userData && !userData.onboarding_completed) {
-            // User hasn't completed onboarding, redirect to onboarding
-            console.log('➡️ AdminLogin useEffect: Redirecting to /onboarding (not completed)');
-            navigate('/onboarding');
-          } else {
-            // User has completed onboarding, go to dashboard
-            console.log('➡️ AdminLogin useEffect: Redirecting to /admin (completed)');
-            navigate('/admin');
-          }
+          console.log('✅ AdminLogin useEffect: Redirecting to /admin');
+          navigate('/admin');
         }
       }
     };
@@ -85,41 +75,34 @@ const AdminLogin = () => {
     setIsSubmitting(false);
 
     if (result.success) {
-      console.log('🔍 AdminLogin handleLogin: Login successful, checking onboarding status...');
+      console.log('🔍 AdminLogin handleLogin: Login successful, checking email verification...');
 
-      // Check if user has completed onboarding
+      // Check if user has verified their email
       const { data: { user } } = await supabase.auth.getUser();
 
       if (user) {
         console.log('👤 AdminLogin handleLogin: User ID:', user.id);
+        console.log('📧 AdminLogin handleLogin: Email confirmed:', user.email_confirmed_at);
 
-        const { data: userData, error } = await supabase
-          .from('admin_users')
-          .select('onboarding_completed')
-          .eq('auth_user_id', user.id)
-          .single();
-
-        console.log('📊 AdminLogin handleLogin: User data:', userData);
-        console.log('❌ AdminLogin handleLogin: Error:', error);
-        console.log('✅ AdminLogin handleLogin: onboarding_completed =', userData?.onboarding_completed);
-
-        if (userData && !userData.onboarding_completed) {
-          // User hasn't completed onboarding, redirect to onboarding
-          console.log('➡️ AdminLogin handleLogin: Redirecting to /onboarding (not completed)');
+        // Check email verification first
+        if (!user.email_confirmed_at) {
+          console.log('⚠️ AdminLogin handleLogin: Email not verified, redirecting to Step 5');
           toast({
-            title: 'Selamat kembali!',
-            description: 'Mari teruskan setup studio anda...',
+            title: 'Emel Belum Disahkan',
+            description: 'Sila sahkan emel anda terlebih dahulu.',
+            variant: 'destructive',
           });
-          navigate('/onboarding');
-        } else {
-          // User has completed onboarding, go to dashboard
-          console.log('➡️ AdminLogin handleLogin: Redirecting to /admin (completed)');
-          toast({
-            title: 'Selamat kembali!',
-            description: 'Mengalihkan ke papan pemuka...',
-          });
-          navigate('/admin');
+          navigate('/onboarding?step=5');
+          return;
         }
+
+        // Email is verified, redirect to dashboard
+        console.log('✅ AdminLogin handleLogin: Redirecting to /admin');
+        toast({
+          title: 'Selamat kembali!',
+          description: 'Mengalihkan ke papan pemuka...',
+        });
+        navigate('/admin');
       }
     } else {
       toast({

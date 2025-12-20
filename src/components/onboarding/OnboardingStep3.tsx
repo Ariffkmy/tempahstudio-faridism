@@ -6,141 +6,58 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { Plus, Trash2, Upload, X } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { MapPin, Mail, Phone } from 'lucide-react';
 
 interface OnboardingStep3Props {
     onComplete: () => void;
-}
-
-interface Layout {
-    id: string;
-    name: string;
-    description: string;
-    capacity: number;
-    price_per_hour: number;
-    layout_photos?: string[];
-    thumbnail_photo?: string;
 }
 
 export default function OnboardingStep3({ onComplete }: OnboardingStep3Props) {
     const { toast } = useToast();
     const { user } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [layouts, setLayouts] = useState<Layout[]>([]);
-    const [uploadingPhoto, setUploadingPhoto] = useState<{ [key: string]: boolean }>({});
 
-    // Load existing layouts
+    const [formData, setFormData] = useState({
+        studioName: '',
+        studioLocation: '',
+        googleMapsLink: '',
+        wazeLink: '',
+        ownerName: '',
+        ownerPhone: '',
+        studioEmail: '',
+        studioPhone: '',
+    });
+
+    // Load existing studio data
     useEffect(() => {
-        const loadLayouts = async () => {
+        const loadStudioData = async () => {
             if (!user?.studio_id) return;
 
             const { data, error } = await supabase
-                .from('studio_layouts')
+                .from('studios')
                 .select('*')
-                .eq('studio_id', user.studio_id)
-                .order('created_at', { ascending: true });
+                .eq('id', user.studio_id)
+                .single();
 
             if (data && !error) {
-                setLayouts(data.map(layout => ({
-                    id: layout.id,
-                    name: layout.name,
-                    description: layout.description || '',
-                    capacity: layout.capacity || 1,
-                    price_per_hour: layout.price_per_hour || 100,
-                    layout_photos: layout.layout_photos || [],
-                    thumbnail_photo: layout.thumbnail_photo || '',
-                })));
+                setFormData({
+                    studioName: data.name || '',
+                    studioLocation: data.location || '',
+                    googleMapsLink: data.google_maps_link || '',
+                    wazeLink: data.waze_link || '',
+                    ownerName: data.owner_name || '',
+                    ownerPhone: data.owner_phone || '',
+                    studioEmail: data.email || '',
+                    studioPhone: data.phone || '',
+                });
             }
         };
 
-        loadLayouts();
+        loadStudioData();
     }, [user?.studio_id]);
 
-    const handleAddLayout = () => {
-        const newLayout: Layout = {
-            id: `temp-${Date.now()}`,
-            name: '',
-            description: '',
-            capacity: 1,
-            price_per_hour: 100,
-            layout_photos: [],
-            thumbnail_photo: '',
-        };
-        setLayouts([...layouts, newLayout]);
-    };
-
-    const handleRemoveLayout = (index: number) => {
-        setLayouts(layouts.filter((_, i) => i !== index));
-    };
-
-    const handleLayoutChange = (index: number, field: keyof Layout, value: string | number | string[]) => {
-        const updatedLayouts = [...layouts];
-        updatedLayouts[index] = { ...updatedLayouts[index], [field]: value };
-        setLayouts(updatedLayouts);
-    };
-
-    const handlePhotoUpload = async (index: number, file: File) => {
-        const layout = layouts[index];
-        if (!layout || !user?.studio_id) return;
-
-        // Check if already have 5 photos
-        const currentPhotos = layout.layout_photos || [];
-        if (currentPhotos.length >= 5) {
-            toast({
-                title: 'Maksimum foto dicapai',
-                description: 'Anda hanya boleh muat naik sehingga 5 foto setiap pakej',
-                variant: 'destructive',
-            });
-            return;
-        }
-
-        setUploadingPhoto(prev => ({ ...prev, [layout.id]: true }));
-        try {
-            const { uploadLayoutPhoto } = await import('@/services/fileUploadService');
-            const result = await uploadLayoutPhoto(file, layout.id, user.studio_id);
-
-            if (result.success && result.url) {
-                const updatedPhotos = [...currentPhotos, result.url];
-                handleLayoutChange(index, 'layout_photos', updatedPhotos);
-
-                // If this is the first photo, set it as thumbnail
-                if (!layout.thumbnail_photo) {
-                    handleLayoutChange(index, 'thumbnail_photo', result.url);
-                }
-
-                toast({
-                    title: 'Foto dimuat naik',
-                    description: 'Foto pakej berjaya dimuat naik',
-                });
-            } else {
-                toast({
-                    title: 'Muat naik gagal',
-                    description: result.error || 'Gagal memuat naik foto',
-                    variant: 'destructive',
-                });
-            }
-        } catch (error) {
-            console.error('Layout photo upload error:', error);
-            toast({
-                title: 'Ralat',
-                description: 'Gagal memuat naik foto',
-                variant: 'destructive',
-            });
-        } finally {
-            setUploadingPhoto(prev => ({ ...prev, [layout.id]: false }));
-        }
-    };
-
-    const handleDeletePhoto = (index: number, photoUrl: string) => {
-        const layout = layouts[index];
-        const updatedPhotos = (layout.layout_photos || []).filter(url => url !== photoUrl);
-        handleLayoutChange(index, 'layout_photos', updatedPhotos);
-
-        // If deleted photo was thumbnail, set first remaining photo as thumbnail
-        if (layout.thumbnail_photo === photoUrl) {
-            handleLayoutChange(index, 'thumbnail_photo', updatedPhotos[0] || '');
-        }
+    const handleChange = (field: string, value: string) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -155,218 +72,151 @@ export default function OnboardingStep3({ onComplete }: OnboardingStep3Props) {
             return;
         }
 
-        // Validate at least one layout
-        if (layouts.length === 0) {
-            toast({
-                title: 'Ralat',
-                description: 'Sila tambah sekurang-kurangnya satu pakej',
-                variant: 'destructive',
-            });
-            return;
-        }
-
-        // Validate all layouts have names
-        const invalidLayout = layouts.find(l => !l.name.trim());
-        if (invalidLayout) {
-            toast({
-                title: 'Ralat',
-                description: 'Sila isi nama untuk semua pakej',
-                variant: 'destructive',
-            });
-            return;
-        }
-
         setIsSubmitting(true);
 
-        try {
-            // Delete existing layouts for this studio
-            await supabase
-                .from('studio_layouts')
-                .delete()
-                .eq('studio_id', user.studio_id);
+        const { error } = await supabase
+            .from('studios')
+            .update({
+                name: formData.studioName,
+                location: formData.studioLocation,
+                google_maps_link: formData.googleMapsLink,
+                waze_link: formData.wazeLink,
+                owner_name: formData.ownerName,
+                owner_phone: formData.ownerPhone,
+                email: formData.studioEmail,
+                phone: formData.studioPhone,
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', user.studio_id);
 
-            // Insert new layouts
-            const layoutsToInsert = layouts.map(layout => ({
-                studio_id: user.studio_id,
-                name: layout.name,
-                description: layout.description,
-                capacity: layout.capacity,
-                price_per_hour: layout.price_per_hour,
-                layout_photos: layout.layout_photos || [],
-                thumbnail_photo: layout.thumbnail_photo || '',
-                is_active: true,
-            }));
+        setIsSubmitting(false);
 
-            const { error } = await supabase
-                .from('studio_layouts')
-                .insert(layoutsToInsert);
-
-            if (error) throw error;
-
-            toast({
-                title: 'Berjaya!',
-                description: 'Pakej telah disimpan',
-            });
-            onComplete();
-        } catch (error) {
-            console.error('Error saving layouts:', error);
+        if (error) {
             toast({
                 title: 'Ralat',
-                description: 'Gagal menyimpan pakej',
+                description: 'Gagal menyimpan maklumat studio',
                 variant: 'destructive',
             });
-        } finally {
-            setIsSubmitting(false);
+        } else {
+            toast({
+                title: 'Berjaya!',
+                description: 'Maklumat studio telah disimpan',
+            });
+            onComplete();
         }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4">
-                {layouts.map((layout, index) => (
-                    <Card key={layout.id}>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                            <CardTitle className="text-lg">Pakej {index + 1}</CardTitle>
-                            {layouts.length > 1 && (
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleRemoveLayout(index)}
-                                >
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                            )}
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {/* Layout Name */}
-                            <div className="space-y-2">
-                                <Label htmlFor={`name-${index}`}>Nama Pakej *</Label>
-                                <Input
-                                    id={`name-${index}`}
-                                    value={layout.name}
-                                    onChange={(e) => handleLayoutChange(index, 'name', e.target.value)}
-                                    placeholder="Contoh: Studio Kecil"
-                                    required
-                                />
-                            </div>
-
-                            {/* Description */}
-                            <div className="space-y-2">
-                                <Label htmlFor={`description-${index}`}>Perihal</Label>
-                                <Textarea
-                                    id={`description-${index}`}
-                                    value={layout.description}
-                                    onChange={(e) => handleLayoutChange(index, 'description', e.target.value)}
-                                    placeholder="Perihalkan pakej ini..."
-                                    rows={3}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                {/* Capacity */}
-                                <div className="space-y-2">
-                                    <Label htmlFor={`capacity-${index}`}>Kapasiti</Label>
-                                    <Input
-                                        id={`capacity-${index}`}
-                                        type="number"
-                                        min="1"
-                                        value={layout.capacity}
-                                        onChange={(e) => handleLayoutChange(index, 'capacity', parseInt(e.target.value) || 1)}
-                                    />
-                                </div>
-
-                                {/* Price */}
-                                <div className="space-y-2">
-                                    <Label htmlFor={`price-${index}`}>Harga (RM/jam)</Label>
-                                    <Input
-                                        id={`price-${index}`}
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={layout.price_per_hour}
-                                        onChange={(e) => handleLayoutChange(index, 'price_per_hour', parseFloat(e.target.value) || 0)}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Photo Upload Section */}
-                            <div className="space-y-2">
-                                <Label>Foto Pakej (Maksimum 5)</Label>
-                                <div className="space-y-3">
-                                    {/* Photo Grid */}
-                                    {layout.layout_photos && layout.layout_photos.length > 0 && (
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {layout.layout_photos.map((photoUrl, photoIndex) => (
-                                                <div key={photoIndex} className="relative group">
-                                                    <img
-                                                        src={photoUrl}
-                                                        alt={`Foto ${photoIndex + 1}`}
-                                                        className="w-full h-24 object-cover rounded-lg border"
-                                                    />
-                                                    <Button
-                                                        type="button"
-                                                        variant="destructive"
-                                                        size="sm"
-                                                        className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                        onClick={() => handleDeletePhoto(index, photoUrl)}
-                                                    >
-                                                        <X className="h-3 w-3" />
-                                                    </Button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {/* Upload Button */}
-                                    {(!layout.layout_photos || layout.layout_photos.length < 5) && (
-                                        <div>
-                                            <Input
-                                                id={`photo-${index}`}
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={(e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (file) {
-                                                        handlePhotoUpload(index, file);
-                                                        e.target.value = ''; // Reset input
-                                                    }
-                                                }}
-                                                className="hidden"
-                                            />
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => document.getElementById(`photo-${index}`)?.click()}
-                                                disabled={uploadingPhoto[layout.id]}
-                                                className="w-full"
-                                            >
-                                                <Upload className="h-4 w-4 mr-2" />
-                                                {uploadingPhoto[layout.id] ? 'Memuat naik...' : 'Muat Naik Foto'}
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                    Format: JPG, PNG (Maks 10MB setiap foto)
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
+        <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Studio Name */}
+            <div className="space-y-2">
+                <Label htmlFor="studioName">Nama Studio *</Label>
+                <Input
+                    id="studioName"
+                    value={formData.studioName}
+                    onChange={(e) => handleChange('studioName', e.target.value)}
+                    placeholder="Studio Fotografi ABC"
+                    required
+                />
             </div>
 
-            {/* Add Layout Button */}
-            <Button
-                type="button"
-                variant="outline"
-                onClick={handleAddLayout}
-                className="w-full"
-            >
-                <Plus className="h-4 w-4 mr-2" />
-                Tambah Pakej
-            </Button>
+            {/* Studio Location */}
+            <div className="space-y-2">
+                <Label htmlFor="studioLocation">Lokasi Studio</Label>
+                <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        id="studioLocation"
+                        value={formData.studioLocation}
+                        onChange={(e) => handleChange('studioLocation', e.target.value)}
+                        placeholder="Kuala Lumpur, Malaysia"
+                        className="pl-10"
+                    />
+                </div>
+            </div>
+
+            {/* Google Maps Link */}
+            <div className="space-y-2">
+                <Label htmlFor="googleMapsLink">Pautan Google Maps</Label>
+                <Input
+                    id="googleMapsLink"
+                    type="url"
+                    value={formData.googleMapsLink}
+                    onChange={(e) => handleChange('googleMapsLink', e.target.value)}
+                    placeholder="https://maps.google.com/..."
+                />
+            </div>
+
+            {/* Waze Link */}
+            <div className="space-y-2">
+                <Label htmlFor="wazeLink">Pautan Waze</Label>
+                <Input
+                    id="wazeLink"
+                    type="url"
+                    value={formData.wazeLink}
+                    onChange={(e) => handleChange('wazeLink', e.target.value)}
+                    placeholder="https://waze.com/..."
+                />
+            </div>
+
+            {/* Owner Name */}
+            <div className="space-y-2">
+                <Label htmlFor="ownerName">Nama Pemilik</Label>
+                <Input
+                    id="ownerName"
+                    value={formData.ownerName}
+                    onChange={(e) => handleChange('ownerName', e.target.value)}
+                    placeholder="Ahmad bin Abdullah"
+                />
+            </div>
+
+            {/* Owner Phone */}
+            <div className="space-y-2">
+                <Label htmlFor="ownerPhone">No. Telefon Pemilik</Label>
+                <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        id="ownerPhone"
+                        type="tel"
+                        value={formData.ownerPhone}
+                        onChange={(e) => handleChange('ownerPhone', e.target.value)}
+                        placeholder="+60123456789"
+                        className="pl-10"
+                    />
+                </div>
+            </div>
+
+            {/* Studio Email */}
+            <div className="space-y-2">
+                <Label htmlFor="studioEmail">Email Studio</Label>
+                <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        id="studioEmail"
+                        type="email"
+                        value={formData.studioEmail}
+                        onChange={(e) => handleChange('studioEmail', e.target.value)}
+                        placeholder="studio@example.com"
+                        className="pl-10"
+                    />
+                </div>
+            </div>
+
+            {/* Studio Phone */}
+            <div className="space-y-2">
+                <Label htmlFor="studioPhone">No. Telefon Studio</Label>
+                <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        id="studioPhone"
+                        type="tel"
+                        value={formData.studioPhone}
+                        onChange={(e) => handleChange('studioPhone', e.target.value)}
+                        placeholder="+60123456789"
+                        className="pl-10"
+                    />
+                </div>
+            </div>
 
             {/* Submit Button */}
             <Button

@@ -169,11 +169,57 @@ export default function CompleteRegistration() {
                 throw new Error('Sesi tamat tempoh. Sila cuba lagi.');
             }
 
-            // Create admin_users record (studio will be created/linked later in settings)
+            // Get pending registration data to get studio name
+            const pendingData = localStorage.getItem('pendingRegistration');
+            const registrationData = pendingData ? JSON.parse(pendingData) : null;
+
+            // Fetch package_name from package_payments table
+            let packageName = null;
+            try {
+                const { data: paymentData } = await supabase
+                    .from('package_payments')
+                    .select('package_name')
+                    .eq('email', email)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (paymentData) {
+                    packageName = paymentData.package_name;
+                    console.log('Found package from payment:', packageName);
+                }
+            } catch (err) {
+                console.error('Error looking up package payment during registration:', err);
+            }
+
+            // Step 1: Create the studio first
+            const DEFAULT_COMPANY_ID = 'a0000000-0000-0000-0000-000000000001';
+
+            const { data: newStudio, error: studioError } = await supabase
+                .from('studios')
+                .insert({
+                    company_id: DEFAULT_COMPANY_ID,
+                    name: studioName,
+                    email: email, // Store email for package lookup fallback
+                    is_active: true,
+                    package_name: packageName, // Set the package name from payment
+                })
+                .select()
+                .single();
+
+            if (studioError || !newStudio) {
+                console.error('Failed to create studio:', studioError);
+                throw new Error('Gagal membuat studio. Sila cuba lagi.');
+            }
+
+            console.log('Studio created successfully:', newStudio.id, 'with package:', packageName);
+
+            // Step 2: Create admin_users record with studio_id
             const { error: dbError } = await supabase
                 .from('admin_users')
                 .insert({
                     auth_user_id: user.id,
+                    studio_id: newStudio.id, // Link to the newly created studio
                     email: email,
                     full_name: fullName,
                     phone: phone || null,
@@ -183,8 +229,12 @@ export default function CompleteRegistration() {
 
             if (dbError) {
                 console.error('Failed to create admin_users record:', dbError);
+                // Rollback: Delete the created studio
+                await supabase.from('studios').delete().eq('id', newStudio.id);
                 throw new Error('Gagal menyimpan maklumat admin. Sila cuba lagi.');
             }
+
+            console.log('Admin user created and linked to studio successfully');
 
             // Clear pending registration data
             localStorage.removeItem('pendingRegistration');

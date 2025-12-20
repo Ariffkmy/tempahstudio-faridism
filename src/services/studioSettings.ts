@@ -176,6 +176,13 @@ export async function loadStudioSettings(studioId?: string): Promise<StudioSetti
       }
 
       studio = adminUser.studio as Studio;
+
+      // Validate that studio exists
+      if (!studio) {
+        console.error('Admin user has no studio assigned');
+        return null;
+      }
+
       targetStudioId = studio.id;
       ownerName = adminUser.full_name || '';
       ownerPhone = adminUser.phone || '';
@@ -280,6 +287,17 @@ export async function loadStudioSettings(studioId?: string): Promise<StudioSetti
 }
 
 /**
+ * Helper function to convert empty strings to null
+ * This prevents PostgreSQL from trying to cast empty strings to UUID or other types
+ */
+function emptyToNull(value: string | undefined | null): string | null {
+  if (value === '' || value === undefined || value === null || value === 'null') {
+    return null;
+  }
+  return value;
+}
+
+/**
  * Save studio settings to database
  */
 export async function saveStudioSettings(
@@ -305,15 +323,23 @@ export async function saveStudioSettings(
         .single();
 
       if (adminError || !adminUser) {
+        console.error('Failed to find admin studio:', adminError);
         return { success: false, error: 'Failed to find admin studio' };
       }
 
       targetStudioId = adminUser.studio_id;
     }
 
+    // Validate that we have a valid studio ID
+    if (!targetStudioId) {
+      console.error('No studio ID available for update');
+      return { success: false, error: 'No studio ID available. Please ensure you are assigned to a studio.' };
+    }
+
     console.log('[saveStudioSettings] target studio:', targetStudioId);
     console.log('[saveStudioSettings] payload:', {
       name: settings.studioName,
+      slug: settings.slug,
       location: settings.studioLocation,
       email: settings.studioEmail,
       phone: settings.studioPhone,
@@ -352,55 +378,56 @@ export async function saveStudioSettings(
       .from('studios')
       .update({
         name: settings.studioName,
-        location: settings.studioLocation,
-        email: settings.studioEmail,
-        phone: settings.studioPhone,
-        google_maps_link: settings.googleMapsLink,
-        waze_link: settings.wazeLink,
-        bank_account_number: settings.bankAccountNumber,
-        account_owner_name: settings.accountOwnerName,
-        qr_code: settings.qrCode,
-        studio_logo: settings.studioLogo,
-        booking_link: settings.bookingLink,
+        slug: emptyToNull(settings.slug),
+        location: emptyToNull(settings.studioLocation),
+        email: emptyToNull(settings.studioEmail),
+        phone: emptyToNull(settings.studioPhone),
+        google_maps_link: emptyToNull(settings.googleMapsLink),
+        waze_link: emptyToNull(settings.wazeLink),
+        bank_account_number: emptyToNull(settings.bankAccountNumber),
+        account_owner_name: emptyToNull(settings.accountOwnerName),
+        qr_code: emptyToNull(settings.qrCode),
+        studio_logo: emptyToNull(settings.studioLogo),
+        booking_link: emptyToNull(settings.bookingLink),
         google_calendar_enabled: settings.googleCalendarEnabled,
-        google_calendar_id: settings.googleCalendarId,
+        google_calendar_id: emptyToNull(settings.googleCalendarId),
         // Terms & Conditions
         terms_conditions_type: settings.termsConditionsType,
-        terms_conditions_text: settings.termsConditionsText,
-        terms_conditions_pdf: settings.termsConditionsPdf,
+        terms_conditions_text: emptyToNull(settings.termsConditionsText),
+        terms_conditions_pdf: emptyToNull(settings.termsConditionsPdf),
         time_slot_gap: settings.timeSlotGap,
         // Booking form customization
         enable_custom_header: settings.enableCustomHeader,
         enable_custom_footer: settings.enableCustomFooter,
         enable_whatsapp_button: settings.enableWhatsappButton,
         show_studio_name: settings.showStudioName,
-        header_logo: settings.headerLogo,
+        header_logo: emptyToNull(settings.headerLogo),
         header_home_enabled: settings.headerHomeEnabled,
-        header_home_url: settings.headerHomeUrl,
-        header_home_text: settings.headerHomeText,
+        header_home_url: emptyToNull(settings.headerHomeUrl),
+        header_home_text: emptyToNull(settings.headerHomeText),
         header_about_enabled: settings.headerAboutEnabled,
-        header_about_url: settings.headerAboutUrl,
-        header_about_text: settings.headerAboutText,
-        header_about_photo: settings.headerAboutPhoto,
+        header_about_url: emptyToNull(settings.headerAboutUrl),
+        header_about_text: emptyToNull(settings.headerAboutText),
+        header_about_photo: emptyToNull(settings.headerAboutPhoto),
         header_portfolio_enabled: settings.headerPortfolioEnabled,
-        header_portfolio_url: settings.headerPortfolioUrl,
+        header_portfolio_url: emptyToNull(settings.headerPortfolioUrl),
         header_contact_enabled: settings.headerContactEnabled,
-        header_contact_url: settings.headerContactUrl,
-        header_contact_address: settings.headerContactAddress,
-        header_contact_phone: settings.headerContactPhone,
-        header_contact_email: settings.headerContactEmail,
-        footer_whatsapp_link: settings.footerWhatsappLink,
-        footer_facebook_link: settings.footerFacebookLink,
-        footer_instagram_link: settings.footerInstagramLink,
-        footer_trademark: settings.footerTrademark,
-        whatsapp_message: settings.whatsappMessage,
+        header_contact_url: emptyToNull(settings.headerContactUrl),
+        header_contact_address: emptyToNull(settings.headerContactAddress),
+        header_contact_phone: emptyToNull(settings.headerContactPhone),
+        header_contact_email: emptyToNull(settings.headerContactEmail),
+        footer_whatsapp_link: emptyToNull(settings.footerWhatsappLink),
+        footer_facebook_link: emptyToNull(settings.footerFacebookLink),
+        footer_instagram_link: emptyToNull(settings.footerInstagramLink),
+        footer_trademark: emptyToNull(settings.footerTrademark),
+        whatsapp_message: emptyToNull(settings.whatsappMessage),
         brand_color_primary: settings.brandColorPrimary,
         brand_color_secondary: settings.brandColorSecondary,
         enable_portfolio_photo_upload: settings.enablePortfolioPhotoUpload,
-        portfolio_upload_instructions: settings.portfolioUploadInstructions,
+        portfolio_upload_instructions: emptyToNull(settings.portfolioUploadInstructions),
         portfolio_max_file_size: settings.portfolioMaxFileSize,
-        booking_title_text: settings.bookingTitleText,
-        booking_subtitle_text: settings.bookingSubtitleText,
+        booking_title_text: emptyToNull(settings.bookingTitleText),
+        booking_subtitle_text: emptyToNull(settings.bookingSubtitleText),
         booking_title_font: settings.bookingTitleFont,
         booking_title_size: settings.bookingTitleSize,
         booking_subtitle_font: settings.bookingSubtitleFont,
@@ -418,7 +445,7 @@ export async function saveStudioSettings(
         payment_bank_transfer_enabled: settings.paymentBankTransferEnabled,
         payment_fpx_enabled: settings.paymentFpxEnabled,
         payment_tng_enabled: settings.paymentTngEnabled,
-        tng_qr_code: settings.tngQrCode,
+        tng_qr_code: emptyToNull(settings.tngQrCode),
         updated_at: new Date().toISOString()
       })
       .eq('id', targetStudioId)

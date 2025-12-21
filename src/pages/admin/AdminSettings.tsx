@@ -3458,89 +3458,7 @@ const AdminSettings = () => {
               {/* Tab 2: Google Calendar */}
               <TabsContent value="google-calendar" className="space-y-6 mt-6">
                 {/* Google OAuth Credentials */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Google Calendar Keys</CardTitle>
-                    <CardDescription>API credentials from Google Cloud Console</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="googleClientIdTab2">Client ID</Label>
-                      <Input
-                        id="googleClientIdTab2"
-                        type="password"
-                        value={settings.googleClientId}
-                        onChange={(e) => handleSettingChange('googleClientId', e.target.value)}
-                        placeholder="Your Google OAuth Client ID"
-                      />
-                    </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="googleClientSecretTab2">Client Secret</Label>
-                      <Input
-                        id="googleClientSecretTab2"
-                        type="password"
-                        value={settings.googleClientSecret}
-                        onChange={(e) => handleSettingChange('googleClientSecret', e.target.value)}
-                        placeholder="Your Google OAuth Client Secret"
-                      />
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={async () => {
-                          if (!settings.googleClientId || !settings.googleClientSecret) {
-                            toast({
-                              title: "Error",
-                              description: "Please enter both Client ID and Client Secret first",
-                              variant: "destructive",
-                            });
-                            return;
-                          }
-
-                          try {
-                            const result = await saveGoogleCredentials(settings.googleClientId, settings.googleClientSecret);
-                            if (result.success) {
-                              toast({
-                                title: "Success",
-                                description: "OAuth credentials saved successfully",
-                              });
-                              const data = await loadStudioSettings(effectiveStudioId);
-                              if (data) {
-                                setSettings(prev => ({
-                                  ...prev,
-                                  googleClientIdConfigured: true
-                                }));
-                              }
-                            } else {
-                              toast({
-                                title: "Error",
-                                description: result.error || "Failed to save credentials",
-                                variant: "destructive",
-                              });
-                            }
-                          } catch (error) {
-                            toast({
-                              title: "Error",
-                              description: "Failed to save credentials",
-                              variant: "destructive",
-                            });
-                          }
-                        }}
-                        disabled={!settings.googleClientId || !settings.googleClientSecret}
-                      >
-                        Save Credentials
-                      </Button>
-                    </div>
-
-                    {settings.googleClientIdConfigured && (
-                      <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-sm text-green-800">Credentials configured</span>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
 
                 {/* Google Calendar Integration */}
                 <Card>
@@ -3564,25 +3482,7 @@ const AdminSettings = () => {
 
                     {settings.googleCalendarEnabled && (
                       <div className="space-y-4">
-                        {!settings.googleClientIdConfigured && (
-                          <div className="rounded-md bg-yellow-50 p-4 border border-yellow-200">
-                            <div className="flex">
-                              <div className="flex-shrink-0">
-                                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                </svg>
-                              </div>
-                              <div className="ml-3">
-                                <h3 className="text-sm font-medium text-yellow-800">Setup Required</h3>
-                                <div className="mt-2 text-sm text-yellow-700">
-                                  <p>Please configure your Google OAuth credentials first.</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {settings.googleClientIdConfigured && !settings.googleRefreshTokenConfigured && (
+                        {!settings.googleRefreshTokenConfigured && (
                           <div className="rounded-md bg-blue-50 p-4 border border-blue-200">
                             <div className="flex">
                               <div className="flex-shrink-0">
@@ -3594,6 +3494,7 @@ const AdminSettings = () => {
                                 <h3 className="text-sm font-medium text-blue-800">Authorization Required</h3>
                                 <div className="mt-2 text-sm text-blue-700">
                                   <p>Click the button below to authorize access to your Google Calendar.</p>
+                                  <p className="mt-1 text-xs">Note: OAuth credentials are managed by Super Admin. You only need to authorize your calendar.</p>
                                 </div>
                               </div>
                             </div>

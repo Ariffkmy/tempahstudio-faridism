@@ -33,6 +33,57 @@ export default function CompleteRegistration() {
             // Supabase adds hash params when redirecting from email
             const hashParams = new URLSearchParams(window.location.hash.substring(1));
             const accessToken = hashParams.get('access_token');
+            const error = hashParams.get('error');
+            const errorCode = hashParams.get('error_code');
+            const errorDescription = hashParams.get('error_description');
+
+            // Check if there's an error in the URL (like OTP expired)
+            if (error) {
+                console.warn('Email verification link error:', {
+                    error,
+                    errorCode,
+                    errorDescription
+                });
+
+                // Check if user is already verified despite the error
+                const { data: { user } } = await supabase.auth.getUser();
+
+                if (user && user.email_confirmed_at) {
+                    console.log('✅ User is already verified, proceeding with registration');
+                    // Clear the error from URL
+                    window.history.replaceState(null, '', window.location.pathname);
+
+                    // Get pending registration data
+                    const pendingData = localStorage.getItem('pendingRegistration');
+                    if (pendingData) {
+                        const registrationData = JSON.parse(pendingData);
+                        setEmail(registrationData.email);
+                        setFullName(registrationData.fullName);
+                        setPhone(registrationData.phone || '');
+                        setStudioName(registrationData.studioName);
+                        setIsVerified(true);
+
+                        toast({
+                            title: 'Emel Telah Disahkan',
+                            description: 'Sila buat kata laluan untuk akaun anda.',
+                        });
+                        return;
+                    }
+                }
+
+                // If user is not verified, show error
+                toast({
+                    title: 'Pautan Tidak Sah',
+                    description: errorCode === 'otp_expired'
+                        ? 'Pautan pengesahan telah tamat tempoh. Sila minta pautan baharu.'
+                        : 'Pautan pengesahan tidak sah. Sila cuba lagi.',
+                    variant: 'destructive',
+                });
+
+                // Clear the error from URL
+                window.history.replaceState(null, '', window.location.pathname);
+                return;
+            }
 
             if (accessToken) {
                 // Set the session from the hash params
@@ -87,15 +138,53 @@ export default function CompleteRegistration() {
             const { data: { user } } = await supabase.auth.getUser();
 
             if (!user) {
+                // User is not logged in, but they might be verified
+                // Try to auto-login with temp password if available
+                const tempPassword = registrationData.tempPassword;
+
+                if (tempPassword) {
+                    console.log('🔐 Attempting auto-login with temp password...');
+                    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+                        email: registrationData.email,
+                        password: tempPassword,
+                    });
+
+                    if (loginError) {
+                        console.error('Auto-login failed:', loginError);
+                        toast({
+                            title: 'Sila Log Masuk',
+                            description: 'Emel anda telah disahkan. Sila log masuk untuk meneruskan.',
+                        });
+                        // Redirect to login with email pre-filled
+                        navigate(`/admin/login?email=${encodeURIComponent(registrationData.email)}`);
+                        return;
+                    }
+
+                    console.log('✅ Auto-login successful');
+                    // Continue with the flow
+                } else {
+                    toast({
+                        title: 'Ralat',
+                        description: 'Sila klik pautan pengesahan dalam emel anda terlebih dahulu.',
+                        variant: 'destructive',
+                    });
+                    return;
+                }
+            }
+
+            // Re-fetch user after potential auto-login
+            const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+            if (!currentUser) {
                 toast({
                     title: 'Ralat',
-                    description: 'Sila klik pautan pengesahan dalam emel anda terlebih dahulu.',
+                    description: 'Gagal mendapatkan maklumat pengguna. Sila cuba lagi.',
                     variant: 'destructive',
                 });
                 return;
             }
 
-            if (!user.email_confirmed_at) {
+            if (!currentUser.email_confirmed_at) {
                 toast({
                     title: 'Emel Belum Disahkan',
                     description: 'Sila sahkan emel anda terlebih dahulu dengan mengklik pautan dalam emel.',

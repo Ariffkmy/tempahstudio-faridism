@@ -43,6 +43,8 @@ export default function PackagePayment() {
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('qr');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+    const [isResendingEmail, setIsResendingEmail] = useState(false);
+    const [registeredEmail, setRegisteredEmail] = useState<string>('');
 
     // Fetch package and payment settings data on mount
     useEffect(() => {
@@ -164,6 +166,43 @@ export default function PackagePayment() {
         }
     };
 
+    const handleResendEmail = async () => {
+        if (!registeredEmail) return;
+
+        setIsResendingEmail(true);
+        try {
+            const { supabase } = await import('@/lib/supabase');
+            const { error } = await supabase.auth.resend({
+                type: 'signup',
+                email: registeredEmail,
+            });
+
+            if (error) {
+                console.error('❌ Resend email error:', error);
+                toast({
+                    title: 'Ralat',
+                    description: 'Gagal menghantar semula emel pengesahan',
+                    variant: 'destructive',
+                });
+            } else {
+                console.log('✅ Verification email resent to:', registeredEmail);
+                toast({
+                    title: 'Berjaya',
+                    description: 'Emel pengesahan telah dihantar semula!',
+                });
+            }
+        } catch (error) {
+            console.error('Error resending email:', error);
+            toast({
+                title: 'Ralat',
+                description: 'Gagal menghantar semula emel',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsResendingEmail(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -232,6 +271,8 @@ export default function PackagePayment() {
                 email: formData.email,
                 password: tempPassword,
                 options: {
+                    // Skip email verification since user already paid
+                    // They can login immediately and set their password
                     emailRedirectTo: `${window.location.origin}/complete-registration`,
                     data: {
                         full_name: formData.fullName,
@@ -242,8 +283,41 @@ export default function PackagePayment() {
             });
 
             if (signUpError) {
-                console.error('Failed to create account:', signUpError);
+                console.error('❌ SignUp Error:', signUpError);
+                console.error('Error details:', {
+                    message: signUpError.message,
+                    status: signUpError.status,
+                    name: signUpError.name
+                });
                 throw new Error('Gagal membuat akaun. Sila cuba lagi.');
+            }
+
+            console.log('✅ SignUp Success!');
+            console.log('Auth Data:', {
+                userId: authData?.user?.id,
+                email: authData?.user?.email,
+                emailConfirmedAt: authData?.user?.email_confirmed_at,
+                identities: authData?.user?.identities,
+                session: authData?.session ? 'Session created' : 'No session (email confirmation required)',
+                userMetadata: authData?.user?.user_metadata
+            });
+            console.log('📊 Email Delivery Status:');
+            console.log('  - Email sent to:', formData.email);
+            console.log('  - Check Supabase Auth Logs for delivery confirmation');
+            console.log('  - Log should show: event="mail.send" mail_type="confirmation"');
+
+            // Check if email was sent or auto-confirmed
+            if (authData?.user?.email_confirmed_at) {
+                console.warn('⚠️ WARNING: Email was AUTO-CONFIRMED! This means:');
+                console.warn('1. "Confirm email" toggle is DISABLED in Supabase Auth settings');
+                console.warn('2. No verification email will be sent');
+                console.warn('3. User can login immediately without verification');
+            } else {
+                console.log('📧 Email verification required - email should have been sent to:', formData.email);
+                console.log('📝 User should check:');
+                console.log('  - Inbox for verification email');
+                console.log('  - Spam/Junk folder');
+                console.log('  - Supabase Auth Logs for email sending status');
             }
 
             // Store payment data and temp password in localStorage for later
@@ -258,6 +332,9 @@ export default function PackagePayment() {
             }));
 
             console.log('Account created. Verification email sent by Supabase.');
+
+            // Store email for resend functionality
+            setRegisteredEmail(formData.email);
 
             // Show success dialog
             setShowSuccessDialog(true);
@@ -690,11 +767,20 @@ export default function PackagePayment() {
                             </div>
                         </motion.div>
                         <motion.div
-                            className="w-full"
+                            className="w-full space-y-2"
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.4 }}
                         >
+                            <Button
+                                onClick={handleResendEmail}
+                                variant="outline"
+                                className="w-full"
+                                size="lg"
+                                disabled={isResendingEmail}
+                            >
+                                {isResendingEmail ? 'Menghantar...' : '📧 Hantar Semula Emel Pengesahan'}
+                            </Button>
                             <Button
                                 onClick={() => {
                                     setShowSuccessDialog(false);

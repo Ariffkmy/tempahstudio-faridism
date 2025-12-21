@@ -366,6 +366,9 @@ export interface CreateBookingData {
  * Create a new booking from public booking form
  */
 export async function createPublicBooking(bookingData: CreateBookingData): Promise<{ success: boolean; booking?: any; error?: string }> {
+  console.log('🚀🚀🚀 CREATE PUBLIC BOOKING CALLED 🚀🚀🚀');
+  console.log('Booking data:', bookingData);
+
   try {
     // First, get studio and company info
     const { data: studio, error: studioError } = await supabase
@@ -456,12 +459,33 @@ export async function createPublicBooking(bookingData: CreateBookingData): Promi
     }
 
     // Try to create calendar event if Google Calendar is enabled
+    console.log('📅 Checking Google Calendar integration...');
+    console.log('Studio data:', {
+      studioId: booking.studio_id,
+      studioName: booking.studio?.name,
+      googleCalendarEnabled: booking.studio?.google_calendar_enabled,
+      hasRefreshToken: !!booking.studio?.google_refresh_token,
+    });
+
     try {
       if (booking.studio?.google_calendar_enabled) {
+        console.log('✅ Google Calendar is enabled for this studio');
+        console.log('🔄 Attempting to create calendar event...');
         await createCalendarEvent(booking);
+        console.log('✅ Calendar event created successfully!');
+      } else {
+        console.log('⚠️ Google Calendar is NOT enabled for this studio');
+        console.log('Reason:', {
+          enabled: booking.studio?.google_calendar_enabled,
+          hasStudioData: !!booking.studio,
+        });
       }
     } catch (calendarError) {
-      console.error('Failed to create calendar event:', calendarError);
+      console.error('❌ Failed to create calendar event:', calendarError);
+      console.error('Calendar error details:', {
+        message: calendarError.message,
+        stack: calendarError.stack,
+      });
       // Don't fail the booking if calendar integration fails
       // This is logged but doesn't prevent the booking from succeeding
     }
@@ -534,10 +558,17 @@ export async function createPublicBooking(bookingData: CreateBookingData): Promi
  */
 async function createCalendarEvent(booking: BookingWithDetails): Promise<void> {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
-      throw new Error('No authenticated user');
-    }
+    console.log('📞 createCalendarEvent called with booking:', {
+      bookingId: booking.id,
+      reference: booking.reference,
+      date: booking.date,
+      startTime: booking.start_time,
+      endTime: booking.end_time,
+    });
+
+    // NOTE: No session check needed here!
+    // The Edge Function uses SERVICE_ROLE_KEY which bypasses RLS
+    // Public bookings don't have an authenticated user session
 
     // Get the layout details for the event title
     const layout = booking.studio_layout;
@@ -559,8 +590,17 @@ async function createCalendarEvent(booking: BookingWithDetails): Promise<void> {
       calendarSecretKey: 'waOOzgPpFwaySuO4xTwLBx74QgJ9P9jT'
     };
 
+    console.log('📤 Invoking Edge Function with data:', eventData);
+
     const { data, error } = await supabase.functions.invoke('create-calendar-event', {
       body: eventData
+    });
+
+    console.log('📥 Edge Function response:', {
+      hasData: !!data,
+      hasError: !!error,
+      data,
+      error,
     });
 
     if (error) {
@@ -571,9 +611,9 @@ async function createCalendarEvent(booking: BookingWithDetails): Promise<void> {
       throw new Error(data.error || 'Unknown calendar error');
     }
 
-    console.log('Calendar event created successfully:', data.calendarEvent);
+    console.log('✅ Calendar event created successfully:', data.calendarEvent);
   } catch (error) {
-    console.error('Error in createCalendarEvent:', error);
+    console.error('❌ Error in createCalendarEvent:', error);
     throw error;
   }
 }

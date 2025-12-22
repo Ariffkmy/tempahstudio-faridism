@@ -52,7 +52,7 @@ async function validateWhatsAppContacts(sock, contacts, batchSize = 50) {
             // Extract phone numbers from contact IDs
             const phoneNumbers = batch
                 .map(c => c.id.replace('@s.whatsapp.net', '').replace('@lid', ''))
-                .filter(num => num && !num.includes('@')); // Remove invalid entries
+                .filter(num => num && /^\d+$/.test(num)); // Only valid numeric phone numbers
 
             if (phoneNumbers.length === 0) continue;
 
@@ -61,12 +61,17 @@ async function validateWhatsAppContacts(sock, contacts, batchSize = 50) {
                 const validationResults = await sock.onWhatsApp(...phoneNumbers);
 
                 // Only keep contacts that exist on WhatsApp
+                // CRITICAL: Use exact phone number matching, not loose includes()
                 for (const result of validationResults) {
                     if (result.exists) {
-                        // Find the original contact data
-                        const originalContact = batch.find(c =>
-                            c.id.includes(result.jid.split('@')[0])
-                        );
+                        // Extract phone number from validation result JID
+                        const validatedPhone = result.jid.split('@')[0];
+
+                        // Find the original contact with EXACT phone number match
+                        const originalContact = batch.find(c => {
+                            const contactPhone = c.id.replace('@s.whatsapp.net', '').replace('@lid', '');
+                            return contactPhone === validatedPhone; // Exact match only
+                        });
 
                         if (originalContact) {
                             validContacts.push(originalContact);

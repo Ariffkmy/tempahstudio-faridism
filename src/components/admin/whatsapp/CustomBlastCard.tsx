@@ -14,7 +14,11 @@ import { sendBlast, getBlastHistory, type BlastRecipient, type BlastHistory, typ
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 
-interface CustomBlastCardProps {`r`n    studioId: string;`r`n    isConnected: boolean;`r`n    importedContacts?: Array<{ name: string; phone: string }>;`r`n    onClearImported?: () => void;
+interface CustomBlastCardProps {
+    studioId: string;
+    isConnected: boolean;
+    importedContacts?: Array<{ name: string; phone: string }>;
+    onClearImported?: () => void;
 }
 
 export function CustomBlastCard({ studioId, isConnected, importedContacts, onClearImported }: CustomBlastCardProps) {

@@ -9,7 +9,10 @@ import { Loader2, Users, Search, Download, RefreshCw, Trash2 } from 'lucide-reac
 import { getContacts, syncContacts, type WhatsAppContact } from '@/services/whatsappBaileysService';
 import { supabase } from '@/lib/supabase';
 
-interface ContactManagementCardProps {`r`n    studioId: string;`r`n    isConnected: boolean;`r`n    onImportContacts?: (contacts: Array<{ name: string; phone: string }>) => void;
+interface ContactManagementCardProps {
+    studioId: string;
+    isConnected: boolean;
+    onImportContacts?: (contacts: Array<{ name: string; phone: string }>) => void;
 }
 
 export function ContactManagementCard({ studioId, isConnected, onImportContacts }: ContactManagementCardProps) {
@@ -319,7 +322,7 @@ export function ContactManagementCard({ studioId, isConnected, onImportContacts 
                         </CardTitle>
                         <CardDescription>
                             {contacts.length > 0
-                                ? `${contacts.length} contacts available • ${selectedContacts.size} selected`
+                                ? `${contacts.length} contacts available  ${selectedContacts.size} selected`
                                 : 'No contacts synced yet'}
                         </CardDescription>
                     </div>

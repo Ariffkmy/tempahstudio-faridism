@@ -542,6 +542,82 @@ export async function createPublicBooking(bookingData: CreateBookingData): Promi
       // This is logged but doesn't prevent the booking from succeeding
     }
 
+    // Send WhatsApp notification if customer phone is provided
+    if (booking.customer.phone) {
+      try {
+        console.log('\n========================================');
+        console.log('📱 WHATSAPP NOTIFICATION - Starting process');
+        console.log('========================================');
+        console.log('Customer has phone number:', booking.customer.phone);
+        console.log('Booking details:', {
+          reference: booking.reference,
+          customerName: booking.customer.name,
+          customerEmail: booking.customer.email,
+          customerPhone: booking.customer.phone,
+          date: booking.date,
+          startTime: booking.start_time,
+          endTime: booking.end_time,
+          studioId: booking.studio_id,
+          studioName: booking.studio.name,
+          layoutName: booking.studio_layout.name,
+          totalPrice: booking.total_price,
+        });
+
+        console.log('\n🔄 Importing WhatsApp service...');
+        const { sendBookingNotification } = await import('@/services/whatsappBaileysService');
+        console.log('✓ WhatsApp service imported successfully');
+
+        console.log('\n📞 Calling sendBookingNotification...');
+        const whatsappResult = await sendBookingNotification({
+          studioId: booking.studio_id,
+          customerPhone: booking.customer.phone,
+          customerName: booking.customer.name,
+          bookingReference: booking.reference,
+          date: booking.date,
+          startTime: booking.start_time,
+          endTime: booking.end_time,
+          studioName: booking.studio.name,
+          layoutName: booking.studio_layout.name,
+          totalPrice: booking.total_price,
+        });
+
+        console.log('\n📥 WhatsApp notification result received:');
+        console.log('Success:', whatsappResult.success);
+        if (whatsappResult.error) {
+          console.log('Error:', whatsappResult.error);
+        }
+
+        if (whatsappResult.success) {
+          console.log('\n✅ ✅ ✅ SUCCESS: WhatsApp booking notification sent!');
+          console.log('Customer will receive the message at:', booking.customer.phone);
+          console.log('========================================\n');
+        } else {
+          console.warn('\n⚠️ ⚠️ ⚠️ WARNING: WhatsApp notification failed');
+          console.warn('Reason:', whatsappResult.error);
+          console.warn('Booking was still created successfully');
+          console.warn('Customer will receive email confirmation instead');
+          console.warn('========================================\n');
+        }
+      } catch (whatsappError) {
+        console.error('\n❌ ❌ ❌ ERROR: Exception in WhatsApp notification');
+        console.error('Error type:', whatsappError instanceof Error ? whatsappError.constructor.name : typeof whatsappError);
+        console.error('Error message:', whatsappError instanceof Error ? whatsappError.message : String(whatsappError));
+        console.error('Error stack:', whatsappError instanceof Error ? whatsappError.stack : 'N/A');
+        console.error('Note: Booking was still created successfully');
+        console.error('Customer will receive email confirmation');
+        console.error('========================================\n');
+        // Don't fail booking if WhatsApp notification fails
+        // This is logged but doesn't prevent the booking from succeeding
+      }
+    } else {
+      console.log('\n========================================');
+      console.log('ℹ️ WHATSAPP NOTIFICATION - Skipped');
+      console.log('========================================');
+      console.log('Reason: No phone number provided by customer');
+      console.log('Customer will receive email confirmation only');
+      console.log('========================================\n');
+    }
+
     return { success: true, booking };
   } catch (error) {
     console.error('Error in createPublicBooking:', error);

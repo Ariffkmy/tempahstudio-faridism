@@ -245,6 +245,116 @@ export async function getBlastHistory(studioId: string): Promise<BlastHistory[]>
 }
 
 /**
+ * Send booking confirmation notification via WhatsApp
+ */
+export async function sendBookingNotification(params: {
+    studioId: string;
+    customerPhone: string;
+    customerName: string;
+    bookingReference: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    studioName: string;
+    layoutName: string;
+    totalPrice: number;
+}): Promise<{ success: boolean; error?: string }> {
+    try {
+        console.log('\n========== WHATSAPP BOOKING NOTIFICATION ==========');
+        console.log('📱 Starting WhatsApp booking notification process...');
+        console.log('Studio ID:', params.studioId);
+        console.log('Customer Name:', params.customerName);
+        console.log('Customer Phone (raw):', params.customerPhone);
+        console.log('Booking Reference:', params.bookingReference);
+
+        // Format phone number - ensure it has country code
+        let formattedPhone = params.customerPhone.replace(/\D/g, ''); // Remove non-digits
+        console.log('Phone after removing non-digits:', formattedPhone);
+
+        // If phone doesn't start with country code, assume Malaysia (60)
+        if (!formattedPhone.startsWith('60') && formattedPhone.startsWith('0')) {
+            formattedPhone = '60' + formattedPhone.substring(1);
+            console.log('Added country code (removed leading 0):', formattedPhone);
+        } else if (!formattedPhone.startsWith('60')) {
+            formattedPhone = '60' + formattedPhone;
+            console.log('Added country code (no leading 0):', formattedPhone);
+        } else {
+            console.log('Phone already has country code:', formattedPhone);
+        }
+
+        console.log('✓ Final formatted phone:', formattedPhone);
+
+        // Format date for display (YYYY-MM-DD to DD/MM/YYYY)
+        const dateParts = params.date.split('-');
+        const formattedDate = dateParts.length === 3
+            ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`
+            : params.date;
+        console.log('✓ Formatted date:', formattedDate);
+
+        // Create personalized message
+        const message = `Terima kasih atas tempahan anda!
+
+Rujukan: ${params.bookingReference}
+Nama: ${params.customerName}
+Tarikh: ${formattedDate}
+Masa: ${params.startTime} - ${params.endTime}
+Studio: ${params.studioName}
+Layout: ${params.layoutName}
+Jumlah: RM${params.totalPrice.toFixed(2)}
+
+Kami akan menghubungi anda tidak lama lagi. Terima kasih!`;
+
+        console.log('✓ Message prepared');
+        console.log('Message preview (first 100 chars):', message.substring(0, 100) + '...');
+        console.log('Message length:', message.length, 'characters');
+
+        console.log('\n📤 Calling sendBlast API...');
+        console.log('Recipient:', { phone: formattedPhone, name: params.customerName });
+
+        // Use the existing sendBlast function with a single recipient
+        const result = await sendBlast({
+            studioId: params.studioId,
+            recipients: [{
+                phone: formattedPhone,
+                name: params.customerName,
+            }],
+            message,
+        });
+
+        console.log('\n📥 Received response from sendBlast API');
+        console.log('Result:', JSON.stringify(result, null, 2));
+
+        if (result.success && result.successCount > 0) {
+            console.log('✅ SUCCESS: Booking notification sent successfully!');
+            console.log('Success count:', result.successCount);
+            console.log('Fail count:', result.failCount);
+            console.log('Blast ID:', result.blastId);
+            console.log('==================================================\n');
+            return { success: true };
+        } else {
+            const errorMsg = result.errors?.[0]?.error || 'Failed to send notification';
+            console.error('❌ FAILED: Booking notification failed');
+            console.error('Error message:', errorMsg);
+            console.error('Success count:', result.successCount);
+            console.error('Fail count:', result.failCount);
+            console.error('Errors:', result.errors);
+            console.log('==================================================\n');
+            return { success: false, error: errorMsg };
+        }
+    } catch (error) {
+        console.error('\n❌ EXCEPTION: Error sending booking notification');
+        console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error);
+        console.error('Error message:', error instanceof Error ? error.message : String(error));
+        console.error('Error stack:', error instanceof Error ? error.stack : 'N/A');
+        console.log('==================================================\n');
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error'
+        };
+    }
+}
+
+/**
  * Check if WhatsApp service is running
  */
 export async function checkServiceHealth(): Promise<boolean> {

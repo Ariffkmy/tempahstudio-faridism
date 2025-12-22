@@ -17,15 +17,15 @@ import { supabase } from '@/lib/supabase';
 interface CustomBlastCardProps {
     studioId: string;
     isConnected: boolean;
-    importedContacts?: Array<{ name: string; phone: string }>;
-    onClearImported?: () => void;
+    recipients: Array<{ name: string; phone: string }>;
+    setRecipients: React.Dispatch<React.SetStateAction<Array<{ name: string; phone: string }>>>;
 }
 
-export function CustomBlastCard({ studioId, isConnected, importedContacts, onClearImported }: CustomBlastCardProps) {
+export function CustomBlastCard({ studioId, isConnected, recipients, setRecipients }: CustomBlastCardProps) {
     const { toast } = useToast();
     const [sending, setSending] = useState(false);
     const [message, setMessage] = useState('');
-    const [recipients, setRecipients] = useState<BlastRecipient[]>([]);
+    // recipients is now controlled by parent component
     const [newRecipientName, setNewRecipientName] = useState('');
     const [newRecipientPhone, setNewRecipientPhone] = useState('');
     const [showPreview, setShowPreview] = useState(false);
@@ -36,36 +36,7 @@ export function CustomBlastCard({ studioId, isConnected, importedContacts, onCle
     const [loadingTracking, setLoadingTracking] = useState(false);
 
     // Fetch blast history
-    
-    // Handle imported contacts from Contact Management
-    useEffect(() => {
-        if (importedContacts && importedContacts.length > 0) {
-            console.log(' Importing contacts:', importedContacts);
-            
-            // Add imported contacts to recipients
-            const newRecipients: BlastRecipient[] = importedContacts.map(contact => ({
-                name: contact.name,
-                phone: contact.phone
-            }));
-            
-            setRecipients(prev => {
-                // Avoid duplicates
-                const existingPhones = new Set(prev.map(r => r.phone));
-                const uniqueNew = newRecipients.filter(r => !existingPhones.has(r.phone));
-                return [...prev, ...uniqueNew];
-            });
-            
-            toast({
-                title: 'Contacts Added',
-                description: `${newRecipients.length} contacts added to recipients`,
-            });
-            
-            // Clear imported contacts after adding
-            if (onClearImported) {
-                onClearImported();
-            }
-        }
-    }, [importedContacts]);
+    // Note: Recipients are now managed by parent component and passed as props
 
     const fetchHistory = async () => {
         try {

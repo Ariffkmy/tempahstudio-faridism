@@ -64,7 +64,7 @@ export function ContactManagementCard({ studioId, isConnected, onImportContacts 
     // Filter contacts based on search
     useEffect(() => {
         console.log(' Filter useEffect triggered:', { searchQuery, contactsCount: contacts.length });
-        
+
         if (searchQuery) {
             const filtered = contacts.filter(
                 (contact) =>
@@ -177,6 +177,10 @@ export function ContactManagementCard({ studioId, isConnected, onImportContacts 
     };
 
     const handleImportSelected = async () => {
+        console.log('🔵 [ContactManagement] handleImportSelected called');
+        console.log('  - Selected contacts count:', selectedContacts.size);
+        console.log('  - Selected contact IDs:', Array.from(selectedContacts));
+
         if (selectedContacts.size === 0) {
             toast({
                 title: 'No Contacts Selected',
@@ -190,6 +194,8 @@ export function ContactManagementCard({ studioId, isConnected, onImportContacts 
             setImporting(true);
 
             const selectedContactList = contacts.filter((c) => selectedContacts.has(c.id));
+            console.log('  - Filtered selected contacts:', selectedContactList.length);
+            console.log('  - Contact details:', selectedContactList);
 
             // Call parent handler to import contacts to Custom Blast
             if (onImportContacts) {
@@ -197,11 +203,18 @@ export function ContactManagementCard({ studioId, isConnected, onImportContacts 
                     name: c.name || 'Unknown',
                     phone: c.phone
                 }));
+                console.log('  - Formatted contacts for import:', formattedContacts);
+                console.log('  - Calling onImportContacts callback...');
                 onImportContacts(formattedContacts);
+                console.log('  ✅ onImportContacts callback completed');
+            } else {
+                console.warn('  ⚠️ onImportContacts callback is not defined!');
             }
 
             setSelectedContacts(new Set());
+            console.log('  - Selection cleared');
         } catch (error: any) {
+            console.error('  ❌ Error during import:', error);
             toast({
                 title: 'Error',
                 description: error.message || 'An error occurred',
@@ -209,6 +222,7 @@ export function ContactManagementCard({ studioId, isConnected, onImportContacts 
             });
         } finally {
             setImporting(false);
+            console.log('🔵 [ContactManagement] handleImportSelected finished');
         }
     };
 

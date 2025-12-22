@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveStudioId } from '@/contexts/StudioContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,15 +52,47 @@ const AdminWhatsappBlaster = () => {
   const [isWhatsAppConnected, setIsWhatsAppConnected] = useState(false);
   const [activeTab, setActiveTab] = useState('delivery');
   const [importedContacts, setImportedContacts] = useState<Array<{ name: string; phone: string }>>([]);
+  const [importTrigger, setImportTrigger] = useState(0); // Counter to force re-render
+
+  // Lift recipients state to parent to persist across tab switches
+  const [recipients, setRecipients] = useState<Array<{ name: string; phone: string }>>([]);
 
   // Handler for importing contacts from Contact Management
   const handleImportContacts = (contacts: Array<{ name: string; phone: string }>) => {
-    setImportedContacts(contacts);
+    console.log('🟢 [AdminWhatsappBlaster] handleImportContacts called');
+    console.log('  - Received contacts count:', contacts.length);
+    console.log('  - Received contacts:', contacts);
+    console.log('  - Current activeTab:', activeTab);
+
+    // Directly add to recipients state (with duplicate filtering)
+    // Using functional update to ensure we always get the latest state
+    setRecipients(prev => {
+      console.log('  - Inside setRecipients callback');
+      console.log('  - Previous recipients (from state):', prev);
+      console.log('  - Previous recipients count:', prev.length);
+
+      const existingPhones = new Set(prev.map(r => r.phone));
+      console.log('  - Existing phones:', Array.from(existingPhones));
+
+      const uniqueNew = contacts.filter(c => !existingPhones.has(c.phone));
+      console.log('  - Unique new contacts (after filtering):', uniqueNew.length);
+      console.log('  - Unique new contacts:', uniqueNew);
+
+      const updated = [...prev, ...uniqueNew];
+      console.log('  - Updated recipients (total):', updated.length);
+      console.log('  - Updated recipients array:', updated);
+
+      return updated;
+    });
+
     setActiveTab('blast');
+    console.log('  - setActiveTab called with: blast');
+
     toast({
       title: 'Contacts Imported',
       description: `${contacts.length} contacts added to Custom Blast recipients`,
     });
+    console.log('🟢 [AdminWhatsappBlaster] handleImportContacts finished');
   };
 
   // Check WhatsApp connection status
@@ -361,9 +393,20 @@ const AdminWhatsappBlaster = () => {
 
             {/* Tab 4: Custom Blast */}
             <TabsContent value="blast">
-              {effectiveStudioId && (
-                <CustomBlastCard studioId={effectiveStudioId} isConnected={isWhatsAppConnected} onImportContacts={handleImportContacts} />
-              )}
+              {effectiveStudioId && (() => {
+                console.log('🟣 [AdminWhatsappBlaster] Rendering CustomBlastCard');
+                console.log('  - studioId:', effectiveStudioId);
+                console.log('  - isConnected:', isWhatsAppConnected);
+                console.log('  - recipients to pass:', recipients);
+                return (
+                  <CustomBlastCard
+                    studioId={effectiveStudioId}
+                    isConnected={isWhatsAppConnected}
+                    recipients={recipients}
+                    setRecipients={setRecipients}
+                  />
+                );
+              })()}
             </TabsContent>
           </Tabs>
 

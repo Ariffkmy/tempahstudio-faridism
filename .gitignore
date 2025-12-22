@@ -26,3 +26,6 @@ dist-ssr
 # Markdown files
 *.md
 !README.md
+!src/baileys/**/*.md
+!WHATSAPP_BLASTER_IMPLEMENTATION.md
+!backend/**/*.md

@@ -1,0 +1,4 @@
+// Quick fix: Replace searchQuery with nameFilter temporarily
+// Line 424: value={searchQuery} -> value={nameFilter}
+// Line 425: onChange={(e) => setSearchQuery(e.target.value)} -> onChange={(e) => setNameFilter(e.target.value)}
+// Line 423: placeholder="Search contacts by name or phone..." -> placeholder="Filter by name..."

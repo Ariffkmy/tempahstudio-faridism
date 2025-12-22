@@ -1,6 +1,10 @@
 import express from 'express';
 import cors from 'cors';
-import makeWASocket, { DisconnectReason, useMultiFileAuthState, fetchLatestBaileysVersion } from '@whiskeysockets/baileys';
+import makeWASocket, {
+    DisconnectReason,
+    useMultiFileAuthState,
+    fetchLatestBaileysVersion
+} from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import QRCode from 'qrcode';
 import { createClient } from '@supabase/supabase-js';
@@ -30,6 +34,9 @@ const activeConnections = new Map();
 // Store QR codes temporarily
 const qrCodes = new Map();
 
+// Store synced contacts from device (for re-importing after deletion)
+const syncedContacts = new Map();
+
 /**
  * Get or create WhatsApp socket connection for a studio
  */
@@ -45,9 +52,12 @@ async function getWhatsAppSocket(studioId) {
         fs.mkdirSync(authPath, { recursive: true });
     }
 
+    // Load saved credentials
     const { state, saveCreds } = await useMultiFileAuthState(authPath);
+    // Get latest WhatsApp version
     const { version } = await fetchLatestBaileysVersion();
 
+    // Create socket
     const sock = makeWASocket({
         version,
         auth: state,
@@ -161,6 +171,139 @@ async function getWhatsAppSocket(studioId) {
 
                     console.log(`✗ Message ${messageId} failed`);
                 }
+            }
+        }
+    });
+
+    // Handle contact syncing from WhatsApp
+    sock.ev.process(async (events) => {
+        // Initial contact sync during history synchronization
+        if (events['messaging-history.set']) {
+            const { contacts, isLatest } = events['messaging-history.set'];
+
+            if (contacts && contacts.length > 0) {
+                console.log(`\n📇 Received ${contacts.length} contacts from WhatsApp`);
+
+                // Process and format contacts
+                const formattedContacts = contacts.map(contact => ({
+                    id: contact.id,
+                    name: contact.name || contact.notify || contact.id.split('@')[0],
+                    phone: contact.id.split('@')[0],
+                    notify: contact.notify,
+                    isGroup: contact.id.includes('@g.us'),
+                })).filter(c => !c.isGroup); // Exclude groups
+
+                console.log(`✓ Processed ${formattedContacts.length} individual contacts`);
+
+                // Store in memory for re-importing (append to existing)
+                const existingContacts = syncedContacts.get(studioId) || [];
+                const existingIds = new Set(existingContacts.map(c => c.id));
+
+                // Add only new contacts (avoid duplicates)
+                const newContacts = formattedContacts.filter(c => !existingIds.has(c.id));
+                const allContacts = [...existingContacts, ...newContacts];
+
+                syncedContacts.set(studioId, allContacts);
+                console.log(`✓ Contacts stored in memory: ${allContacts.length} total (${newContacts.length} new, ${existingContacts.length} existing)`);
+
+                // Save to database (merge with existing)
+                try {
+                    const { data: session } = await supabase
+                        .from('whatsapp_sessions')
+                        .select('contacts')
+                        .eq('studio_id', studioId)
+                        .single();
+
+                    const dbContacts = session?.contacts || [];
+                    const dbIds = new Set(dbContacts.map(c => c.id));
+                    const newDbContacts = formattedContacts.filter(c => !dbIds.has(c.id));
+                    const mergedContacts = [...dbContacts, ...newDbContacts];
+
+                    await supabase
+                        .from('whatsapp_sessions')
+                        .update({ contacts: mergedContacts })
+                        .eq('studio_id', studioId);
+
+                    console.log(`✓ Contacts saved to database: ${mergedContacts.length} total for studio ${studioId}`);
+                } catch (error) {
+                    console.error('Failed to save contacts:', error.message);
+                }
+            }
+        }
+
+        // Handle new contacts added
+        if (events['contacts.upsert']) {
+            console.log(`\n📇 New contacts added: ${events['contacts.upsert'].length}`);
+
+            const newContacts = events['contacts.upsert'].map(contact => ({
+                id: contact.id,
+                name: contact.name || contact.notify || contact.id.split('@')[0],
+                phone: contact.id.split('@')[0],
+                notify: contact.notify,
+                isGroup: contact.id.includes('@g.us'),
+            })).filter(c => !c.isGroup);
+
+            if (newContacts.length > 0) {
+                try {
+                    // Get existing contacts
+                    const { data: session } = await supabase
+                        .from('whatsapp_sessions')
+                        .select('contacts')
+                        .eq('studio_id', studioId)
+                        .single();
+
+                    const existingContacts = session?.contacts || [];
+                    const existingIds = new Set(existingContacts.map(c => c.id));
+
+                    // Add only new contacts
+                    const uniqueNewContacts = newContacts.filter(c => !existingIds.has(c.id));
+                    const updatedContacts = [...existingContacts, ...uniqueNewContacts];
+
+                    await supabase
+                        .from('whatsapp_sessions')
+                        .update({ contacts: updatedContacts })
+                        .eq('studio_id', studioId);
+
+                    console.log(`✓ Added ${uniqueNewContacts.length} new contacts`);
+                } catch (error) {
+                    console.error('Failed to update contacts:', error.message);
+                }
+            }
+        }
+
+        // Handle contact updates
+        if (events['contacts.update']) {
+            console.log(`\n📇 Contact updates: ${events['contacts.update'].length}`);
+
+            try {
+                const { data: session } = await supabase
+                    .from('whatsapp_sessions')
+                    .select('contacts')
+                    .eq('studio_id', studioId)
+                    .single();
+
+                let contacts = session?.contacts || [];
+
+                // Update existing contacts
+                for (const update of events['contacts.update']) {
+                    const index = contacts.findIndex(c => c.id === update.id);
+                    if (index !== -1) {
+                        contacts[index] = {
+                            ...contacts[index],
+                            name: update.name || contacts[index].name,
+                            notify: update.notify || contacts[index].notify,
+                        };
+                    }
+                }
+
+                await supabase
+                    .from('whatsapp_sessions')
+                    .update({ contacts })
+                    .eq('studio_id', studioId);
+
+                console.log(`✓ Updated ${events['contacts.update'].length} contacts`);
+            } catch (error) {
+                console.error('Failed to update contacts:', error.message);
             }
         }
     });
@@ -325,29 +468,110 @@ app.post('/api/whatsapp/disconnect', async (req, res) => {
     }
 });
 
-// Get contacts from WhatsApp
+// Get contacts
 app.get('/api/whatsapp/contacts/:studioId', async (req, res) => {
     try {
         const { studioId } = req.params;
+        console.log('\n--- Fetching contacts for studio:', studioId);
 
         const sock = activeConnections.get(studioId);
 
         if (!sock || !sock.user) {
+            console.error('WhatsApp not connected');
             return res.status(400).json({ error: 'WhatsApp not connected' });
         }
 
-        // Fetch contacts - Note: Baileys doesn't directly provide contact list
-        // We need to get it from the store or use a different approach
-        // For now, return contacts from database if previously synced
+        console.log('✓ WhatsApp connected');
+
+        // Note: Baileys doesn't provide direct contact list access
+        // Users need to manually import contacts or we fetch from database
         const { data } = await supabase
             .from('whatsapp_sessions')
             .select('contacts')
             .eq('studio_id', studioId)
             .single();
 
-        res.json({ contacts: data?.contacts || [] });
+        const contacts = data?.contacts || [];
+        console.log(`✓ Loaded ${contacts.length} contacts from database`);
+
+        res.json({ contacts });
     } catch (error) {
         console.error('Error getting contacts:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Manually trigger contact sync from device
+app.post('/api/whatsapp/sync-contacts/:studioId', async (req, res) => {
+    try {
+        const { studioId } = req.params;
+        console.log('\n--- Manual contact sync requested for studio:', studioId);
+
+        const sock = activeConnections.get(studioId);
+
+        if (!sock || !sock.user) {
+            console.error('WhatsApp not connected');
+            return res.status(400).json({ error: 'WhatsApp not connected' });
+        }
+
+        console.log('✓ WhatsApp connected, retrieving synced contacts...');
+
+        // Get contacts from memory (originally synced from device)
+        const storedContacts = syncedContacts.get(studioId);
+
+        if (!storedContacts || storedContacts.length === 0) {
+            console.log('⚠️  No contacts in memory. Checking database...');
+
+            // Fallback to database
+            const { data } = await supabase
+                .from('whatsapp_sessions')
+                .select('contacts')
+                .eq('studio_id', studioId)
+                .single();
+
+            const dbContacts = data?.contacts || [];
+
+            if (dbContacts.length > 0) {
+                // Store in memory for future use
+                syncedContacts.set(studioId, dbContacts);
+                console.log(`✓ Loaded ${dbContacts.length} contacts from database and stored in memory`);
+
+                // Save back to database
+                await supabase
+                    .from('whatsapp_sessions')
+                    .update({ contacts: dbContacts })
+                    .eq('studio_id', studioId);
+
+                return res.json({
+                    contacts: dbContacts,
+                    message: `Re-imported ${dbContacts.length} contacts from device sync`,
+                    source: 'database'
+                });
+            } else {
+                console.log('⚠️  No contacts found. Please disconnect and reconnect WhatsApp to sync from device.');
+                return res.json({
+                    contacts: [],
+                    message: 'No contacts available. Disconnect and reconnect WhatsApp to sync from your device.',
+                    source: 'none'
+                });
+            }
+        }
+
+        console.log(`✓ Re-importing ${storedContacts.length} contacts from device sync`);
+
+        // Save to database
+        await supabase
+            .from('whatsapp_sessions')
+            .update({ contacts: storedContacts })
+            .eq('studio_id', studioId);
+
+        res.json({
+            contacts: storedContacts,
+            message: `Successfully re-imported ${storedContacts.length} contacts from your WhatsApp device`,
+            source: 'device_sync'
+        });
+    } catch (error) {
+        console.error('Error syncing contacts:', error);
         res.status(500).json({ error: error.message });
     }
 });

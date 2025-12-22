@@ -180,6 +180,27 @@ export async function getContacts(studioId: string): Promise<WhatsAppContact[]> 
 }
 
 /**
+ * Manually sync contacts from WhatsApp device
+ */
+export async function syncContacts(studioId: string): Promise<WhatsAppContact[]> {
+    try {
+        const response = await fetch(`${WHATSAPP_SERVICE_URL}/api/whatsapp/sync-contacts/${studioId}`, {
+            method: 'POST',
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to sync contacts');
+        }
+
+        const data = await response.json();
+        return data.contacts;
+    } catch (error) {
+        console.error('Error syncing contacts:', error);
+        throw error;
+    }
+}
+
+/**
  * Send WhatsApp blast
  */
 export async function sendBlast(params: BlastParams): Promise<BlastResult> {

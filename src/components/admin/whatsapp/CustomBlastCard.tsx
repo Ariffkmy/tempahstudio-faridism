@@ -27,7 +27,6 @@ export function CustomBlastCard({ studioId, isConnected }: CustomBlastCardProps)
     const [newRecipientName, setNewRecipientName] = useState('');
     const [newRecipientPhone, setNewRecipientPhone] = useState('');
     const [showPreview, setShowPreview] = useState(false);
-    const [showHistory, setShowHistory] = useState(false);
     const [history, setHistory] = useState<BlastHistory[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [selectedBlastId, setSelectedBlastId] = useState<string | null>(null);
@@ -51,14 +50,22 @@ export function CustomBlastCard({ studioId, isConnected }: CustomBlastCardProps)
     const fetchMessageTracking = async (blastId: string) => {
         try {
             setLoadingTracking(true);
+            console.log('Fetching tracking for blast:', blastId);
             const { data, error } = await supabase
                 .from('whatsapp_message_tracking')
                 .select('*')
                 .eq('blast_id', blastId)
                 .order('created_at', { ascending: false });
 
-            if (error) throw error;
+            console.log('Tracking query result:', { data, error });
+
+            if (error) {
+                console.error('Supabase error:', error);
+                throw error;
+            }
+
             setMessageTracking(data || []);
+            console.log('Message tracking loaded:', data?.length || 0, 'messages');
         } catch (error: any) {
             console.error('Error fetching message tracking:', error);
             toast({
@@ -71,11 +78,15 @@ export function CustomBlastCard({ studioId, isConnected }: CustomBlastCardProps)
         }
     };
 
+    // Auto-load history on mount and when connected
     useEffect(() => {
-        if (showHistory && isConnected) {
+        if (isConnected) {
             fetchHistory();
+            // Refresh history every 10 seconds
+            const interval = setInterval(fetchHistory, 10000);
+            return () => clearInterval(interval);
         }
-    }, [showHistory, isConnected, studioId]);
+    }, [isConnected, studioId]);
 
     // Fetch tracking when blast is selected and poll for updates
     useEffect(() => {
@@ -225,9 +236,7 @@ export function CustomBlastCard({ studioId, isConnected }: CustomBlastCardProps)
             setRecipients([]);
 
             // Refresh history
-            if (showHistory) {
-                fetchHistory();
-            }
+            fetchHistory();
         } catch (error: any) {
             console.error('❌ Frontend: Blast failed');
             console.error('  Error:', error);
@@ -382,15 +391,7 @@ export function CustomBlastCard({ studioId, isConnected }: CustomBlastCardProps)
                     </div>
 
                     {/* Send Button */}
-                    <div className="flex justify-between items-center pt-4 border-t">
-                        <Button
-                            variant="outline"
-                            onClick={() => setShowHistory(!showHistory)}
-                            className="gap-2"
-                        >
-                            <History className="h-4 w-4" />
-                            {showHistory ? 'Hide' : 'Show'} History
-                        </Button>
+                    <div className="flex gap-2">
                         <Button
                             onClick={handleSendBlast}
                             disabled={sending || !message || recipients.length === 0}
@@ -415,88 +416,86 @@ export function CustomBlastCard({ studioId, isConnected }: CustomBlastCardProps)
             </Card>
 
             {/* Blast History */}
-            {showHistory && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <History className="h-5 w-5" />
-                            Blast History
-                        </CardTitle>
-                        <CardDescription>View your recent message blasts</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {loadingHistory ? (
-                            <div className="text-center py-8">
-                                <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin text-muted-foreground" />
-                                <p className="text-muted-foreground">Loading history...</p>
-                            </div>
-                        ) : history.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
-                                <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                <p>No blast history yet</p>
-                            </div>
-                        ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Date</TableHead>
-                                        <TableHead>Recipients</TableHead>
-                                        <TableHead>Sent</TableHead>
-                                        <TableHead>Failed</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Actions</TableHead>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <History className="h-5 w-5" />
+                        Blast History
+                    </CardTitle>
+                    <CardDescription>View your recent message blasts</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {loadingHistory ? (
+                        <div className="text-center py-8">
+                            <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin text-muted-foreground" />
+                            <p className="text-muted-foreground">Loading history...</p>
+                        </div>
+                    ) : history.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                            <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No blast history yet</p>
+                        </div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Recipients</TableHead>
+                                    <TableHead>Sent</TableHead>
+                                    <TableHead>Failed</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {history.map((blast) => (
+                                    <TableRow key={blast.id}>
+                                        <TableCell>
+                                            {format(new Date(blast.created_at), 'MMM dd, yyyy HH:mm')}
+                                        </TableCell>
+                                        <TableCell>{blast.total_recipients}</TableCell>
+                                        <TableCell className="text-green-600">
+                                            <div className="flex items-center gap-1">
+                                                <CheckCircle2 className="h-4 w-4" />
+                                                {blast.successful_sends}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-red-600">
+                                            <div className="flex items-center gap-1">
+                                                <XCircle className="h-4 w-4" />
+                                                {blast.failed_sends}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge
+                                                variant={
+                                                    blast.status === 'completed'
+                                                        ? 'default'
+                                                        : blast.status === 'failed'
+                                                            ? 'destructive'
+                                                            : 'secondary'
+                                                }
+                                            >
+                                                {blast.status}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => handleViewDetails(blast.id)}
+                                            >
+                                                <Eye className="h-4 w-4 mr-1" />
+                                                View Details
+                                            </Button>
+                                        </TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {history.map((blast) => (
-                                        <TableRow key={blast.id}>
-                                            <TableCell>
-                                                {format(new Date(blast.created_at), 'MMM dd, yyyy HH:mm')}
-                                            </TableCell>
-                                            <TableCell>{blast.total_recipients}</TableCell>
-                                            <TableCell className="text-green-600">
-                                                <div className="flex items-center gap-1">
-                                                    <CheckCircle2 className="h-4 w-4" />
-                                                    {blast.successful_sends}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-red-600">
-                                                <div className="flex items-center gap-1">
-                                                    <XCircle className="h-4 w-4" />
-                                                    {blast.failed_sends}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant={
-                                                        blast.status === 'completed'
-                                                            ? 'default'
-                                                            : blast.status === 'failed'
-                                                                ? 'destructive'
-                                                                : 'secondary'
-                                                    }
-                                                >
-                                                    {blast.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    onClick={() => handleViewDetails(blast.id)}
-                                                >
-                                                    <Eye className="h-4 w-4 mr-1" />
-                                                    View Details
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        )}
-                    </CardContent>
-                </Card>
-            )}
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                </CardContent>
+            </Card>
 
             {/* Message Tracking Details Dialog */}
             <Dialog open={!!selectedBlastId} onOpenChange={(open) => !open && handleCloseDetails()}>

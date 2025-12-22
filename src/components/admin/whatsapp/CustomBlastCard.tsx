@@ -14,12 +14,10 @@ import { sendBlast, getBlastHistory, type BlastRecipient, type BlastHistory, typ
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 
-interface CustomBlastCardProps {
-    studioId: string;
-    isConnected: boolean;
+interface CustomBlastCardProps {`r`n    studioId: string;`r`n    isConnected: boolean;`r`n    importedContacts?: Array<{ name: string; phone: string }>;`r`n    onClearImported?: () => void;
 }
 
-export function CustomBlastCard({ studioId, isConnected }: CustomBlastCardProps) {
+export function CustomBlastCard({ studioId, isConnected, importedContacts, onClearImported }: CustomBlastCardProps) {
     const { toast } = useToast();
     const [sending, setSending] = useState(false);
     const [message, setMessage] = useState('');
@@ -34,6 +32,37 @@ export function CustomBlastCard({ studioId, isConnected }: CustomBlastCardProps)
     const [loadingTracking, setLoadingTracking] = useState(false);
 
     // Fetch blast history
+    
+    // Handle imported contacts from Contact Management
+    useEffect(() => {
+        if (importedContacts && importedContacts.length > 0) {
+            console.log(' Importing contacts:', importedContacts);
+            
+            // Add imported contacts to recipients
+            const newRecipients: BlastRecipient[] = importedContacts.map(contact => ({
+                name: contact.name,
+                phone: contact.phone
+            }));
+            
+            setRecipients(prev => {
+                // Avoid duplicates
+                const existingPhones = new Set(prev.map(r => r.phone));
+                const uniqueNew = newRecipients.filter(r => !existingPhones.has(r.phone));
+                return [...prev, ...uniqueNew];
+            });
+            
+            toast({
+                title: 'Contacts Added',
+                description: `${newRecipients.length} contacts added to recipients`,
+            });
+            
+            // Clear imported contacts after adding
+            if (onClearImported) {
+                onClearImported();
+            }
+        }
+    }, [importedContacts]);
+
     const fetchHistory = async () => {
         try {
             setLoadingHistory(true);

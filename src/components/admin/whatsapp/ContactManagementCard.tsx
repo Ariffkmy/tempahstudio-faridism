@@ -9,12 +9,10 @@ import { Loader2, Users, Search, Download, RefreshCw, Trash2 } from 'lucide-reac
 import { getContacts, syncContacts, type WhatsAppContact } from '@/services/whatsappBaileysService';
 import { supabase } from '@/lib/supabase';
 
-interface ContactManagementCardProps {
-    studioId: string;
-    isConnected: boolean;
+interface ContactManagementCardProps {`r`n    studioId: string;`r`n    isConnected: boolean;`r`n    onImportContacts?: (contacts: Array<{ name: string; phone: string }>) => void;
 }
 
-export function ContactManagementCard({ studioId, isConnected }: ContactManagementCardProps) {
+export function ContactManagementCard({ studioId, isConnected, onImportContacts }: ContactManagementCardProps) {
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [syncing, setSyncing] = useState(false);
@@ -22,8 +20,7 @@ export function ContactManagementCard({ studioId, isConnected }: ContactManageme
     const [csvImporting, setCsvImporting] = useState(false);
     const [contacts, setContacts] = useState<WhatsAppContact[]>([]);
     const [filteredContacts, setFilteredContacts] = useState<WhatsAppContact[]>([]);
-    const [nameFilter, setNameFilter] = useState('');
-    const [phoneFilter, setPhoneFilter] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     const [selectedContacts, setSelectedContacts] = useState<Set<string>>(new Set());
     const [currentPage, setCurrentPage] = useState(1);
     const contactsPerPage = 50;
@@ -61,25 +58,24 @@ export function ContactManagementCard({ studioId, isConnected }: ContactManageme
         }
     }, [isConnected, studioId]);
 
-    // Filter contacts based on name and phone filters
+    // Filter contacts based on search
     useEffect(() => {
-        let filtered = contacts;
-
-        if (nameFilter) {
-            filtered = filtered.filter((contact) =>
-                contact.name?.toLowerCase().includes(nameFilter.toLowerCase())
+        console.log(' Filter useEffect triggered:', { searchQuery, contactsCount: contacts.length });
+        
+        if (searchQuery) {
+            const filtered = contacts.filter(
+                (contact) =>
+                    contact.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    contact.phone.includes(searchQuery)
             );
+            console.log(' Filtered results:', filtered.length);
+            setFilteredContacts(filtered);
+        } else {
+            console.log(' No filter, showing all contacts');
+            setFilteredContacts(contacts);
         }
-
-        if (phoneFilter) {
-            filtered = filtered.filter((contact) =>
-                contact.phone.includes(phoneFilter)
-            );
-        }
-
-        setFilteredContacts(filtered);
-        setCurrentPage(1); // Reset to first page when filtering
-    }, [nameFilter, phoneFilter, contacts]);
+        setCurrentPage(1);
+    }, [searchQuery, contacts]);
 
     const handleCSVImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -192,11 +188,14 @@ export function ContactManagementCard({ studioId, isConnected }: ContactManageme
 
             const selectedContactList = contacts.filter((c) => selectedContacts.has(c.id));
 
-            // Contacts are already available for use in blast sending
-            toast({
-                title: 'Contacts Ready',
-                description: `${selectedContacts.size} contacts are ready to use for message blasting`,
-            });
+            // Call parent handler to import contacts to Custom Blast
+            if (onImportContacts) {
+                const formattedContacts = selectedContactList.map(c => ({
+                    name: c.name || 'Unknown',
+                    phone: c.phone
+                }));
+                onImportContacts(formattedContacts);
+            }
 
             setSelectedContacts(new Set());
         } catch (error: any) {
@@ -551,3 +550,7 @@ export function ContactManagementCard({ studioId, isConnected }: ContactManageme
         </Card>
     );
 }
+
+
+
+

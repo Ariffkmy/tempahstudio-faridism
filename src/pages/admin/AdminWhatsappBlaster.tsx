@@ -51,6 +51,17 @@ const AdminWhatsappBlaster = () => {
   // WhatsApp connection state
   const [isWhatsAppConnected, setIsWhatsAppConnected] = useState(false);
   const [activeTab, setActiveTab] = useState('delivery');
+  const [importedContacts, setImportedContacts] = useState<Array<{ name: string; phone: string }>>([]);
+
+  // Handler for importing contacts from Contact Management
+  const handleImportContacts = (contacts: Array<{ name: string; phone: string }>) => {
+    setImportedContacts(contacts);
+    setActiveTab('blast');
+    toast({
+      title: 'Contacts Imported',
+      description: `${contacts.length} contacts added to Custom Blast recipients`,
+    });
+  };
 
   // Check WhatsApp connection status
   useEffect(() => {
@@ -344,15 +355,14 @@ const AdminWhatsappBlaster = () => {
               {effectiveStudioId && (
                 <ContactManagementCard
                   studioId={effectiveStudioId}
-                  isConnected={isWhatsAppConnected}
-                />
+                  isConnected={isWhatsAppConnected} onImportContacts={handleImportContacts} />
               )}
             </TabsContent>
 
             {/* Tab 4: Custom Blast */}
             <TabsContent value="blast">
               {effectiveStudioId && (
-                <CustomBlastCard studioId={effectiveStudioId} isConnected={isWhatsAppConnected} />
+                <CustomBlastCard studioId={effectiveStudioId} isConnected={isWhatsAppConnected} onImportContacts={handleImportContacts} />
               )}
             </TabsContent>
           </Tabs>

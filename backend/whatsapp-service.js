@@ -38,6 +38,61 @@ const qrCodes = new Map();
 const syncedContacts = new Map();
 
 /**
+ * Validate which contacts are actual WhatsApp users
+ * Uses sock.onWhatsApp() to check contact existence in batches
+ */
+async function validateWhatsAppContacts(sock, contacts, batchSize = 50) {
+    const validContacts = [];
+
+    try {
+        // Process contacts in batches for performance
+        for (let i = 0; i < contacts.length; i += batchSize) {
+            const batch = contacts.slice(i, i + batchSize);
+
+            // Extract phone numbers from contact IDs
+            const phoneNumbers = batch
+                .map(c => c.id.replace('@s.whatsapp.net', '').replace('@lid', ''))
+                .filter(num => num && !num.includes('@')); // Remove invalid entries
+
+            if (phoneNumbers.length === 0) continue;
+
+            try {
+                // Use onWhatsApp to validate contacts
+                const validationResults = await sock.onWhatsApp(...phoneNumbers);
+
+                // Only keep contacts that exist on WhatsApp
+                for (const result of validationResults) {
+                    if (result.exists) {
+                        // Find the original contact data
+                        const originalContact = batch.find(c =>
+                            c.id.includes(result.jid.split('@')[0])
+                        );
+
+                        if (originalContact) {
+                            validContacts.push(originalContact);
+                        }
+                    }
+                }
+
+                console.log(`  Batch ${Math.floor(i / batchSize) + 1}: Validated ${validationResults.filter(r => r.exists).length}/${phoneNumbers.length} contacts`);
+            } catch (error) {
+                console.error(`  Error validating batch ${Math.floor(i / batchSize) + 1}:`, error.message);
+                // On error, skip this batch rather than failing completely
+            }
+
+            // Small delay between batches to avoid rate limiting
+            if (i + batchSize < contacts.length) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+    } catch (error) {
+        console.error('Error in validateWhatsAppContacts:', error.message);
+    }
+
+    return validContacts;
+}
+
+/**
  * Get or create WhatsApp socket connection for a studio
  */
 async function getWhatsAppSocket(studioId) {
@@ -179,35 +234,28 @@ async function getWhatsAppSocket(studioId) {
     sock.ev.process(async (events) => {
         // Initial contact sync during history synchronization
         if (events['messaging-history.set']) {
-            const { contacts, chats, isLatest } = events['messaging-history.set'];
+            const { contacts, isLatest } = events['messaging-history.set'];
 
             if (contacts && contacts.length > 0) {
-                console.log(`\n📇 Received ${contacts.length} contacts from WhatsApp`);
+                console.log(`\n📇 Received ${contacts.length} raw contacts from device sync`);
 
-                // Extract active chat JIDs (only individual chats, not groups)
-                const chatJids = new Set(
-                    (chats || [])
-                        .filter(chat => !chat.id.includes('@g.us')) // Exclude groups
-                        .map(chat => chat.id)
-                );
-                console.log(`📱 Found ${chatJids.size} active chats (excluding groups)`);
+                // Filter out groups first
+                const individualContacts = contacts.filter(c => !c.id.includes('@g.us'));
+                console.log(`📱 Filtered to ${individualContacts.length} individual contacts (${contacts.length - individualContacts.length} groups excluded)`);
 
-                // Process and format contacts - ONLY include contacts with active chats
-                const formattedContacts = contacts
-                    .filter(contact => {
-                        const isGroup = contact.id.includes('@g.us');
-                        const hasChat = chatJids.has(contact.id);
-                        return !isGroup && hasChat; // Only individual contacts with chat history
-                    })
-                    .map(contact => ({
-                        id: contact.id,
-                        name: contact.name || contact.notify || contact.id.split('@')[0],
-                        phone: contact.id.split('@')[0],
-                        notify: contact.notify,
-                        isGroup: false,
-                    }));
+                // Validate which contacts are actual WhatsApp users
+                console.log('🔍 Validating contacts with WhatsApp servers...');
+                const validatedContacts = await validateWhatsAppContacts(sock, individualContacts);
+                console.log(`✅ Validated ${validatedContacts.length} contacts as WhatsApp users (${individualContacts.length - validatedContacts.length} non-WhatsApp contacts excluded)`);
 
-                console.log(`✓ Filtered to ${formattedContacts.length} contacts with active chats (${contacts.length - formattedContacts.length} excluded)`);
+                // Format validated contacts
+                const formattedContacts = validatedContacts.map(contact => ({
+                    id: contact.id,
+                    name: contact.name || contact.notify || contact.id.split('@')[0],
+                    phone: contact.id.split('@')[0],
+                    notify: contact.notify,
+                    isGroup: false,
+                }));
 
                 // Store in memory for re-importing (append to existing)
                 const existingContacts = syncedContacts.get(studioId) || [];
@@ -246,56 +294,58 @@ async function getWhatsAppSocket(studioId) {
         }
 
         // Handle new contacts added
-        // Note: We skip automatic addition to maintain filter (only contacts with chats)
-        // New contacts will be added when a chat is initiated with them
         if (events['contacts.upsert']) {
             console.log(`\n📇 Contact updates received: ${events['contacts.upsert'].length}`);
-            console.log('  ℹ️  Skipping automatic addition (only syncing contacts with active chats)');
 
-            // We could update existing contact info here if needed
-            const updatedContacts = events['contacts.upsert']
-                .filter(contact => !contact.id.includes('@g.us'))
-                .map(contact => ({
-                    id: contact.id,
-                    name: contact.name || contact.notify || contact.id.split('@')[0],
-                    phone: contact.id.split('@')[0],
-                    notify: contact.notify,
-                }));
+            // Filter out groups
+            const individualContacts = events['contacts.upsert']
+                .filter(contact => !contact.id.includes('@g.us'));
 
-            if (updatedContacts.length > 0) {
-                try {
-                    // Get existing contacts
-                    const { data: session } = await supabase
-                        .from('whatsapp_sessions')
-                        .select('contacts')
-                        .eq('studio_id', studioId)
-                        .single();
+            if (individualContacts.length > 0) {
+                console.log('🔍 Validating new contacts with WhatsApp servers...');
 
-                    const existingContacts = session?.contacts || [];
+                // Validate which contacts are actual WhatsApp users
+                const validatedContacts = await validateWhatsAppContacts(sock, individualContacts);
+                console.log(`✅ Validated ${validatedContacts.length}/${individualContacts.length} new contacts as WhatsApp users`);
 
-                    // Only update contacts that already exist (have chat history)
-                    let updateCount = 0;
-                    const updatedList = existingContacts.map(existing => {
-                        const update = updatedContacts.find(u => u.id === existing.id);
-                        if (update) {
-                            updateCount++;
-                            return { ...existing, ...update };
-                        }
-                        return existing;
-                    });
-
-                    if (updateCount > 0) {
-                        await supabase
+                if (validatedContacts.length > 0) {
+                    try {
+                        // Get existing contacts
+                        const { data: session } = await supabase
                             .from('whatsapp_sessions')
-                            .update({ contacts: updatedList })
-                            .eq('studio_id', studioId);
+                            .select('contacts')
+                            .eq('studio_id', studioId)
+                            .single();
 
-                        console.log(`✓ Updated ${updateCount} existing contacts`);
-                    } else {
-                        console.log('  ℹ️  No existing contacts to update');
+                        const existingContacts = session?.contacts || [];
+                        const existingIds = new Set(existingContacts.map(c => c.id));
+
+                        // Format and add only new validated contacts
+                        const newValidContacts = validatedContacts
+                            .filter(c => !existingIds.has(c.id))
+                            .map(contact => ({
+                                id: contact.id,
+                                name: contact.name || contact.notify || contact.id.split('@')[0],
+                                phone: contact.id.split('@')[0],
+                                notify: contact.notify,
+                                isGroup: false,
+                            }));
+
+                        if (newValidContacts.length > 0) {
+                            const updatedContacts = [...existingContacts, ...newValidContacts];
+
+                            await supabase
+                                .from('whatsapp_sessions')
+                                .update({ contacts: updatedContacts })
+                                .eq('studio_id', studioId);
+
+                            console.log(`✓ Added ${newValidContacts.length} new WhatsApp contacts`);
+                        } else {
+                            console.log('  ℹ️  All validated contacts already exist');
+                        }
+                    } catch (error) {
+                        console.error('Failed to update contacts:', error.message);
                     }
-                } catch (error) {
-                    console.error('Failed to update contacts:', error.message);
                 }
             }
         }

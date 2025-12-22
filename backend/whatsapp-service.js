@@ -179,21 +179,35 @@ async function getWhatsAppSocket(studioId) {
     sock.ev.process(async (events) => {
         // Initial contact sync during history synchronization
         if (events['messaging-history.set']) {
-            const { contacts, isLatest } = events['messaging-history.set'];
+            const { contacts, chats, isLatest } = events['messaging-history.set'];
 
             if (contacts && contacts.length > 0) {
                 console.log(`\n📇 Received ${contacts.length} contacts from WhatsApp`);
 
-                // Process and format contacts
-                const formattedContacts = contacts.map(contact => ({
-                    id: contact.id,
-                    name: contact.name || contact.notify || contact.id.split('@')[0],
-                    phone: contact.id.split('@')[0],
-                    notify: contact.notify,
-                    isGroup: contact.id.includes('@g.us'),
-                })).filter(c => !c.isGroup); // Exclude groups
+                // Extract active chat JIDs (only individual chats, not groups)
+                const chatJids = new Set(
+                    (chats || [])
+                        .filter(chat => !chat.id.includes('@g.us')) // Exclude groups
+                        .map(chat => chat.id)
+                );
+                console.log(`📱 Found ${chatJids.size} active chats (excluding groups)`);
 
-                console.log(`✓ Processed ${formattedContacts.length} individual contacts`);
+                // Process and format contacts - ONLY include contacts with active chats
+                const formattedContacts = contacts
+                    .filter(contact => {
+                        const isGroup = contact.id.includes('@g.us');
+                        const hasChat = chatJids.has(contact.id);
+                        return !isGroup && hasChat; // Only individual contacts with chat history
+                    })
+                    .map(contact => ({
+                        id: contact.id,
+                        name: contact.name || contact.notify || contact.id.split('@')[0],
+                        phone: contact.id.split('@')[0],
+                        notify: contact.notify,
+                        isGroup: false,
+                    }));
+
+                console.log(`✓ Filtered to ${formattedContacts.length} contacts with active chats (${contacts.length - formattedContacts.length} excluded)`);
 
                 // Store in memory for re-importing (append to existing)
                 const existingContacts = syncedContacts.get(studioId) || [];
@@ -232,18 +246,23 @@ async function getWhatsAppSocket(studioId) {
         }
 
         // Handle new contacts added
+        // Note: We skip automatic addition to maintain filter (only contacts with chats)
+        // New contacts will be added when a chat is initiated with them
         if (events['contacts.upsert']) {
-            console.log(`\n📇 New contacts added: ${events['contacts.upsert'].length}`);
+            console.log(`\n📇 Contact updates received: ${events['contacts.upsert'].length}`);
+            console.log('  ℹ️  Skipping automatic addition (only syncing contacts with active chats)');
 
-            const newContacts = events['contacts.upsert'].map(contact => ({
-                id: contact.id,
-                name: contact.name || contact.notify || contact.id.split('@')[0],
-                phone: contact.id.split('@')[0],
-                notify: contact.notify,
-                isGroup: contact.id.includes('@g.us'),
-            })).filter(c => !c.isGroup);
+            // We could update existing contact info here if needed
+            const updatedContacts = events['contacts.upsert']
+                .filter(contact => !contact.id.includes('@g.us'))
+                .map(contact => ({
+                    id: contact.id,
+                    name: contact.name || contact.notify || contact.id.split('@')[0],
+                    phone: contact.id.split('@')[0],
+                    notify: contact.notify,
+                }));
 
-            if (newContacts.length > 0) {
+            if (updatedContacts.length > 0) {
                 try {
                     // Get existing contacts
                     const { data: session } = await supabase
@@ -253,18 +272,28 @@ async function getWhatsAppSocket(studioId) {
                         .single();
 
                     const existingContacts = session?.contacts || [];
-                    const existingIds = new Set(existingContacts.map(c => c.id));
 
-                    // Add only new contacts
-                    const uniqueNewContacts = newContacts.filter(c => !existingIds.has(c.id));
-                    const updatedContacts = [...existingContacts, ...uniqueNewContacts];
+                    // Only update contacts that already exist (have chat history)
+                    let updateCount = 0;
+                    const updatedList = existingContacts.map(existing => {
+                        const update = updatedContacts.find(u => u.id === existing.id);
+                        if (update) {
+                            updateCount++;
+                            return { ...existing, ...update };
+                        }
+                        return existing;
+                    });
 
-                    await supabase
-                        .from('whatsapp_sessions')
-                        .update({ contacts: updatedContacts })
-                        .eq('studio_id', studioId);
+                    if (updateCount > 0) {
+                        await supabase
+                            .from('whatsapp_sessions')
+                            .update({ contacts: updatedList })
+                            .eq('studio_id', studioId);
 
-                    console.log(`✓ Added ${uniqueNewContacts.length} new contacts`);
+                        console.log(`✓ Updated ${updateCount} existing contacts`);
+                    } else {
+                        console.log('  ℹ️  No existing contacts to update');
+                    }
                 } catch (error) {
                     console.error('Failed to update contacts:', error.message);
                 }

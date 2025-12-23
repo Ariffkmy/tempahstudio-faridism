@@ -10,8 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "whatsapp:service": "cd backend && npm install && npm start",
-    "receipt:service": "cd backend && node receipt-service.js",
-    "dev:all": "concurrently \"npm run dev\" \"npm run whatsapp:service\" \"npm run receipt:service\""
+    "dev:all": "concurrently \"npm run dev\" \"npm run whatsapp:service\""
   },
   "dependencies": {
     "@cacheable/node-cache": "^1.7.6",
@@ -58,6 +57,7 @@
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.23.25",
     "input-otp": "^1.4.2",
+    "jspdf": "^3.0.4",
     "lru-cache": "^11.2.4",
     "lucide-react": "^0.462.0",
     "music-metadata": "^11.10.3",

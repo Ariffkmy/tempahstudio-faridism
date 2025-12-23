@@ -4,7 +4,6 @@
  */
 
 const WHATSAPP_SERVICE_URL = import.meta.env.VITE_WHATSAPP_SERVICE_URL || 'http://localhost:3001';
-const RECEIPT_SERVICE_URL = import.meta.env.VITE_RECEIPT_SERVICE_URL || 'http://localhost:3002';
 
 export interface WhatsAppConnectionStatus {
     isConnected: boolean;
@@ -407,74 +406,6 @@ export async function sendBookingReceipt(params: {
     } catch (error) {
         console.error('❌ Error sending receipt:', error);
         console.log('=================================================\n');
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error'
-        };
-    }
-}
-
-/**
- * Generate and download booking receipt PDF (without sending via WhatsApp)
- */
-export async function generateReceiptDownload(bookingDetails: {
-    reference: string;
-    customerName: string;
-    customerEmail: string;
-    date: string;
-    startTime: string;
-    endTime: string;
-    studioName: string;
-    layoutName: string;
-    duration: number;
-    totalPrice: number;
-    paymentMethod?: string;
-}): Promise<{ success: boolean; error?: string }> {
-    try {
-        console.log('\n========== GENERATING RECEIPT FOR DOWNLOAD ==========');
-        console.log('📄 Requesting PDF receipt generation...');
-        console.log('Booking Reference:', bookingDetails.reference);
-
-        const response = await fetch(`${RECEIPT_SERVICE_URL}/api/receipt/generate`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ bookingDetails }),
-        });
-
-        console.log('Response status:', response.status);
-
-        if (!response.ok) {
-            const error = await response.json();
-            console.error('❌ Receipt generation failed:', error.error);
-            console.log('====================================================\n');
-            throw new Error(error.error || 'Failed to generate receipt');
-        }
-
-        // Get PDF blob
-        const blob = await response.blob();
-        console.log('✓ PDF received, size:', blob.size, 'bytes');
-
-        // Create download link
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Resit-${bookingDetails.reference}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-
-        // Cleanup
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-
-        console.log('✅ Receipt downloaded successfully!');
-        console.log('====================================================\n');
-
-        return { success: true };
-    } catch (error) {
-        console.error('❌ Error generating receipt:', error);
-        console.log('====================================================\n');
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Unknown error'

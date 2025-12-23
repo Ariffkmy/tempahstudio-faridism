@@ -348,7 +348,7 @@ export default function AdminCustomers() {
 
         try {
             console.log('\n========================================');
-            console.log('📄 MANUAL RECEIPT GENERATION (DOWNLOAD)');
+            console.log('📄 MANUAL RECEIPT GENERATION (CLIENT-SIDE)');
             console.log('========================================');
             console.log('Booking ID:', booking.id);
             console.log('Reference:', booking.reference);
@@ -371,16 +371,17 @@ export default function AdminCustomers() {
 
             console.log('✓ Full booking details retrieved');
 
-            // Import WhatsApp service
-            const { generateReceiptDownload } = await import('@/services/whatsappBaileysService');
+            // Import PDF generator
+            const { generateReceiptPDF } = await import('@/utils/receiptGenerator');
 
-            console.log('✓ Calling generateReceiptDownload...');
+            console.log('✓ Generating PDF...');
 
-            // Generate and download receipt
-            const result = await generateReceiptDownload({
+            // Generate and download PDF
+            generateReceiptPDF({
                 reference: fullBooking.reference,
                 customerName: selectedCustomer.customer_name,
                 customerEmail: selectedCustomer.customer_email,
+                customerPhone: selectedCustomer.customer_phone || undefined,
                 date: fullBooking.date,
                 startTime: fullBooking.start_time,
                 endTime: fullBooking.end_time,
@@ -391,16 +392,13 @@ export default function AdminCustomers() {
                 paymentMethod: fullBooking.payment_method || undefined,
             });
 
-            if (result.success) {
-                console.log('✅ Receipt downloaded successfully!');
-                console.log('========================================\n');
-                toast({
-                    title: 'Berjaya',
-                    description: `Resit ${fullBooking.reference} telah dimuat turun`,
-                });
-            } else {
-                throw new Error(result.error || 'Gagal menjana resit');
-            }
+            console.log('✅ Receipt generated and downloaded successfully!');
+            console.log('========================================\n');
+
+            toast({
+                title: 'Berjaya',
+                description: `Resit ${fullBooking.reference} telah dimuat turun`,
+            });
         } catch (error: any) {
             console.error('❌ Error generating receipt:', error);
             console.log('========================================\n');

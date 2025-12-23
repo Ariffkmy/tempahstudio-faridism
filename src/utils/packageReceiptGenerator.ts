@@ -1,0 +1,140 @@
+import jsPDF from 'jspdf';
+
+interface PackageReceiptDetails {
+    studioName: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    packageName: string;
+    packagePrice: number;
+    paymentMethod?: string;
+    submittedDate: string;
+    status: string;
+}
+
+/**
+ * Generate and download package payment receipt PDF
+ */
+export function generatePackageReceiptPDF(details: PackageReceiptDetails): void {
+    console.log('\n========== GENERATING PACKAGE RECEIPT PDF ==========');
+    console.log('Studio:', details.studioName);
+    console.log('Package:', details.packageName);
+
+    // Create new PDF document
+    const doc = new jsPDF();
+
+    // Get today's date for receipt date
+    const today = new Date();
+    const receiptDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+
+    // Format submitted date
+    const submittedParts = details.submittedDate.split('/');
+    const formattedSubmitted = submittedParts.length >= 2 ? `${submittedParts[0]}/${submittedParts[1]}` : details.submittedDate;
+
+    let y = 20; // Starting Y position
+
+    // Header - RAYA STUDIO SYSTEM
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RAYA STUDIO SYSTEM', 105, y, { align: 'center' });
+    y += 10;
+
+    // Title - RESIT PEMBAYARAN PAKEJ
+    doc.setFontSize(18);
+    doc.text('RESIT PEMBAYARAN PAKEJ', 105, y, { align: 'center' });
+    y += 15;
+
+    // Horizontal line
+    doc.setLineWidth(0.5);
+    doc.line(20, y, 190, y);
+    y += 10;
+
+    // Receipt Info
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Tarikh Resit: ${receiptDate}`, 20, y);
+    y += 7;
+    doc.text(`Tarikh Pembayaran: ${formattedSubmitted}`, 20, y);
+    y += 12;
+
+    // Section: MAKLUMAT STUDIO
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('MAKLUMAT STUDIO', 20, y);
+    y += 7;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.text(`Nama Studio: ${details.studioName}`, 20, y);
+    y += 6;
+    doc.text(`Nama Pemilik: ${details.fullName}`, 20, y);
+    y += 6;
+    doc.text(`Email: ${details.email}`, 20, y);
+    y += 6;
+    doc.text(`Telefon: ${details.phone}`, 20, y);
+    y += 12;
+
+    // Section: MAKLUMAT PAKEJ
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('MAKLUMAT PAKEJ', 20, y);
+    y += 7;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.text(`Pakej: ${details.packageName}`, 20, y);
+    y += 6;
+    doc.text(`Harga: RM ${details.packagePrice.toFixed(2)}`, 20, y);
+    y += 12;
+
+    // Section: PEMBAYARAN
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('PEMBAYARAN', 20, y);
+    y += 7;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.text(`Jumlah: RM ${details.packagePrice.toFixed(2)}`, 20, y);
+    y += 6;
+
+    if (details.paymentMethod) {
+        doc.text(`Kaedah: ${details.paymentMethod}`, 20, y);
+        y += 6;
+    }
+
+    // Status
+    doc.setFont('helvetica', 'bold');
+    const statusText = details.status === 'verified' || details.status === 'completed'
+        ? 'DISAHKAN'
+        : details.status === 'rejected'
+            ? 'DITOLAK'
+            : 'MENUNGGU PENGESAHAN';
+    doc.text(`Status: ${statusText}`, 20, y);
+    y += 15;
+
+    // Horizontal line
+    doc.setLineWidth(0.3);
+    doc.line(20, y, 190, y);
+    y += 10;
+
+    // Footer message
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.text('Terima kasih atas pembayaran anda!', 105, y, { align: 'center' });
+    y += 5;
+    doc.setFontSize(9);
+    doc.text('Resit ini dijana secara automatik oleh sistem.', 105, y, { align: 'center' });
+    y += 10;
+
+    // Bottom border
+    doc.setLineWidth(0.5);
+    doc.line(20, y, 190, y);
+
+    // Save the PDF
+    const filename = `Resit-Pakej-${details.studioName.replace(/\s+/g, '-')}.pdf`;
+    doc.save(filename);
+
+    console.log('✓ Package receipt PDF generated and downloaded:', filename);
+    console.log('====================================================\n');
+}

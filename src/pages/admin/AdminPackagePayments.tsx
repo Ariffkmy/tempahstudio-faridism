@@ -373,14 +373,37 @@ export default function AdminPackagePayments() {
                                                     </Select>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => handleViewDetails(payment)}
-                                                    >
-                                                        <Eye className="h-4 w-4 mr-1" />
-                                                        View
-                                                    </Button>
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleViewDetails(payment)}
+                                                        >
+                                                            <Eye className="h-4 w-4 mr-1" />
+                                                            View
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => {
+                                                                const { generatePackageReceiptPDF } = require('@/utils/packageReceiptGenerator');
+                                                                generatePackageReceiptPDF({
+                                                                    studioName: payment.studio_name,
+                                                                    fullName: payment.full_name,
+                                                                    email: payment.email,
+                                                                    phone: payment.phone,
+                                                                    packageName: payment.package_name,
+                                                                    packagePrice: payment.package_price,
+                                                                    paymentMethod: payment.payment_method || undefined,
+                                                                    submittedDate: format(new Date(payment.created_at), 'dd/MM/yyyy HH:mm'),
+                                                                    status: payment.status,
+                                                                });
+                                                            }}
+                                                        >
+                                                            <FileText className="h-4 w-4 mr-1" />
+                                                            Receipt
+                                                        </Button>
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -443,13 +466,35 @@ export default function AdminPackagePayments() {
                                 {selectedPayment.receipt_url && (
                                     <div>
                                         <Label className="text-muted-foreground mb-2 block">Receipt</Label>
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => window.open(selectedPayment.receipt_url!, '_blank')}
-                                        >
-                                            <FileText className="h-4 w-4 mr-2" />
-                                            View Receipt
-                                        </Button>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => window.open(selectedPayment.receipt_url!, '_blank')}
+                                            >
+                                                <Eye className="h-4 w-4 mr-2" />
+                                                View Receipt
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => {
+                                                    const { generatePackageReceiptPDF } = require('@/utils/packageReceiptGenerator');
+                                                    generatePackageReceiptPDF({
+                                                        studioName: selectedPayment.studio_name,
+                                                        fullName: selectedPayment.full_name,
+                                                        email: selectedPayment.email,
+                                                        phone: selectedPayment.phone,
+                                                        packageName: selectedPayment.package_name,
+                                                        packagePrice: selectedPayment.package_price,
+                                                        paymentMethod: selectedPayment.payment_method || undefined,
+                                                        submittedDate: format(new Date(selectedPayment.created_at), 'dd/MM/yyyy HH:mm'),
+                                                        status: selectedPayment.status,
+                                                    });
+                                                }}
+                                            >
+                                                <FileText className="h-4 w-4 mr-2" />
+                                                Download Receipt
+                                            </Button>
+                                        </div>
                                     </div>
                                 )}
 

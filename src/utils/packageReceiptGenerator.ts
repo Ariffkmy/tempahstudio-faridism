@@ -148,6 +148,12 @@ export function generatePackageReceiptPDF(details: PackageReceiptDetails): void 
         // Bottom border
         doc.setLineWidth(0.5);
         doc.line(20, y, 190, y);
+        y += 7;
+
+        // Company information
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Receipt Issued By: SSM : 003795517-T (Baidumi Digital)', 105, y, { align: 'center' });
 
         // Save the PDF
         const filename = `Resit-Pakej-${details.studioName.replace(/\s+/g, '-')}.pdf`;

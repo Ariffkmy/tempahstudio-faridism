@@ -10,29 +10,61 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { getPackages } from '@/services/packageService';
-import type { Package } from '@/types/database';
-import { CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Index = () => {
-  const [packages, setPackages] = useState<Package[]>([]);
-  const [loadingPackages, setLoadingPackages] = useState(true);
+  // Hardcoded packages for landing page
+  const packages = [
+    {
+      id: '1',
+      name: 'Silver',
+      slug: 'silver',
+      price: 299,
+      period: 'tahun',
+      is_popular: false,
+      features: [
+        '🌐 Tempahan atas talian',
+        '📅 Integrasi Google Calendar',
+        '🔔 Notifikasi emel & Whatsapp',
+        '📊 Data analitik tentang tempahan, pengguna, dan banyak lagi',
+        '🧾 Resit elektronik untuk setiap tempahan',
+        '👤 1 akaun admin user',
+        '🎨 Disenaraikan dalam website caristudioraya.vercel.app',
+        '💸 Bayaran tempahan terus ke akaun bank anda (menggunakan QR code atau transfer bank)'
+      ]
+    },
+    {
+      id: '2',
+      name: 'Gold',
+      slug: 'gold',
+      price: 599,
+      period: 'tahun',
+      is_popular: true,
+      features: [
+        '🎯 Semua dalam Silver',
+        '📲 Whatsapp blast untuk menghantar link gambar raya ke pelanggan anda (link Googledrive, Googlephoto, etc)',
+        '📲 Whatsapp blast untuk menghantar link tempahan studio ke semua pelanggan lama anda',
+        '👤 Tambahan admin user (2 akaun)',
+        '🎨 Penyesuaian booking form mengikut branding studio anda'
+      ]
+    },
+    {
+      id: '3',
+      name: 'Platinum',
+      slug: 'platinum',
+      price: 1199,
+      period: 'tahun',
+      is_popular: false,
+      features: [
+        '💎 Semua dalam Gold',
+        '🌐 Custom domain (link tempahan menggunakan domain studio anda)',
+        '💳 Payment Gateway (FPX)',
+        '👥 Tambahan admin user (5 akaun)',
+        '🚀 Pembangunan ciri khas'
+      ]
+    }
+  ];
 
-  useEffect(() => {
-    const fetchPackages = async () => {
-      try {
-        const data = await getPackages(); // Only fetch active packages
-        setPackages(data);
-      } catch (error) {
-        console.error('Error fetching packages:', error);
-      } finally {
-        setLoadingPackages(false);
-      }
-    };
-
-    fetchPackages();
-  }, []);
 
   return (
     <div className="min-h-screen overflow-x-hidden">
@@ -73,13 +105,14 @@ const Index = () => {
                 </div>
               </div>
 
+
               <div className="flex justify-center">
                 <div className="w-full max-w-md lg:max-w-none bg-white/90 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-white/20 min-h-[160px] lg:min-h-0">
                   <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center mb-2 text-xl">
                     💳
                   </div>
                   <h3 className="text-s font-semibold text-foreground mb-1">Proses pembayaran selamat dan pantas</h3>
-                  <p className="text-xs text-muted-foreground">Pembayaran terus dibuat ke bank anda</p>
+                  <p className="text-xs text-muted-foreground">Pembayaran terus dibuat ke bank anda (menggunakan QR code, transfer direct ke akaun bank anda, atau FPX)</p>
                 </div>
               </div>
 
@@ -173,58 +206,70 @@ const Index = () => {
               </p>
             </div>
 
-            {/* Pricing Cards - Dynamic from database */}
-            {loadingPackages ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-              </div>
-            ) : packages.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 lg:gap-6 max-w-5xl mx-auto">
-                {packages.map((pkg) => (
-                  <div
-                    key={pkg.id}
-                    className={cn(
-                      "bg-card rounded-xl p-6 relative shadow-lg hover:shadow-xl transition-shadow flex flex-col h-full",
-                      pkg.is_popular ? "border-2 border-primary md:scale-105" : "border border-border"
-                    )}
-                  >
-                    {/* Popular Badge */}
-                    {pkg.is_popular && (
-                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium">
-                        Pilihan Berbaloi
-                      </div>
-                    )}
+            {/* Pricing Cards - Hardcoded */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 lg:gap-6 max-w-5xl mx-auto">
+              {packages.map((pkg) => (
+                <div
+                  key={pkg.id}
+                  className={cn(
+                    "bg-card rounded-xl p-6 relative shadow-lg hover:shadow-xl transition-shadow flex flex-col h-full",
+                    pkg.is_popular ? "border-2 border-primary md:scale-105" : "border border-border"
+                  )}
+                >
+                  {/* Popular Badge */}
+                  {pkg.is_popular && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium">
+                      Pilihan Berbaloi
+                    </div>
+                  )}
 
-                    <div className="text-center">
-                      <h3 className="text-xl md:text-2xl font-bold text-foreground mb-2">{pkg.name}</h3>
-                      <div className="text-3xl md:text-4xl font-bold text-primary mb-1">RM {pkg.price.toFixed(0)}</div>
-                      <p className="text-sm text-muted-foreground mb-6">/{pkg.period}</p>
+                  <div className="text-center">
+                    <h3 className="text-xl md:text-2xl font-bold text-foreground mb-2">{pkg.name}</h3>
+                    <div className="text-3xl md:text-4xl font-bold text-primary mb-1">RM {pkg.price.toFixed(0)}</div>
+                    <p className="text-sm text-muted-foreground mb-6">/{pkg.period}</p>
 
-                      <div className="space-y-3 mb-8 text-left">
-                        {pkg.features.map((feature, index) => (
+                    <div className="space-y-3 mb-8 text-left">
+                      {pkg.features.map((feature, index) => {
+                        // Check if feature contains the caristudioraya.vercel.app link
+                        if (feature.includes('caristudioraya.vercel.app')) {
+                          const parts = feature.split('caristudioraya.vercel.app');
+                          return (
+                            <div key={index} className="flex items-start gap-3">
+                              <span className="text-sm">
+                                {parts[0]}
+                                <a
+                                  href="https://caristudioraya.vercel.app"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline"
+                                >
+                                  caristudioraya.vercel.app
+                                </a>
+                                {parts[1]}
+                              </span>
+                            </div>
+                          );
+                        }
+                        return (
                           <div key={index} className="flex items-start gap-3">
                             <span className="text-sm">{feature}</span>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="mt-auto text-center">
-                      <Link
-                        to={`/package-payment?package=${pkg.slug}`}
-                        className="w-full bg-primary text-primary-foreground py-3 px-6 rounded-lg font-medium hover:bg-primary/90 transition-colors inline-block"
-                      >
-                        Pilih {pkg.name}
-                      </Link>
+                        );
+                      })}
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <p>No packages available at the moment.</p>
-              </div>
-            )}
+
+                  <div className="mt-auto text-center">
+                    <Link
+                      to={`/package-payment?package=${pkg.slug}`}
+                      className="w-full bg-primary text-primary-foreground py-3 px-6 rounded-lg font-medium hover:bg-primary/90 transition-colors inline-block"
+                    >
+                      Pilih {pkg.name}
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
 
             {/* Bottom CTA */}
             <div className="text-center mt-12">

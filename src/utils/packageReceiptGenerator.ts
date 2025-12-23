@@ -31,8 +31,9 @@ export function generatePackageReceiptPDF(details: PackageReceiptDetails): void 
     const submittedParts = details.submittedDate.split('/');
     const formattedSubmitted = submittedParts.length >= 2 ? `${submittedParts[0]}/${submittedParts[1]}` : details.submittedDate;
 
-    // Generate unique receipt number (format: PKG-YYYYMMDD-HHMMSS)
-    const receiptNo = `PKG-${today.getFullYear()}${(today.getMonth() + 1).toString().padStart(2, '0')}${today.getDate().toString().padStart(2, '0')}-${today.getHours().toString().padStart(2, '0')}${today.getMinutes().toString().padStart(2, '0')}${today.getSeconds().toString().padStart(2, '0')}`;
+    // Generate unique receipt number (format: PKG-YYYYMMDD-HHMMSS-StudioName)
+    const studioNameSlug = details.studioName.replace(/\s+/g, '-').toUpperCase();
+    const receiptNo = `PKG-${today.getFullYear()}${(today.getMonth() + 1).toString().padStart(2, '0')}${today.getDate().toString().padStart(2, '0')}-${today.getHours().toString().padStart(2, '0')}${today.getMinutes().toString().padStart(2, '0')}${today.getSeconds().toString().padStart(2, '0')}-${studioNameSlug}`;
 
     let y = 20; // Starting Y position
 

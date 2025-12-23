@@ -664,31 +664,26 @@ export default function PackagePayment() {
                                                 className="text-sm text-muted-foreground leading-relaxed cursor-pointer"
                                             >
                                                 Saya bersetuju dengan{' '}
-                                                {paymentSettings?.terms_pdf ? (
-                                                    <a
-                                                        href={paymentSettings.terms_pdf}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-primary hover:underline"
-                                                    >
-                                                        Terma & Syarat
-                                                    </a>
-                                                ) : (
-                                                    <span className="text-primary">Terma & Syarat</span>
-                                                )}{' '}
-                                                dan{' '}
-                                                {paymentSettings?.privacy_policy_pdf ? (
-                                                    <a
-                                                        href={paymentSettings.privacy_policy_pdf}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-primary hover:underline"
-                                                    >
-                                                        Dasar Privasi Tempah Studio
-                                                    </a>
-                                                ) : (
-                                                    <span className="text-primary">Dasar Privasi</span>
-                                                )}
+                                                <a
+                                                    href="/terms-of-service"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-primary hover:underline"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    Terma & Syarat
+                                                </a>
+                                                {' '}dan{' '}
+                                                <a
+                                                    href="/privacy-policy"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-primary hover:underline"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    Dasar Privasi
+                                                </a>
+                                                {' '}Tempah Studio
                                                 <span className="text-destructive ml-1">*</span>
                                             </label>
                                         </div>

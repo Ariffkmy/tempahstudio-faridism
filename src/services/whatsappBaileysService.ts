@@ -4,6 +4,7 @@
  */
 
 const WHATSAPP_SERVICE_URL = import.meta.env.VITE_WHATSAPP_SERVICE_URL || 'http://localhost:3001';
+const RECEIPT_SERVICE_URL = import.meta.env.VITE_RECEIPT_SERVICE_URL || 'http://localhost:3002';
 
 export interface WhatsAppConnectionStatus {
     isConnected: boolean;
@@ -434,7 +435,7 @@ export async function generateReceiptDownload(bookingDetails: {
         console.log('📄 Requesting PDF receipt generation...');
         console.log('Booking Reference:', bookingDetails.reference);
 
-        const response = await fetch(`${WHATSAPP_SERVICE_URL}/api/whatsapp/generate-receipt`, {
+        const response = await fetch(`${RECEIPT_SERVICE_URL}/api/receipt/generate`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "whatsapp:service": "cd backend && npm install && npm start",
-    "dev:all": "concurrently \"npm run dev\" \"npm run whatsapp:service\""
+    "receipt:service": "cd backend && node receipt-service.js",
+    "dev:all": "concurrently \"npm run dev\" \"npm run whatsapp:service\" \"npm run receipt:service\""
   },
   "dependencies": {
     "@cacheable/node-cache": "^1.7.6",

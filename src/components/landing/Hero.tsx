@@ -189,12 +189,20 @@ export function Hero() {
                     {isLoading ? 'Sila tunggu...' : 'Masuk'}
                   </Button>
 
-                  <div className="text-center pt-4">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Belum mempunyai akaun?
-                    </p>
-
+                  <div className="text-center pt-2">
+                    <Button
+                      type="button"
+                      variant="link"
+                      onClick={() => {
+                        const pricingSection = document.getElementById('pricing-section');
+                        pricingSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                      className="text-sm text-muted-foreground hover:text-primary"
+                    >
+                      Belum mendaftar?
+                    </Button>
                   </div>
+
                 </form>
               </CardContent>
             </Card>

@@ -684,7 +684,7 @@ export default function PackagePayment() {
                                                         rel="noopener noreferrer"
                                                         className="text-primary hover:underline"
                                                     >
-                                                        Dasar Privasi
+                                                        Dasar Privasi Tempah Studio
                                                     </a>
                                                 ) : (
                                                     <span className="text-primary">Dasar Privasi</span>

@@ -30,6 +30,14 @@ import PackagePayment from "./pages/PackagePayment";
 import Onboarding from "./pages/Onboarding";
 import CompleteRegistration from "./pages/CompleteRegistration";
 import NotFound from "./pages/NotFound";
+import GettingStarted from "./pages/GettingStarted";
+import UseCases from "./pages/UseCases";
+import Pricing from "./pages/Pricing";
+import FAQ from "./pages/FAQ";
+import Blog from "./pages/Blog";
+import ContactSupport from "./pages/ContactSupport";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +60,17 @@ const App = () => (
                 <Route path="/book/:studioId" element={<BrandBooking />} />
                 <Route path="/brand/:studioId" element={<BrandBooking />} />
                 <Route path="/booking/confirmation" element={<BookingConfirmation />} />
+
+                {/* Landing Page Routes */}
+                <Route path="/getting-started" element={<GettingStarted />} />
+                <Route path="/use-cases" element={<UseCases />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/faq" element={<FAQ />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/contact-support" element={<ContactSupport />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms-of-service" element={<TermsOfService />} />
+
                 {/* Studio slug-based booking route (e.g., /my-studio-name) */}
                 <Route path="/:studioSlug" element={<BrandBooking />} />
 

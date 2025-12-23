@@ -262,6 +262,43 @@ const AdminWhatsappBlaster = () => {
             </div>
           </div>
 
+          {/* Upgrade Banner for Silver Users */}
+          {!canBlast && (
+            <Card className="mb-6 border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    <Lock className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg text-amber-900 dark:text-amber-100 mb-2">
+                      🔒 WhatsApp Blast - Premium Feature
+                    </h3>
+                    <p className="text-amber-800 dark:text-amber-200 mb-4">
+                      WhatsApp Blast is available for <strong>Gold</strong> and <strong>Platinum</strong> tier users only.
+                      Upgrade your plan to unlock this powerful feature and send personalized messages to your customers.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        onClick={() => setShowUpgradePrompt(true)}
+                        className="bg-amber-600 hover:bg-amber-700 text-white"
+                      >
+                        Upgrade to {requiredTier?.toUpperCase()}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open('/#pricing-section', '_blank')}
+                        className="border-amber-600 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+                      >
+                        View Pricing
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="delivery" className="gap-2">
@@ -331,8 +368,12 @@ const AdminWhatsappBlaster = () => {
                                     value={bookingLinks[booking.id] || ''}
                                     onChange={(e) => handleLinkChange(booking.id, e.target.value)}
                                     className="max-w-md"
+                                    disabled={!canBlast}
                                   />
-                                  {bookingLinks[booking.id] && (
+                                  {!canBlast && (
+                                    <Lock className="h-4 w-4 text-muted-foreground" />
+                                  )}
+                                  {bookingLinks[booking.id] && canBlast && (
                                     <a
                                       href={bookingLinks[booking.id]}
                                       target="_blank"
@@ -368,7 +409,7 @@ const AdminWhatsappBlaster = () => {
                           {!canBlast && <Lock className="h-5 w-5" />}
                           {blasting && <Loader2 className="h-5 w-5 animate-spin" />}
                           {!blasting && canBlast && <Send className="h-5 w-5" />}
-                          {blasting ? 'Sending...' : 'Blast WhatsApp'}
+                          {!canBlast ? 'Upgrade to Unlock' : blasting ? 'Sending...' : 'Blast WhatsApp'}
                         </Button>
                       </div>
                     </>

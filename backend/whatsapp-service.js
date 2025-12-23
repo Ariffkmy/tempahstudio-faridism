@@ -1131,6 +1131,59 @@ app.post('/api/whatsapp/send-receipt', async (req, res) => {
     }
 });
 
+// Generate and download booking receipt (without sending via WhatsApp)
+app.post('/api/whatsapp/generate-receipt', async (req, res) => {
+    try {
+        console.log('\n========== GENERATE RECEIPT (DOWNLOAD) ==========');
+        console.log('Request body:', JSON.stringify(req.body, null, 2));
+
+        const { bookingDetails } = req.body;
+
+        // Validate inputs
+        if (!bookingDetails) {
+            console.error('❌ Missing booking details');
+            return res.status(400).json({ error: 'Missing booking details' });
+        }
+
+        console.log(`✓ Booking Reference: ${bookingDetails.reference}`);
+
+        // Generate PDF receipt
+        console.log('\n📄 Generating PDF receipt...');
+        const pdfPath = await generateBookingReceipt(bookingDetails);
+        console.log('✓ PDF generated at:', pdfPath);
+
+        // Read PDF file
+        const pdfBuffer = fs.readFileSync(pdfPath);
+        console.log('✓ PDF buffer size:', pdfBuffer.length, 'bytes');
+
+        // Set headers for PDF download
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="Resit-${bookingDetails.reference}.pdf"`);
+        res.setHeader('Content-Length', pdfBuffer.length);
+
+        // Send PDF
+        res.send(pdfBuffer);
+        console.log('✓ PDF sent for download');
+
+        // Clean up temporary file after sending
+        setTimeout(() => {
+            try {
+                fs.unlinkSync(pdfPath);
+                console.log('✓ Temporary file deleted');
+            } catch (cleanupError) {
+                console.error('⚠️ Error deleting temporary file:', cleanupError.message);
+            }
+            console.log('=================================================\n');
+        }, 1000);
+
+    } catch (error) {
+        console.error('\n❌ Error generating receipt:', error);
+        console.error('Stack trace:', error.stack);
+        console.error('=================================================\n');
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Start server
 app.listen(PORT, () => {
     console.log(`WhatsApp service running on port ${PORT}`);

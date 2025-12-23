@@ -344,26 +344,15 @@ export default function AdminCustomers() {
     const handleGenerateReceipt = async (booking: BookingDetail) => {
         if (!studio || !selectedCustomer) return;
 
-        // Check if customer has phone number
-        if (!selectedCustomer.customer_phone) {
-            toast({
-                title: 'Ralat',
-                description: 'Pelanggan tidak mempunyai nombor telefon. Resit hanya boleh dihantar melalui WhatsApp.',
-                variant: 'destructive',
-            });
-            return;
-        }
-
         setGeneratingReceipt(prev => ({ ...prev, [booking.id]: true }));
 
         try {
             console.log('\n========================================');
-            console.log('📄 MANUAL RECEIPT GENERATION');
+            console.log('📄 MANUAL RECEIPT GENERATION (DOWNLOAD)');
             console.log('========================================');
             console.log('Booking ID:', booking.id);
             console.log('Reference:', booking.reference);
             console.log('Customer:', selectedCustomer.customer_name);
-            console.log('Phone:', selectedCustomer.customer_phone);
 
             // Get full booking details with layout info
             const { data: fullBooking, error: bookingError } = await supabase
@@ -383,45 +372,41 @@ export default function AdminCustomers() {
             console.log('✓ Full booking details retrieved');
 
             // Import WhatsApp service
-            const { sendBookingReceipt } = await import('@/services/whatsappBaileysService');
+            const { generateReceiptDownload } = await import('@/services/whatsappBaileysService');
 
-            console.log('✓ Calling sendBookingReceipt...');
+            console.log('✓ Calling generateReceiptDownload...');
 
-            // Send receipt
-            const result = await sendBookingReceipt({
-                studioId: studio.id,
-                customerPhone: selectedCustomer.customer_phone,
-                bookingDetails: {
-                    reference: fullBooking.reference,
-                    customerName: selectedCustomer.customer_name,
-                    customerEmail: selectedCustomer.customer_email,
-                    date: fullBooking.date,
-                    startTime: fullBooking.start_time,
-                    endTime: fullBooking.end_time,
-                    studioName: studio.name,
-                    layoutName: fullBooking.studio_layout?.name || 'N/A',
-                    duration: fullBooking.duration || 0,
-                    totalPrice: fullBooking.total_price,
-                    paymentMethod: fullBooking.payment_method || undefined,
-                },
+            // Generate and download receipt
+            const result = await generateReceiptDownload({
+                reference: fullBooking.reference,
+                customerName: selectedCustomer.customer_name,
+                customerEmail: selectedCustomer.customer_email,
+                date: fullBooking.date,
+                startTime: fullBooking.start_time,
+                endTime: fullBooking.end_time,
+                studioName: studio.name,
+                layoutName: fullBooking.studio_layout?.name || 'N/A',
+                duration: fullBooking.duration || 0,
+                totalPrice: fullBooking.total_price,
+                paymentMethod: fullBooking.payment_method || undefined,
             });
 
             if (result.success) {
-                console.log('✅ Receipt sent successfully!');
+                console.log('✅ Receipt downloaded successfully!');
                 console.log('========================================\n');
                 toast({
                     title: 'Berjaya',
-                    description: `Resit telah dihantar ke ${selectedCustomer.customer_phone} melalui WhatsApp`,
+                    description: `Resit ${fullBooking.reference} telah dimuat turun`,
                 });
             } else {
-                throw new Error(result.error || 'Gagal menghantar resit');
+                throw new Error(result.error || 'Gagal menjana resit');
             }
         } catch (error: any) {
             console.error('❌ Error generating receipt:', error);
             console.log('========================================\n');
             toast({
                 title: 'Ralat',
-                description: error.message || 'Gagal menjana dan menghantar resit',
+                description: error.message || 'Gagal menjana resit',
                 variant: 'destructive',
             });
         } finally {
@@ -788,7 +773,7 @@ export default function AdminCustomers() {
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => handleGenerateReceipt(booking)}
-                                                    disabled={generatingReceipt[booking.id] || !selectedCustomer?.customer_phone}
+                                                    disabled={generatingReceipt[booking.id]}
                                                     className="ml-2"
                                                 >
                                                     {generatingReceipt[booking.id] ? (
@@ -799,7 +784,7 @@ export default function AdminCustomers() {
                                                     ) : (
                                                         <>
                                                             <FileText className="h-4 w-4 mr-2" />
-                                                            Jana Resit
+                                                            Muat Turun Resit
                                                         </>
                                                     )}
                                                 </Button>

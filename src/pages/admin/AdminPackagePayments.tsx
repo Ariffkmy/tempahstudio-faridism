@@ -385,8 +385,8 @@ export default function AdminPackagePayments() {
                                                         <Button
                                                             variant="outline"
                                                             size="sm"
-                                                            onClick={() => {
-                                                                const { generatePackageReceiptPDF } = require('@/utils/packageReceiptGenerator');
+                                                            onClick={async () => {
+                                                                const { generatePackageReceiptPDF } = await import('@/utils/packageReceiptGenerator');
                                                                 generatePackageReceiptPDF({
                                                                     studioName: payment.studio_name,
                                                                     fullName: payment.full_name,
@@ -476,8 +476,8 @@ export default function AdminPackagePayments() {
                                             </Button>
                                             <Button
                                                 variant="outline"
-                                                onClick={() => {
-                                                    const { generatePackageReceiptPDF } = require('@/utils/packageReceiptGenerator');
+                                                onClick={async () => {
+                                                    const { generatePackageReceiptPDF } = await import('@/utils/packageReceiptGenerator');
                                                     generatePackageReceiptPDF({
                                                         studioName: selectedPayment.studio_name,
                                                         fullName: selectedPayment.full_name,

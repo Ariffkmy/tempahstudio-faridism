@@ -131,7 +131,7 @@ const NotificationConfigItem = ({
 
 const AdminSuperSettings = () => {
   const navigate = useNavigate();
-  const { user, studio } = useAuth();
+  const { user, studio, logout } = useAuth();
   const { isCollapsed } = useSidebar();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -139,9 +139,13 @@ const AdminSuperSettings = () => {
 
   // Super admin settings state
   const [settings, setSettings] = useState({
-    googleClientId: '',
-    googleClientSecret: '',
     sendgridApiKey: '',
+  });
+
+  // Google OAuth settings state (database-backed)
+  const [googleOAuthSettings, setGoogleOAuthSettings] = useState({
+    clientId: '',
+    clientSecret: '',
   });
 
   // Payment gateway settings state
@@ -202,6 +206,16 @@ const AdminSuperSettings = () => {
         const savedTemplates = localStorage.getItem('sendgridTemplates');
         if (savedTemplates) {
           setSendgridTemplates(JSON.parse(savedTemplates));
+        }
+
+        // Load Google OAuth settings from database
+        const { getGoogleOAuthSettings } = await import('@/services/googleOAuthService');
+        const googleResult = await getGoogleOAuthSettings();
+        if (googleResult.success && googleResult.settings) {
+          setGoogleOAuthSettings({
+            clientId: googleResult.settings.client_id || '',
+            clientSecret: googleResult.settings.client_secret || '',
+          });
         }
 
         // Load payment gateway settings from database
@@ -562,6 +576,17 @@ const AdminSuperSettings = () => {
       localStorage.setItem('superAdminSettings', JSON.stringify(settings));
       localStorage.setItem('sendgridTemplates', JSON.stringify(sendgridTemplates));
 
+      // Save Google OAuth settings to database
+      const { updateGoogleOAuthSettings } = await import('@/services/googleOAuthService');
+      const googleResult = await updateGoogleOAuthSettings({
+        client_id: googleOAuthSettings.clientId,
+        client_secret: googleOAuthSettings.clientSecret,
+      });
+
+      if (!googleResult.success) {
+        throw new Error(googleResult.error || 'Failed to save Google OAuth settings');
+      }
+
       // Save payment gateway settings to database
       const paymentResult = await updatePaymentGatewaySettings({
         user_secret_key: paymentGatewaySettings.userSecretKey,
@@ -587,7 +612,7 @@ const AdminSuperSettings = () => {
 
       toast({
         title: 'Berjaya!',
-        description: 'Tetapan super admin, templat, pembayaran gateway dan Twilio telah disimpan',
+        description: 'Tetapan super admin, templat, Google OAuth, pembayaran gateway dan Twilio telah disimpan',
       });
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -941,52 +966,52 @@ const AdminSuperSettings = () => {
               {/* Google Calendar Settings */}
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Key className="h-5 w-5" />
-                    Google Calendar Credentials
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <CalendarDays className="h-5 w-5" />
+                    Google Calendar OAuth
                   </CardTitle>
                   <CardDescription className="text-sm">
-                    Tetapan OAuth untuk integrasi Google Calendar
+                    Global OAuth credentials (Super Admin only)
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="googleClientId" className="text-sm">Client ID</Label>
-                    <Input
-                      id="googleClientId"
-                      type="password"
-                      value={settings.googleClientId}
-                      onChange={(e) => handleSettingChange('googleClientId', e.target.value)}
-                      placeholder="Masukkan Google OAuth Client ID"
-                      className="font-mono text-xs"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Dapat dari Google Cloud Console
-                    </p>
+                  <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-xs">
+                    <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">ℹ️ Info:</p>
+                    <p className="text-blue-800 dark:text-blue-200">All studios use these shared credentials</p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="googleClientSecret" className="text-sm">Client Secret</Label>
+                    <Label htmlFor="googleClientIdMobile" className="text-sm">Client ID</Label>
                     <Input
-                      id="googleClientSecret"
-                      type="password"
-                      value={settings.googleClientSecret}
-                      onChange={(e) => handleSettingChange('googleClientSecret', e.target.value)}
-                      placeholder="Masukkan Google OAuth Client Secret"
+                      id="googleClientIdMobile"
+                      type="text"
+                      value={googleOAuthSettings.clientId}
+                      onChange={(e) => setGoogleOAuthSettings(prev => ({ ...prev, clientId: e.target.value }))}
+                      placeholder="Client ID"
                       className="font-mono text-xs"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Dapat dari Google Cloud Console
-                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="googleClientSecretMobile" className="text-sm">Client Secret</Label>
+                    <Input
+                      id="googleClientSecretMobile"
+                      type="password"
+                      value={googleOAuthSettings.clientSecret}
+                      onChange={(e) => setGoogleOAuthSettings(prev => ({ ...prev, clientSecret: e.target.value }))}
+                      placeholder="Client Secret"
+                      className="font-mono text-xs"
+                    />
                   </div>
 
                   <div className="pt-4 border-t">
                     <Button
                       onClick={saveSettings}
                       disabled={isLoading}
+                      size="sm"
                       className="w-full"
                     >
-                      {isLoading ? 'Menyimpan...' : 'Simpan Tetapan'}
+                      {isLoading ? 'Saving...' : 'Save OAuth Settings'}
                     </Button>
                   </div>
                 </CardContent>
@@ -1751,48 +1776,66 @@ const AdminSuperSettings = () => {
               </TabsContent>
 
               <TabsContent value="google-calendar" className="space-y-6 mt-6">
-                {/* Google Calendar Settings */}
+                {/* Google Calendar OAuth Settings */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Key className="h-5 w-5" />
-                      Google Calendar Credentials
+                      <CalendarDays className="h-5 w-5" />
+                      Google Calendar OAuth Settings
                     </CardTitle>
                     <CardDescription>
-                      Tetapan OAuth untuk integrasi Google Calendar di seluruh sistem
+                      Configure global Google OAuth credentials for all studios
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
+                    <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-sm">
+                      <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">ℹ️ How it works:</p>
+                      <ul className="list-disc list-inside space-y-1 text-blue-800 dark:text-blue-200">
+                        <li>Set up ONE Google OAuth app for all studios</li>
+                        <li>All studios will use these credentials</li>
+                        <li>Each studio still authorizes their own Google Calendar</li>
+                      </ul>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="googleClientId">Client ID</Label>
+                        <Label htmlFor="googleClientId">Google Client ID</Label>
                         <Input
                           id="googleClientId"
-                          type="password"
-                          value={settings.googleClientId}
-                          onChange={(e) => handleSettingChange('googleClientId', e.target.value)}
-                          placeholder="Masukkan Google OAuth Client ID"
+                          type="text"
+                          value={googleOAuthSettings.clientId}
+                          onChange={(e) => setGoogleOAuthSettings(prev => ({ ...prev, clientId: e.target.value }))}
+                          placeholder="123456789-xxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com"
                           className="font-mono"
                         />
-                        <p className="text-sm text-muted-foreground">
-                          Dapat dari Google Cloud Console → APIs & Services → Credentials
+                        <p className="text-xs text-muted-foreground">
+                          From Google Cloud Console → APIs & Services → Credentials
                         </p>
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="googleClientSecret">Client Secret</Label>
+                        <Label htmlFor="googleClientSecret">Google Client Secret</Label>
                         <Input
                           id="googleClientSecret"
                           type="password"
-                          value={settings.googleClientSecret}
-                          onChange={(e) => handleSettingChange('googleClientSecret', e.target.value)}
-                          placeholder="Masukkan Google OAuth Client Secret"
+                          value={googleOAuthSettings.clientSecret}
+                          onChange={(e) => setGoogleOAuthSettings(prev => ({ ...prev, clientSecret: e.target.value }))}
+                          placeholder="GOCSPX-xxxxxxxxxxxxxxxxxxxxx"
                           className="font-mono"
                         />
-                        <p className="text-sm text-muted-foreground">
-                          Rahsia OAuth yang berkaitan dengan Client ID
+                        <p className="text-xs text-muted-foreground">
+                          Keep this secret! Never share it publicly.
                         </p>
                       </div>
+                    </div>
+
+                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-4 text-sm">
+                      <p className="font-medium text-amber-900 dark:text-amber-100 mb-2">⚠️ Important:</p>
+                      <ul className="list-disc list-inside space-y-1 text-amber-800 dark:text-amber-200">
+                        <li>Changing these will affect ALL studios</li>
+                        <li>Studios will need to re-authorize if credentials change</li>
+                        <li>Add redirect URI in Google Console: <code className="bg-white dark:bg-gray-800 px-1 rounded text-xs">{window.location.origin}/admin/settings</code></li>
+                      </ul>
                     </div>
 
                     <div className="flex justify-end pt-6 border-t">
@@ -1801,7 +1844,7 @@ const AdminSuperSettings = () => {
                         disabled={isLoading}
                         size="lg"
                       >
-                        {isLoading ? 'Menyimpan...' : 'Simpan Tetapan'}
+                        {isLoading ? 'Menyimpan...' : 'Simpan Google OAuth Settings'}
                       </Button>
                     </div>
                   </CardContent>

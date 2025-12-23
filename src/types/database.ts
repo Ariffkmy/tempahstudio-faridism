@@ -109,6 +109,7 @@ export interface Studio {
   payment_fpx_enabled?: boolean | null;
   payment_tng_enabled?: boolean | null;
   tng_qr_code?: string | null;
+  package_name?: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;

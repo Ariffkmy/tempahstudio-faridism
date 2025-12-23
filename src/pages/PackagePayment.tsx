@@ -43,6 +43,8 @@ export default function PackagePayment() {
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('qr');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+    const [isResendingEmail, setIsResendingEmail] = useState(false);
+    const [registeredEmail, setRegisteredEmail] = useState<string>('');
 
     // Fetch package and payment settings data on mount
     useEffect(() => {
@@ -164,6 +166,43 @@ export default function PackagePayment() {
         }
     };
 
+    const handleResendEmail = async () => {
+        if (!registeredEmail) return;
+
+        setIsResendingEmail(true);
+        try {
+            const { supabase } = await import('@/lib/supabase');
+            const { error } = await supabase.auth.resend({
+                type: 'signup',
+                email: registeredEmail,
+            });
+
+            if (error) {
+                console.error('❌ Resend email error:', error);
+                toast({
+                    title: 'Ralat',
+                    description: 'Gagal menghantar semula emel pengesahan',
+                    variant: 'destructive',
+                });
+            } else {
+                console.log('✅ Verification email resent to:', registeredEmail);
+                toast({
+                    title: 'Berjaya',
+                    description: 'Emel pengesahan telah dihantar semula!',
+                });
+            }
+        } catch (error) {
+            console.error('Error resending email:', error);
+            toast({
+                title: 'Ralat',
+                description: 'Gagal menghantar semula emel',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsResendingEmail(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -221,18 +260,84 @@ export default function PackagePayment() {
                 throw new Error(paymentResult.error || 'Failed to submit payment');
             }
 
+            // Create account immediately with email verification required
+            // Supabase will automatically send verification email
+            const { supabase } = await import('@/lib/supabase');
+
+            // Generate a temporary password that user will change after verification
+            const tempPassword = `Temp${Math.random().toString(36).substring(2, 15)}!`;
+
+            const { data: authData, error: signUpError } = await supabase.auth.signUp({
+                email: formData.email,
+                password: tempPassword,
+                options: {
+                    // Skip email verification since user already paid
+                    // They can login immediately and set their password
+                    emailRedirectTo: `${window.location.origin}/complete-registration`,
+                    data: {
+                        full_name: formData.fullName,
+                        phone: formData.phone,
+                        studio_name: formData.studioName,
+                    }
+                }
+            });
+
+            if (signUpError) {
+                console.error('❌ SignUp Error:', signUpError);
+                console.error('Error details:', {
+                    message: signUpError.message,
+                    status: signUpError.status,
+                    name: signUpError.name
+                });
+                throw new Error('Gagal membuat akaun. Sila cuba lagi.');
+            }
+
+            console.log('✅ SignUp Success!');
+            console.log('Auth Data:', {
+                userId: authData?.user?.id,
+                email: authData?.user?.email,
+                emailConfirmedAt: authData?.user?.email_confirmed_at,
+                identities: authData?.user?.identities,
+                session: authData?.session ? 'Session created' : 'No session (email confirmation required)',
+                userMetadata: authData?.user?.user_metadata
+            });
+            console.log('📊 Email Delivery Status:');
+            console.log('  - Email sent to:', formData.email);
+            console.log('  - Check Supabase Auth Logs for delivery confirmation');
+            console.log('  - Log should show: event="mail.send" mail_type="confirmation"');
+
+            // Check if email was sent or auto-confirmed
+            if (authData?.user?.email_confirmed_at) {
+                console.warn('⚠️ WARNING: Email was AUTO-CONFIRMED! This means:');
+                console.warn('1. "Confirm email" toggle is DISABLED in Supabase Auth settings');
+                console.warn('2. No verification email will be sent');
+                console.warn('3. User can login immediately without verification');
+            } else {
+                console.log('📧 Email verification required - email should have been sent to:', formData.email);
+                console.log('📝 User should check:');
+                console.log('  - Inbox for verification email');
+                console.log('  - Spam/Junk folder');
+                console.log('  - Supabase Auth Logs for email sending status');
+            }
+
+            // Store payment data and temp password in localStorage for later
+            localStorage.setItem('pendingRegistration', JSON.stringify({
+                email: formData.email,
+                fullName: formData.fullName,
+                phone: formData.phone,
+                studioName: formData.studioName,
+                paymentId: paymentResult.payment?.id,
+                tempPassword, // Store temp password so user can set new one
+                timestamp: Date.now(),
+            }));
+
+            console.log('Account created. Verification email sent by Supabase.');
+
+            // Store email for resend functionality
+            setRegisteredEmail(formData.email);
+
             // Show success dialog
             setShowSuccessDialog(true);
-
-            // Reset form
-            setFormData({
-                studioName: '',
-                fullName: '',
-                email: '',
-                phone: '',
-            });
-            setReceiptFile(null);
-            setAgreedToTerms(false);
 
         } catch (error: any) {
             console.error('Error submitting payment:', error);
@@ -579,7 +684,7 @@ export default function PackagePayment() {
                                                         rel="noopener noreferrer"
                                                         className="text-primary hover:underline"
                                                     >
-                                                        Dasar Privasi
+                                                        Dasar Privasi Tempah Studio
                                                     </a>
                                                 ) : (
                                                     <span className="text-primary">Dasar Privasi</span>
@@ -640,28 +745,50 @@ export default function PackagePayment() {
                         >
                             <DialogHeader className="space-y-3">
                                 <DialogTitle className="text-2xl font-bold">
-                                    Selamat datang ke platform Tempah Studio!
+                                    Pembayaran Berjaya!
                                 </DialogTitle>
-                                <DialogDescription className="text-base text-muted-foreground">
-                                    Terima kasih atas pembayaran anda. Resit akan dihantar ke email anda dalam masa terdekat.
-                                </DialogDescription>
                             </DialogHeader>
+                            <div className="space-y-4 mt-2">
+                                <p className="text-base text-muted-foreground">Terima kasih atas pembayaran anda.</p>
+                                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 space-y-2">
+                                    <p className="font-semibold text-amber-900 dark:text-amber-100">
+                                        📧 Sila Sahkan Emel Anda
+                                    </p>
+                                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                                        Kami telah menghantar emel pengesahan ke <strong>{formData.email}</strong>.
+                                    </p>
+                                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                                        Sila semak peti masuk anda dan klik pautan dalam emel untuk meneruskan pendaftaran akaun.
+                                    </p>
+                                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                                        Selepas mengesahkan emel, anda akan diarahkan untuk membuat kata laluan.
+                                    </p>
+                                </div>
+                            </div>
                         </motion.div>
                         <motion.div
-                            className="w-full"
+                            className="w-full space-y-2"
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.4 }}
                         >
                             <Button
+                                onClick={handleResendEmail}
+                                variant="outline"
+                                className="w-full"
+                                size="lg"
+                                disabled={isResendingEmail}
+                            >
+                                {isResendingEmail ? 'Menghantar...' : '📧 Hantar Semula Emel Pengesahan'}
+                            </Button>
+                            <Button
                                 onClick={() => {
                                     setShowSuccessDialog(false);
-                                    navigate('/onboarding');
                                 }}
                                 className="w-full"
                                 size="lg"
                             >
-                                Seterusnya
+                                Tutup
                             </Button>
                         </motion.div>
                     </motion.div>

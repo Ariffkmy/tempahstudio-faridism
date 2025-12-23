@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useSidebar } from '@/contexts/SidebarContext';
-import { Search, Mail, Phone, Calendar, CreditCard, Package, Eye, X } from 'lucide-react';
+import { Search, Mail, Phone, Calendar, CreditCard, Package, Eye, X, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -85,6 +85,7 @@ export default function AdminCustomers() {
     const [selectedCustomer, setSelectedCustomer] = useState<CustomerBooking | null>(null);
     const [customerBookings, setCustomerBookings] = useState<BookingDetail[]>([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [generatingReceipt, setGeneratingReceipt] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         fetchCustomers();
@@ -337,6 +338,79 @@ export default function AdminCustomers() {
                 description: 'Gagal mengemaskini status pengesahan',
                 variant: 'destructive',
             });
+        }
+    };
+
+    const handleGenerateReceipt = async (booking: BookingDetail) => {
+        if (!studio || !selectedCustomer) return;
+
+        setGeneratingReceipt(prev => ({ ...prev, [booking.id]: true }));
+
+        try {
+            console.log('\n========================================');
+            console.log('📄 MANUAL RECEIPT GENERATION (CLIENT-SIDE)');
+            console.log('========================================');
+            console.log('Booking ID:', booking.id);
+            console.log('Reference:', booking.reference);
+            console.log('Customer:', selectedCustomer.customer_name);
+
+            // Get full booking details with layout info
+            const { data: fullBooking, error: bookingError } = await supabase
+                .from('bookings')
+                .select(`
+                    *,
+                    studio_layout:studio_layouts(name),
+                    customer:customers(*)
+                `)
+                .eq('id', booking.id)
+                .single();
+
+            if (bookingError || !fullBooking) {
+                throw new Error('Gagal mendapatkan maklumat tempahan');
+            }
+
+            console.log('✓ Full booking details retrieved');
+
+            // Import PDF generator
+            const { generateReceiptPDF } = await import('@/utils/receiptGenerator');
+
+            console.log('✓ Generating PDF...');
+
+            // Generate and download PDF
+            generateReceiptPDF({
+                reference: fullBooking.reference,
+                customerName: selectedCustomer.customer_name,
+                customerEmail: selectedCustomer.customer_email,
+                customerPhone: selectedCustomer.customer_phone || undefined,
+                date: fullBooking.date,
+                startTime: fullBooking.start_time,
+                endTime: fullBooking.end_time,
+                studioName: studio.name,
+                layoutName: fullBooking.studio_layout?.name || 'N/A',
+                duration: fullBooking.duration || 0,
+                totalPrice: fullBooking.total_price,
+                paymentMethod: fullBooking.payment_method || undefined,
+                paymentType: fullBooking.payment_type || undefined,
+                balanceDue: fullBooking.balance_due || undefined,
+            });
+
+            console.log('✅ Receipt generated and downloaded successfully!');
+            console.log('========================================\n');
+
+            toast({
+                title: 'Berjaya',
+                description: `Resit ${fullBooking.reference} telah dimuat turun`,
+            });
+        } catch (error: any) {
+            console.error('❌ Error generating receipt:', error);
+            console.log('========================================\n');
+            toast({
+                title: 'Ralat',
+                description: error.message || 'Gagal menjana resit',
+                variant: 'destructive',
+            });
+        } finally {
+            setGeneratingReceipt(prev => ({ ...prev, [booking.id]: false }));
         }
     };
 
@@ -690,10 +764,31 @@ export default function AdminCustomers() {
                                             <div>
                                                 <p className="font-semibold text-lg">{booking.reference}</p>
                                                 <p className="text-sm text-muted-foreground">
-                                                    {format(new Date(booking.date), 'dd/MM/yyyy')} • RM {booking.total_price.toFixed(2)}
+                                                    {format(new Date(booking.date), 'dd/MM/yyyy')} • {booking.start_time} - {booking.end_time} • RM {booking.total_price.toFixed(2)}
                                                 </p>
                                             </div>
-                                            {getStatusBadge(booking.status)}
+                                            <div className="flex items-center gap-2">
+                                                {getStatusBadge(booking.status)}
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleGenerateReceipt(booking)}
+                                                    disabled={generatingReceipt[booking.id]}
+                                                    className="ml-2"
+                                                >
+                                                    {generatingReceipt[booking.id] ? (
+                                                        <>
+                                                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary mr-2"></div>
+                                                            Menjana...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <FileText className="h-4 w-4 mr-2" />
+                                                            Muat Turun Resit
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            </div>
                                         </div>
 
                                         {(booking.receipt_url || booking.payment_proof_url) ? (

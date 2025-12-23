@@ -131,10 +131,29 @@ async function createGoogleCalendarEvent(studio: any, eventData: CalendarEventDa
   const calendarStartTime = startDateTime.toISOString()
   const calendarEndTime = endDateTime.toISOString()
 
+  // Fetch global OAuth credentials from google_oauth_settings
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SERVICE_ROLE_KEY') ?? ''
+  )
+
+  const { data: oauthSettings, error: oauthError } = await supabaseAdmin
+    .from('google_oauth_settings')
+    .select('client_id, client_secret')
+    .limit(1)
+    .single()
+
+  if (oauthError || !oauthSettings) {
+    throw new Error('Google OAuth settings not configured. Please contact super admin.')
+  }
+
+  const clientId = oauthSettings.client_id
+  const clientSecret = oauthSettings.client_secret
+
   // Refresh access token if needed
   let accessToken = studio.google_access_token
   if (!accessToken || new Date(studio.google_token_expires_at) <= new Date()) {
-    accessToken = await refreshGoogleToken(studio.google_refresh_token, studio.google_client_id, studio.google_client_secret)
+    accessToken = await refreshGoogleToken(studio.google_refresh_token, clientId, clientSecret)
 
     // Update the studio with new token
     const expiresAt = new Date()

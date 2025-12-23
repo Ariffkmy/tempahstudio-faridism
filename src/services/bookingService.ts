@@ -366,6 +366,9 @@ export interface CreateBookingData {
  * Create a new booking from public booking form
  */
 export async function createPublicBooking(bookingData: CreateBookingData): Promise<{ success: boolean; booking?: any; error?: string }> {
+  console.log('🚀🚀🚀 CREATE PUBLIC BOOKING CALLED 🚀🚀🚀');
+  console.log('Booking data:', bookingData);
+
   try {
     // First, get studio and company info
     const { data: studio, error: studioError } = await supabase
@@ -456,12 +459,33 @@ export async function createPublicBooking(bookingData: CreateBookingData): Promi
     }
 
     // Try to create calendar event if Google Calendar is enabled
+    console.log('📅 Checking Google Calendar integration...');
+    console.log('Studio data:', {
+      studioId: booking.studio_id,
+      studioName: booking.studio?.name,
+      googleCalendarEnabled: booking.studio?.google_calendar_enabled,
+      hasRefreshToken: !!booking.studio?.google_refresh_token,
+    });
+
     try {
       if (booking.studio?.google_calendar_enabled) {
+        console.log('✅ Google Calendar is enabled for this studio');
+        console.log('🔄 Attempting to create calendar event...');
         await createCalendarEvent(booking);
+        console.log('✅ Calendar event created successfully!');
+      } else {
+        console.log('⚠️ Google Calendar is NOT enabled for this studio');
+        console.log('Reason:', {
+          enabled: booking.studio?.google_calendar_enabled,
+          hasStudioData: !!booking.studio,
+        });
       }
     } catch (calendarError) {
-      console.error('Failed to create calendar event:', calendarError);
+      console.error('❌ Failed to create calendar event:', calendarError);
+      console.error('Calendar error details:', {
+        message: calendarError.message,
+        stack: calendarError.stack,
+      });
       // Don't fail the booking if calendar integration fails
       // This is logged but doesn't prevent the booking from succeeding
     }
@@ -518,6 +542,130 @@ export async function createPublicBooking(bookingData: CreateBookingData): Promi
       // This is logged but doesn't prevent the booking from succeeding
     }
 
+    // Send WhatsApp notification if customer phone is provided
+    if (booking.customer.phone) {
+      try {
+        console.log('\n========================================');
+        console.log('📱 WHATSAPP NOTIFICATION - Starting process');
+        console.log('========================================');
+        console.log('Customer has phone number:', booking.customer.phone);
+        console.log('Booking details:', {
+          reference: booking.reference,
+          customerName: booking.customer.name,
+          customerEmail: booking.customer.email,
+          customerPhone: booking.customer.phone,
+          date: booking.date,
+          startTime: booking.start_time,
+          endTime: booking.end_time,
+          studioId: booking.studio_id,
+          studioName: booking.studio.name,
+          layoutName: booking.studio_layout.name,
+          totalPrice: booking.total_price,
+        });
+
+        console.log('\n🔄 Importing WhatsApp service...');
+        const { sendBookingNotification } = await import('@/services/whatsappBaileysService');
+        console.log('✓ WhatsApp service imported successfully');
+
+        console.log('\n📞 Calling sendBookingNotification...');
+        const whatsappResult = await sendBookingNotification({
+          studioId: booking.studio_id,
+          customerPhone: booking.customer.phone,
+          customerName: booking.customer.name,
+          bookingReference: booking.reference,
+          date: booking.date,
+          startTime: booking.start_time,
+          endTime: booking.end_time,
+          studioName: booking.studio.name,
+          layoutName: booking.studio_layout.name,
+          totalPrice: booking.total_price,
+        });
+
+        console.log('\n📥 WhatsApp notification result received:');
+        console.log('Success:', whatsappResult.success);
+        if (whatsappResult.error) {
+          console.log('Error:', whatsappResult.error);
+        }
+
+        if (whatsappResult.success) {
+          console.log('\n✅ ✅ ✅ SUCCESS: WhatsApp booking notification sent!');
+          console.log('Customer will receive the message at:', booking.customer.phone);
+          console.log('========================================\n');
+
+          // Send PDF receipt as WhatsApp document
+          try {
+            console.log('\n========================================');
+            console.log('📄 PDF RECEIPT - Starting generation and sending');
+            console.log('========================================');
+
+            const { sendBookingReceipt } = await import('@/services/whatsappBaileysService');
+
+            const receiptResult = await sendBookingReceipt({
+              studioId: booking.studio_id,
+              customerPhone: booking.customer.phone,
+              bookingDetails: {
+                reference: booking.reference,
+                customerName: booking.customer.name,
+                customerEmail: booking.customer.email,
+                date: booking.date,
+                startTime: booking.start_time,
+                endTime: booking.end_time,
+                studioName: booking.studio.name,
+                layoutName: booking.studio_layout.name,
+                duration: booking.duration,
+                totalPrice: booking.total_price,
+                paymentMethod: booking.payment_method || undefined,
+                paymentType: booking.payment_type || undefined,
+                balanceDue: booking.balance_due || undefined,
+              },
+            });
+
+            if (receiptResult.success) {
+              console.log('\n✅ ✅ ✅ SUCCESS: PDF receipt sent via WhatsApp!');
+              console.log('Customer will receive the PDF receipt at:', booking.customer.phone);
+              console.log('========================================\n');
+            } else {
+              console.warn('\n⚠️ ⚠️ ⚠️ WARNING: PDF receipt sending failed');
+              console.warn('Reason:', receiptResult.error);
+              console.warn('Customer already received text notification');
+              console.warn('========================================\n');
+            }
+          } catch (receiptError) {
+            console.error('\n❌ ❌ ❌ ERROR: Exception in PDF receipt sending');
+            console.error('Error type:', receiptError instanceof Error ? receiptError.constructor.name : typeof receiptError);
+            console.error('Error message:', receiptError instanceof Error ? receiptError.message : String(receiptError));
+            console.error('Error stack:', receiptError instanceof Error ? receiptError.stack : 'N/A');
+            console.error('Note: Customer already received text notification');
+            console.error('========================================\n');
+            // Don't fail booking if receipt fails
+          }
+        } else {
+          console.warn('\n⚠️ ⚠️ ⚠️ WARNING: WhatsApp notification failed');
+          console.warn('Reason:', whatsappResult.error);
+          console.warn('Booking was still created successfully');
+          console.warn('Customer will receive email confirmation instead');
+          console.warn('========================================\n');
+        }
+      } catch (whatsappError) {
+        console.error('\n❌ ❌ ❌ ERROR: Exception in WhatsApp notification');
+        console.error('Error type:', whatsappError instanceof Error ? whatsappError.constructor.name : typeof whatsappError);
+        console.error('Error message:', whatsappError instanceof Error ? whatsappError.message : String(whatsappError));
+        console.error('Error stack:', whatsappError instanceof Error ? whatsappError.stack : 'N/A');
+        console.error('Note: Booking was still created successfully');
+        console.error('Customer will receive email confirmation');
+        console.error('========================================\n');
+        // Don't fail booking if WhatsApp notification fails
+        // This is logged but doesn't prevent the booking from succeeding
+      }
+    } else {
+      console.log('\n========================================');
+      console.log('ℹ️ WHATSAPP NOTIFICATION - Skipped');
+      console.log('========================================');
+      console.log('Reason: No phone number provided by customer');
+      console.log('Customer will receive email confirmation only');
+      console.log('========================================\n');
+    }
+
     return { success: true, booking };
   } catch (error) {
     console.error('Error in createPublicBooking:', error);
@@ -534,10 +682,17 @@ export async function createPublicBooking(bookingData: CreateBookingData): Promi
  */
 async function createCalendarEvent(booking: BookingWithDetails): Promise<void> {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
-      throw new Error('No authenticated user');
-    }
+    console.log('📞 createCalendarEvent called with booking:', {
+      bookingId: booking.id,
+      reference: booking.reference,
+      date: booking.date,
+      startTime: booking.start_time,
+      endTime: booking.end_time,
+    });
+
+    // NOTE: No session check needed here!
+    // The Edge Function uses SERVICE_ROLE_KEY which bypasses RLS
+    // Public bookings don't have an authenticated user session
 
     // Get the layout details for the event title
     const layout = booking.studio_layout;
@@ -559,8 +714,17 @@ async function createCalendarEvent(booking: BookingWithDetails): Promise<void> {
       calendarSecretKey: 'waOOzgPpFwaySuO4xTwLBx74QgJ9P9jT'
     };
 
+    console.log('📤 Invoking Edge Function with data:', eventData);
+
     const { data, error } = await supabase.functions.invoke('create-calendar-event', {
       body: eventData
+    });
+
+    console.log('📥 Edge Function response:', {
+      hasData: !!data,
+      hasError: !!error,
+      data,
+      error,
     });
 
     if (error) {
@@ -571,9 +735,9 @@ async function createCalendarEvent(booking: BookingWithDetails): Promise<void> {
       throw new Error(data.error || 'Unknown calendar error');
     }
 
-    console.log('Calendar event created successfully:', data.calendarEvent);
+    console.log('✅ Calendar event created successfully:', data.calendarEvent);
   } catch (error) {
-    console.error('Error in createCalendarEvent:', error);
+    console.error('❌ Error in createCalendarEvent:', error);
     throw error;
   }
 }

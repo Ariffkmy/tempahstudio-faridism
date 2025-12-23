@@ -361,7 +361,7 @@ const BrandBooking = () => {
 
         const { data: bookings, error } = await supabase
           .from('bookings')
-          .select('start_time, duration')
+          .select('start_time, duration, studio_id, layout_id')
           .eq('studio_id', studio.id)
           .eq('layout_id', selectedLayout)
           .eq('date', dateString)
@@ -378,9 +378,14 @@ const BrandBooking = () => {
         setBookedTimes(times);
 
         // Log additional info for debugging overlaps
-        console.log(`✅ Booked times for layout ${selectedLayout} on ${dateString}:`, times);
+        console.log(`✅ Booked times for Studio ${studio.id}, Layout ${selectedLayout} on ${dateString}:`, times);
         if (bookings && bookings.length > 0) {
-          console.log('📊 Occupied ranges:', bookings.map(b => `${b.start_time} (${b.duration}m)`));
+          console.log('📊 Full booking details:', bookings.map(b => ({
+            studio_id: b.studio_id,
+            layout_id: b.layout_id,
+            start_time: b.start_time,
+            duration: `${b.duration}m`
+          })));
         }
 
       } catch (error) {

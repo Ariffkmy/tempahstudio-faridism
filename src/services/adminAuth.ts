@@ -35,6 +35,24 @@ export async function registerAdmin(data: AdminRegistrationData): Promise<{
   error?: string;
 }> {
   try {
+    // Find the latest package payment for this email to set the package_name
+    let packageName = null;
+    try {
+      const { data: paymentData } = await supabase
+        .from('package_payments')
+        .select('package_name')
+        .eq('email', data.email)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (paymentData) {
+        packageName = paymentData.package_name;
+      }
+    } catch (err) {
+      console.error('Error looking up package payment during registration:', err);
+    }
+
     // Step 1: Create a new studio
     const { data: newStudio, error: studioError } = await supabase
       .from('studios')
@@ -43,6 +61,7 @@ export async function registerAdmin(data: AdminRegistrationData): Promise<{
         name: data.studio_name,
         location: data.studio_location || null,
         is_active: true,
+        package_name: packageName,
       })
       .select()
       .single();
@@ -227,25 +246,33 @@ export async function loginAdmin(data: AdminLoginData): Promise<{
         studio: null
       } as AdminUserWithStudio;
     } else {
-      // For regular admins, fetch studio info
-      const { data: studio, error: studioError } = await supabase
-        .from('studios')
-        .select('*')
-        .eq('id', adminUser.studio_id)
-        .single();
+      // For regular admins, fetch studio info if they have one
+      if (adminUser.studio_id) {
+        const { data: studio, error: studioError } = await supabase
+          .from('studios')
+          .select('*')
+          .eq('id', adminUser.studio_id)
+          .single();
 
-      if (studioError || !studio) {
-        await supabase.auth.signOut();
-        return {
-          success: false,
-          error: 'Studio tidak dijumpai',
-        };
+        if (studioError || !studio) {
+          await supabase.auth.signOut();
+          return {
+            success: false,
+            error: 'Studio tidak dijumpai',
+          };
+        }
+
+        userWithStudio = {
+          ...adminUser,
+          studio
+        } as AdminUserWithStudio;
+      } else {
+        // Admin without studio (during onboarding)
+        userWithStudio = {
+          ...adminUser,
+          studio: null
+        } as AdminUserWithStudio;
       }
-
-      userWithStudio = {
-        ...adminUser,
-        studio
-      } as AdminUserWithStudio;
     }
 
     return {

@@ -19,6 +19,7 @@ import VerifyEmail from "./pages/admin/VerifyEmail";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminBookings from "./pages/admin/AdminBookings";
 import AdminCustomers from "./pages/admin/AdminCustomers";
+import AdminTaskTracker from "./pages/admin/AdminTaskTracker";
 import AdminWhatsappBlaster from "./pages/admin/AdminWhatsappBlaster";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminSettings from "./pages/admin/AdminSettings";
@@ -27,7 +28,16 @@ import AdminSuperSettings from "./pages/admin/AdminSuperSettings";
 import AdminPackagePayments from "./pages/admin/AdminPackagePayments";
 import PackagePayment from "./pages/PackagePayment";
 import Onboarding from "./pages/Onboarding";
+import CompleteRegistration from "./pages/CompleteRegistration";
 import NotFound from "./pages/NotFound";
+import GettingStarted from "./pages/GettingStarted";
+import UseCases from "./pages/UseCases";
+import Pricing from "./pages/Pricing";
+import FAQ from "./pages/FAQ";
+import Blog from "./pages/Blog";
+import ContactSupport from "./pages/ContactSupport";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +60,17 @@ const App = () => (
                 <Route path="/book/:studioId" element={<BrandBooking />} />
                 <Route path="/brand/:studioId" element={<BrandBooking />} />
                 <Route path="/booking/confirmation" element={<BookingConfirmation />} />
+
+                {/* Landing Page Routes */}
+                <Route path="/getting-started" element={<GettingStarted />} />
+                <Route path="/use-cases" element={<UseCases />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/faq" element={<FAQ />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/contact-support" element={<ContactSupport />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms-of-service" element={<TermsOfService />} />
+
                 {/* Studio slug-based booking route (e.g., /my-studio-name) */}
                 <Route path="/:studioSlug" element={<BrandBooking />} />
 
@@ -60,6 +81,9 @@ const App = () => (
 
                 {/* Package Payment Route (Public) */}
                 <Route path="/package-payment" element={<PackagePayment />} />
+
+                {/* Complete Registration Route (Public - after email verification) */}
+                <Route path="/complete-registration" element={<CompleteRegistration />} />
 
                 {/* Onboarding Route (Public) */}
                 <Route path="/onboarding" element={<Onboarding />} />
@@ -90,7 +114,15 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="/admin/whatsapp-blaster"
+                  path="/admin/task-tracker"
+                  element={
+                    <ProtectedRoute>
+                      <AdminTaskTracker />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/whatsapp"
                   element={
                     <ProtectedRoute>
                       <AdminWhatsappBlaster />

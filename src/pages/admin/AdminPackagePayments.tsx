@@ -33,7 +33,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { getAllPackagePayments, updatePackagePayment, type PackagePayment } from '@/services/packagePaymentService';
-import { CreditCard, Eye, FileText, CheckCircle, XCircle, Clock, Menu, Users, DollarSign, Package } from 'lucide-react';
+import { getPackages, type Package as StudioPackage } from '@/services/packageService';
+import { CreditCard, Eye, FileText, CheckCircle, XCircle, Clock, Menu, Users, DollarSign, Package as PackageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function AdminPackagePayments() {
@@ -45,15 +46,27 @@ export default function AdminPackagePayments() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [updating, setUpdating] = useState(false);
     const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [availablePackages, setAvailablePackages] = useState<StudioPackage[]>([]);
 
     const [updateData, setUpdateData] = useState({
         status: '' as 'pending' | 'verified' | 'rejected' | 'completed',
         notes: '',
+        package_name: '',
     });
 
     useEffect(() => {
         loadPayments();
+        loadPackages();
     }, []);
+
+    const loadPackages = async () => {
+        try {
+            const data = await getPackages(true); // include inactive handles
+            setAvailablePackages(data);
+        } catch (error) {
+            console.error('Error loading packages:', error);
+        }
+    };
 
     const loadPayments = async () => {
         setLoading(true);
@@ -85,6 +98,7 @@ export default function AdminPackagePayments() {
         setUpdateData({
             status: payment.status,
             notes: payment.notes || '',
+            package_name: payment.package_name,
         });
         setDialogOpen(true);
     };
@@ -117,6 +131,31 @@ export default function AdminPackagePayments() {
             });
         } finally {
             setUpdating(false);
+        }
+    };
+
+    const handleQuickUpdateStatus = async (id: string, newStatus: any) => {
+        try {
+            const result = await updatePackagePayment(id, {
+                status: newStatus,
+                verified_at: new Date().toISOString(),
+            });
+
+            if (result.success) {
+                toast({
+                    title: 'Success',
+                    description: 'Status updated',
+                });
+                setPayments(prev => prev.map(p => p.id === id ? { ...p, status: newStatus } : p));
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error: any) {
+            toast({
+                title: 'Error',
+                description: error.message || 'Failed to update status',
+                variant: 'destructive',
+            });
         }
     };
 
@@ -213,7 +252,7 @@ export default function AdminPackagePayments() {
                                 <CardTitle className="text-sm font-medium">
                                     Package Selection
                                 </CardTitle>
-                                <Package className="h-4 w-4 text-muted-foreground" />
+                                <PackageIcon className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-1">
@@ -315,16 +354,56 @@ export default function AdminPackagePayments() {
                                                 <TableCell>{payment.package_name}</TableCell>
                                                 <TableCell className="font-medium">RM {payment.package_price.toFixed(2)}</TableCell>
                                                 <TableCell className="capitalize">{payment.payment_method || '-'}</TableCell>
-                                                <TableCell>{getStatusBadge(payment.status)}</TableCell>
                                                 <TableCell>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => handleViewDetails(payment)}
+                                                    <Select
+                                                        value={payment.status}
+                                                        onValueChange={(value) => handleQuickUpdateStatus(payment.id, value)}
                                                     >
-                                                        <Eye className="h-4 w-4 mr-1" />
-                                                        View
-                                                    </Button>
+                                                        <SelectTrigger className="w-[130px] h-8 text-xs">
+                                                            <SelectValue>
+                                                                {getStatusBadge(payment.status)}
+                                                            </SelectValue>
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="pending">Pending</SelectItem>
+                                                            <SelectItem value="verified">Verified</SelectItem>
+                                                            <SelectItem value="rejected">Rejected</SelectItem>
+                                                            <SelectItem value="completed">Completed</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleViewDetails(payment)}
+                                                        >
+                                                            <Eye className="h-4 w-4 mr-1" />
+                                                            View
+                                                        </Button>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={async () => {
+                                                                const { generatePackageReceiptPDF } = await import('@/utils/packageReceiptGenerator');
+                                                                generatePackageReceiptPDF({
+                                                                    studioName: payment.studio_name,
+                                                                    fullName: payment.full_name,
+                                                                    email: payment.email,
+                                                                    phone: payment.phone,
+                                                                    packageName: payment.package_name,
+                                                                    packagePrice: payment.package_price,
+                                                                    paymentMethod: payment.payment_method || undefined,
+                                                                    submittedDate: format(new Date(payment.created_at), 'dd/MM/yyyy HH:mm'),
+                                                                    status: payment.status,
+                                                                });
+                                                            }}
+                                                        >
+                                                            <FileText className="h-4 w-4 mr-1" />
+                                                            Receipt
+                                                        </Button>
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -366,7 +445,7 @@ export default function AdminPackagePayments() {
                                         <p className="font-medium">{selectedPayment.phone}</p>
                                     </div>
                                     <div>
-                                        <Label className="text-muted-foreground">Package</Label>
+                                        <Label className="text-muted-foreground">Original Package</Label>
                                         <p className="font-medium">{selectedPayment.package_name}</p>
                                     </div>
                                     <div>
@@ -387,18 +466,65 @@ export default function AdminPackagePayments() {
                                 {selectedPayment.receipt_url && (
                                     <div>
                                         <Label className="text-muted-foreground mb-2 block">Receipt</Label>
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => window.open(selectedPayment.receipt_url!, '_blank')}
-                                        >
-                                            <FileText className="h-4 w-4 mr-2" />
-                                            View Receipt
-                                        </Button>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                onClick={() => window.open(selectedPayment.receipt_url!, '_blank')}
+                                            >
+                                                <Eye className="h-4 w-4 mr-2" />
+                                                View Receipt
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={async () => {
+                                                    const { generatePackageReceiptPDF } = await import('@/utils/packageReceiptGenerator');
+                                                    generatePackageReceiptPDF({
+                                                        studioName: selectedPayment.studio_name,
+                                                        fullName: selectedPayment.full_name,
+                                                        email: selectedPayment.email,
+                                                        phone: selectedPayment.phone,
+                                                        packageName: selectedPayment.package_name,
+                                                        packagePrice: selectedPayment.package_price,
+                                                        paymentMethod: selectedPayment.payment_method || undefined,
+                                                        submittedDate: format(new Date(selectedPayment.created_at), 'dd/MM/yyyy HH:mm'),
+                                                        status: selectedPayment.status,
+                                                    });
+                                                }}
+                                            >
+                                                <FileText className="h-4 w-4 mr-2" />
+                                                Download Receipt
+                                            </Button>
+                                        </div>
                                     </div>
                                 )}
 
-                                {/* Update Status */}
+                                {/* Update Info */}
                                 <div className="space-y-4 border-t pt-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="package_name">Package Name</Label>
+                                        <Select
+                                            value={updateData.package_name}
+                                            onValueChange={(value) => setUpdateData({ ...updateData, package_name: value })}
+                                        >
+                                            <SelectTrigger id="package_name">
+                                                <SelectValue placeholder="Select a package" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {availablePackages.map((pkg) => (
+                                                    <SelectItem key={pkg.id} value={pkg.name}>
+                                                        {pkg.name}
+                                                    </SelectItem>
+                                                ))}
+                                                {/* Allow manual entry if not in list by including current name */}
+                                                {!availablePackages.find(p => p.name === updateData.package_name) && updateData.package_name && (
+                                                    <SelectItem value={updateData.package_name}>
+                                                        {updateData.package_name} (Current)
+                                                    </SelectItem>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
                                     <div className="space-y-2">
                                         <Label htmlFor="status">Update Status</Label>
                                         <Select

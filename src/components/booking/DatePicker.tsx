@@ -15,7 +15,7 @@ export function DatePicker({ selected, onSelect }: DatePickerProps) {
 
   return (
     <Card variant="outline" className="p-4">
-      <h3 className="font-semibold mb-4">Select Date</h3>
+      <h3 className="font-semibold mb-4">Pilih Tarikh</h3>
       <Calendar
         mode="single"
         selected={selected}

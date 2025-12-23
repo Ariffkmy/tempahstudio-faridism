@@ -1,0 +1,263 @@
+# Google Calendar Integration - Debugging Checklist
+
+## 🔍 How to Debug
+
+I've added comprehensive logging to track the entire Google Calendar integration flow. Here's how to use it:
+
+### **Step 1: Make a Test Booking**
+
+1. Go to your booking form
+2. Make a test booking
+3. **Open Browser Console** (F12 → Console tab)
+4. Look for these log messages:
+
+---
+
+## 📊 **What to Look For in Console Logs**
+
+### **1. Initial Check**
+```
+📅 Checking Google Calendar integration...
+Studio data: {
+  studioId: "...",
+  studioName: "...",
+  googleCalendarEnabled: true/false,  ← CHECK THIS!
+  hasRefreshToken: true/false         ← CHECK THIS!
+}
+```
+
+**What this tells you:**
+- ✅ If `googleCalendarEnabled: false` → Calendar integration is disabled
+- ✅ If `hasRefreshToken: false` → Studio hasn't authorized Google Calendar yet
+
+---
+
+### **2. If Calendar is Enabled**
+```
+✅ Google Calendar is enabled for this studio
+🔄 Attempting to create calendar event...
+📞 createCalendarEvent called with booking: {...}
+```
+
+---
+
+### **3. Session Check**
+```
+🔐 Session check: {
+  hasSession: true/false,
+  hasUser: true/false,
+  userId: "..."
+}
+```
+
+**Possible Issue:**
+- ❌ If `hasUser: false` → User is not authenticated (public booking form issue)
+
+---
+
+### **4. Edge Function Call**
+```
+📤 Invoking Edge Function with data: {
+  studioId: "...",
+  bookingDate: "2025-12-21",
+  startTime: "10:00:00",
+  endTime: "12:00:00",
+  ...
+}
+```
+
+---
+
+### **5. Edge Function Response**
+```
+📥 Edge Function response: {
+  hasData: true/false,
+  hasError: true/false,
+  data: {...},
+  error: {...}
+}
+```
+
+**Possible Issues:**
+- ❌ If `hasError: true` → Check the error message
+- ❌ If `data.success: false` → Check `data.error`
+
+---
+
+### **6. Success or Error**
+```
+✅ Calendar event created successfully!
+```
+OR
+```
+❌ Failed to create calendar event: [error message]
+Calendar error details: {...}
+```
+
+---
+
+## 🔧 **Common Issues & Solutions**
+
+### **Issue 1: `googleCalendarEnabled: false`**
+
+**Solution:**
+1. Go to **Admin Settings → Google Calendar tab**
+2. Toggle **"Google Calendar Integration"** to ON
+3. Make sure the toggle is saved
+
+---
+
+### **Issue 2: `hasRefreshToken: false`**
+
+**Solution:**
+1. Go to **Admin Settings → Google Calendar tab**
+2. Click **"Authorize Google Calendar"**
+3. Login with your Google account
+4. Grant calendar access
+5. Verify you see "Google Calendar Connected" message
+
+---
+
+### **Issue 3: "No authenticated user"**
+
+**Cause:** Public booking form doesn't have a logged-in user session
+
+**Solution:** This is a **code issue**. The Edge Function should NOT require authentication for public bookings.
+
+**Fix Required:**
+```typescript
+// Remove this check from createCalendarEvent function:
+const { data: { session } } = await supabase.auth.getSession();
+if (!session?.user) {
+  throw new Error('No authenticated user');
+}
+```
+
+The Edge Function uses `SERVICE_ROLE_KEY` which bypasses RLS, so no user session is needed!
+
+---
+
+### **Issue 4: "Invalid calendar secret key"**
+
+**Solution:**
+1. Check if `CALENDAR_SECRET_KEY` environment variable is set in Supabase
+2. Go to: Supabase Dashboard → Project Settings → Edge Functions → Secrets
+3. Add: `CALENDAR_SECRET_KEY=waOOzgPpFwaySuO4xTwLBx74QgJ9P9jT`
+
+---
+
+### **Issue 5: "Google OAuth settings not configured"**
+
+**Solution:**
+1. Go to **Super Admin Settings** (if you have access)
+2. Navigate to **Google Calendar OAuth** section
+3. Enter your **Client ID** and **Client Secret**
+4. Save the settings
+
+---
+
+### **Issue 6: "Failed to refresh Google access token"**
+
+**Cause:** Refresh token is invalid or expired
+
+**Solution:**
+1. Go to **Admin Settings → Google Calendar**
+2. Click **"Disconnect"** (if available)
+3. Click **"Authorize Google Calendar"** again
+4. Re-authorize with Google
+
+---
+
+### **Issue 7: Edge Function timeout or error**
+
+**Check Supabase Logs:**
+1. Go to: Supabase Dashboard → Logs → Edge Functions
+2. Filter by: `create-calendar-event`
+3. Look for error messages
+
+---
+
+## 🎯 **Quick Diagnostic Steps**
+
+### **Step 1: Check Database**
+
+Run this query in Supabase SQL Editor:
+
+```sql
+SELECT 
+  id,
+  name,
+  google_calendar_enabled,
+  google_refresh_token IS NOT NULL as has_refresh_token,
+  google_access_token IS NOT NULL as has_access_token,
+  google_token_expires_at
+FROM studios
+WHERE id = 'YOUR_STUDIO_ID';
+```
+
+**Expected Result:**
+- `google_calendar_enabled`: `true`
+- `has_refresh_token`: `true`
+- `has_access_token`: `true` (or `false` if expired)
+
+---
+
+### **Step 2: Check OAuth Settings**
+
+```sql
+SELECT 
+  client_id IS NOT NULL as has_client_id,
+  client_secret IS NOT NULL as has_client_secret,
+  created_at
+FROM google_oauth_settings
+LIMIT 1;
+```
+
+**Expected Result:**
+- `has_client_id`: `true`
+- `has_client_secret`: `true`
+
+---
+
+### **Step 3: Test Edge Function Manually**
+
+In Supabase Dashboard → Edge Functions → `create-calendar-event` → Test:
+
+```json
+{
+  "studioId": "YOUR_STUDIO_ID",
+  "bookingDate": "2025-12-22",
+  "startTime": "10:00:00",
+  "endTime": "12:00:00",
+  "customerName": "Test Customer",
+  "customerEmail": "test@example.com",
+  "customerPhone": "+60123456789",
+  "layoutName": "Studio A",
+  "notes": "Test booking",
+  "bookingReference": "TEST001",
+  "calendarSecretKey": "waOOzgPpFwaySuO4xTwLBx74QgJ9P9jT"
+}
+```
+
+---
+
+## 📝 **Next Steps**
+
+1. **Make a test booking**
+2. **Check browser console** for the logs
+3. **Share the console output** with me
+4. I'll help you identify the exact issue!
+
+---
+
+## 🚨 **Most Likely Issue**
+
+Based on the code, the **most likely issue** is:
+
+### **"No authenticated user" error**
+
+The `createCalendarEvent` function checks for a user session, but **public bookings don't have a logged-in user**!
+
+**This is a bug in the code.** The session check should be removed since the Edge Function uses `SERVICE_ROLE_KEY` which doesn't require user authentication.
+
+Would you like me to fix this now?

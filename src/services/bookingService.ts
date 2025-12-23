@@ -591,6 +591,52 @@ export async function createPublicBooking(bookingData: CreateBookingData): Promi
           console.log('\n✅ ✅ ✅ SUCCESS: WhatsApp booking notification sent!');
           console.log('Customer will receive the message at:', booking.customer.phone);
           console.log('========================================\n');
+
+          // Send PDF receipt as WhatsApp document
+          try {
+            console.log('\n========================================');
+            console.log('📄 PDF RECEIPT - Starting generation and sending');
+            console.log('========================================');
+
+            const { sendBookingReceipt } = await import('@/services/whatsappBaileysService');
+
+            const receiptResult = await sendBookingReceipt({
+              studioId: booking.studio_id,
+              customerPhone: booking.customer.phone,
+              bookingDetails: {
+                reference: booking.reference,
+                customerName: booking.customer.name,
+                customerEmail: booking.customer.email,
+                date: booking.date,
+                startTime: booking.start_time,
+                endTime: booking.end_time,
+                studioName: booking.studio.name,
+                layoutName: booking.studio_layout.name,
+                duration: booking.duration,
+                totalPrice: booking.total_price,
+                paymentMethod: booking.payment_method || undefined,
+              },
+            });
+
+            if (receiptResult.success) {
+              console.log('\n✅ ✅ ✅ SUCCESS: PDF receipt sent via WhatsApp!');
+              console.log('Customer will receive the PDF receipt at:', booking.customer.phone);
+              console.log('========================================\n');
+            } else {
+              console.warn('\n⚠️ ⚠️ ⚠️ WARNING: PDF receipt sending failed');
+              console.warn('Reason:', receiptResult.error);
+              console.warn('Customer already received text notification');
+              console.warn('========================================\n');
+            }
+          } catch (receiptError) {
+            console.error('\n❌ ❌ ❌ ERROR: Exception in PDF receipt sending');
+            console.error('Error type:', receiptError instanceof Error ? receiptError.constructor.name : typeof receiptError);
+            console.error('Error message:', receiptError instanceof Error ? receiptError.message : String(receiptError));
+            console.error('Error stack:', receiptError instanceof Error ? receiptError.stack : 'N/A');
+            console.error('Note: Customer already received text notification');
+            console.error('========================================\n');
+            // Don't fail booking if receipt fails
+          }
         } else {
           console.warn('\n⚠️ ⚠️ ⚠️ WARNING: WhatsApp notification failed');
           console.warn('Reason:', whatsappResult.error);

@@ -8,6 +8,7 @@ import makeWASocket, {
 import { Boom } from '@hapi/boom';
 import QRCode from 'qrcode';
 import { createClient } from '@supabase/supabase-js';
+import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -396,6 +397,170 @@ async function getWhatsAppSocket(studioId) {
     activeConnections.set(studioId, sock);
 
     return sock;
+}
+
+/**
+ * Generate PDF receipt for booking
+ */
+async function generateBookingReceipt(bookingDetails) {
+    return new Promise((resolve, reject) => {
+        try {
+            console.log('\n========== GENERATING PDF RECEIPT ==========');
+            console.log('Booking Reference:', bookingDetails.reference);
+
+            // Create temporary directory if it doesn't exist
+            const tmpDir = path.join(__dirname, 'tmp');
+            if (!fs.existsSync(tmpDir)) {
+                fs.mkdirSync(tmpDir, { recursive: true });
+                console.log('✓ Created tmp directory');
+            }
+
+            // Generate unique filename
+            const filename = `receipt-${bookingDetails.reference}-${Date.now()}.pdf`;
+            const filepath = path.join(tmpDir, filename);
+            console.log('✓ PDF filepath:', filepath);
+
+            // Create PDF document
+            const doc = new PDFDocument({ size: 'A4', margin: 50 });
+            const stream = fs.createWriteStream(filepath);
+
+            doc.pipe(stream);
+
+            // Format date for display
+            const dateParts = bookingDetails.date.split('-');
+            const formattedDate = dateParts.length === 3
+                ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`
+                : bookingDetails.date;
+
+            // Header - Studio Name
+            doc.fontSize(24)
+                .font('Helvetica-Bold')
+                .text(bookingDetails.studioName.toUpperCase(), { align: 'center' });
+
+            doc.moveDown(0.5);
+
+            // Title - RESIT TEMPAHAN
+            doc.fontSize(18)
+                .font('Helvetica-Bold')
+                .text('RESIT TEMPAHAN', { align: 'center' });
+
+            doc.moveDown(1);
+
+            // Horizontal line
+            doc.strokeColor('#000000')
+                .lineWidth(2)
+                .moveTo(50, doc.y)
+                .lineTo(550, doc.y)
+                .stroke();
+
+            doc.moveDown(0.5);
+
+            // Receipt Info
+            doc.fontSize(11)
+                .font('Helvetica');
+
+            doc.text(`No. Rujukan: ${bookingDetails.reference}`, { continued: false });
+            const today = new Date();
+            const receiptDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
+            doc.text(`Tarikh Resit: ${receiptDate}`, { continued: false });
+
+            doc.moveDown(1);
+
+            // Section: MAKLUMAT PELANGGAN
+            doc.fontSize(12)
+                .font('Helvetica-Bold')
+                .text('MAKLUMAT PELANGGAN');
+
+            doc.fontSize(11)
+                .font('Helvetica');
+
+            doc.moveDown(0.3);
+            doc.text(`Nama: ${bookingDetails.customerName}`);
+            doc.text(`Email: ${bookingDetails.customerEmail}`);
+            if (bookingDetails.customerPhone) {
+                doc.text(`Telefon: ${bookingDetails.customerPhone}`);
+            }
+
+            doc.moveDown(1);
+
+            // Section: MAKLUMAT TEMPAHAN
+            doc.fontSize(12)
+                .font('Helvetica-Bold')
+                .text('MAKLUMAT TEMPAHAN');
+
+            doc.fontSize(11)
+                .font('Helvetica');
+
+            doc.moveDown(0.3);
+            doc.text(`Tarikh: ${formattedDate}`);
+            doc.text(`Masa: ${bookingDetails.startTime} - ${bookingDetails.endTime}`);
+            doc.text(`Layout: ${bookingDetails.layoutName}`);
+            doc.text(`Durasi: ${bookingDetails.duration} minit`);
+
+            doc.moveDown(1);
+
+            // Section: PEMBAYARAN
+            doc.fontSize(12)
+                .font('Helvetica-Bold')
+                .text('PEMBAYARAN');
+
+            doc.fontSize(11)
+                .font('Helvetica');
+
+            doc.moveDown(0.3);
+            doc.text(`Jumlah: RM ${bookingDetails.totalPrice.toFixed(2)}`);
+            if (bookingDetails.paymentMethod) {
+                doc.text(`Kaedah: ${bookingDetails.paymentMethod}`);
+            }
+            doc.fontSize(11)
+                .font('Helvetica-Bold')
+                .text('Status: DIBAYAR', { continued: false });
+
+            doc.moveDown(2);
+
+            // Horizontal line
+            doc.strokeColor('#000000')
+                .lineWidth(1)
+                .moveTo(50, doc.y)
+                .lineTo(550, doc.y)
+                .stroke();
+
+            doc.moveDown(0.5);
+
+            // Footer message
+            doc.fontSize(11)
+                .font('Helvetica')
+                .text('Terima kasih atas tempahan anda!', { align: 'center' });
+
+            doc.moveDown(0.5);
+
+            // Bottom border
+            doc.strokeColor('#000000')
+                .lineWidth(2)
+                .moveTo(50, doc.y)
+                .lineTo(550, doc.y)
+                .stroke();
+
+            // Finalize PDF
+            doc.end();
+
+            stream.on('finish', () => {
+                console.log('✓ PDF generated successfully');
+                console.log('File size:', fs.statSync(filepath).size, 'bytes');
+                console.log('===========================================\n');
+                resolve(filepath);
+            });
+
+            stream.on('error', (error) => {
+                console.error('❌ Error writing PDF:', error);
+                reject(error);
+            });
+
+        } catch (error) {
+            console.error('❌ Error generating PDF:', error);
+            reject(error);
+        }
+    });
 }
 
 /**
@@ -883,6 +1048,85 @@ app.get('/api/whatsapp/blast-history/:studioId', async (req, res) => {
         res.json({ history: data });
     } catch (error) {
         console.error('Error getting blast history:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Send booking receipt via WhatsApp
+app.post('/api/whatsapp/send-receipt', async (req, res) => {
+    try {
+        console.log('\n========== SEND RECEIPT REQUEST ==========');
+        console.log('Request body:', JSON.stringify(req.body, null, 2));
+
+        const { studioId, customerPhone, bookingDetails } = req.body;
+
+        // Validate inputs
+        if (!studioId || !customerPhone || !bookingDetails) {
+            console.error('❌ Missing required fields');
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        console.log(`✓ Studio ID: ${studioId}`);
+        console.log(`✓ Customer Phone: ${customerPhone}`);
+        console.log(`✓ Booking Reference: ${bookingDetails.reference}`);
+
+        // Check WhatsApp connection
+        const sock = activeConnections.get(studioId);
+
+        if (!sock || !sock.user) {
+            console.error('❌ WhatsApp not connected');
+            return res.status(400).json({ error: 'WhatsApp not connected' });
+        }
+
+        console.log(`✓ WhatsApp connected as: ${sock.user.name}`);
+
+        // Generate PDF receipt
+        console.log('\n📄 Generating PDF receipt...');
+        const pdfPath = await generateBookingReceipt(bookingDetails);
+        console.log('✓ PDF generated at:', pdfPath);
+
+        // Format phone number
+        let formattedPhone = customerPhone.replace(/\D/g, '');
+        if (!formattedPhone.startsWith('60') && formattedPhone.startsWith('0')) {
+            formattedPhone = '60' + formattedPhone.substring(1);
+        } else if (!formattedPhone.startsWith('60')) {
+            formattedPhone = '60' + formattedPhone;
+        }
+
+        const jid = `${formattedPhone}@s.whatsapp.net`;
+        console.log('✓ Recipient JID:', jid);
+
+        // Read PDF file
+        console.log('\n📤 Sending PDF via WhatsApp...');
+        const pdfBuffer = fs.readFileSync(pdfPath);
+        console.log('✓ PDF buffer size:', pdfBuffer.length, 'bytes');
+
+        // Send PDF as document
+        const sentMessage = await sock.sendMessage(jid, {
+            document: pdfBuffer,
+            mimetype: 'application/pdf',
+            fileName: `Resit-${bookingDetails.reference}.pdf`,
+            caption: '📄 Resit Tempahan Anda\n\nTerima kasih atas tempahan anda!'
+        });
+
+        console.log('✓ PDF sent successfully!');
+        console.log('Message ID:', sentMessage?.key?.id);
+
+        // Clean up temporary file
+        console.log('\n🗑️  Cleaning up temporary file...');
+        fs.unlinkSync(pdfPath);
+        console.log('✓ Temporary file deleted');
+        console.log('==========================================\n');
+
+        res.json({
+            success: true,
+            messageId: sentMessage?.key?.id
+        });
+
+    } catch (error) {
+        console.error('\n❌ Error sending receipt:', error);
+        console.error('Stack trace:', error.stack);
+        console.error('==========================================\n');
         res.status(500).json({ error: error.message });
     }
 });

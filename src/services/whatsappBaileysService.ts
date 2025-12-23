@@ -355,6 +355,65 @@ Kami akan menghubungi anda tidak lama lagi. Terima kasih!`;
 }
 
 /**
+ * Send booking receipt PDF via WhatsApp
+ */
+export async function sendBookingReceipt(params: {
+    studioId: string;
+    customerPhone: string;
+    bookingDetails: {
+        reference: string;
+        customerName: string;
+        customerEmail: string;
+        date: string;
+        startTime: string;
+        endTime: string;
+        studioName: string;
+        layoutName: string;
+        duration: number;
+        totalPrice: number;
+        paymentMethod?: string;
+    };
+}): Promise<{ success: boolean; error?: string }> {
+    try {
+        console.log('\n========== SENDING BOOKING RECEIPT ==========');
+        console.log('📄 Requesting PDF receipt generation and WhatsApp delivery...');
+        console.log('Booking Reference:', params.bookingDetails.reference);
+        console.log('Customer Phone:', params.customerPhone);
+
+        const response = await fetch(`${WHATSAPP_SERVICE_URL}/api/whatsapp/send-receipt`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(params),
+        });
+
+        console.log('Response status:', response.status);
+
+        if (!response.ok) {
+            const error = await response.json();
+            console.error('❌ Receipt sending failed:', error.error);
+            console.log('=================================================\n');
+            throw new Error(error.error || 'Failed to send receipt');
+        }
+
+        const result = await response.json();
+        console.log('✅ Receipt sent successfully!');
+        console.log('Message ID:', result.messageId);
+        console.log('=================================================\n');
+
+        return { success: true };
+    } catch (error) {
+        console.error('❌ Error sending receipt:', error);
+        console.log('=================================================\n');
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error'
+        };
+    }
+}
+
+/**
  * Check if WhatsApp service is running
  */
 export async function checkServiceHealth(): Promise<boolean> {

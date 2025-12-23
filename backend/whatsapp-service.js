@@ -508,13 +508,33 @@ async function generateBookingReceipt(bookingDetails) {
                 .font('Helvetica');
 
             doc.moveDown(0.3);
+
+            // Payment Type
+            if (bookingDetails.paymentType) {
+                const paymentTypeText = bookingDetails.paymentType === 'deposit' ? 'Deposit' : 'Bayaran Penuh';
+                doc.text(`Jenis Bayaran: ${paymentTypeText}`);
+            }
+
+            // Total Price
             doc.text(`Jumlah: RM ${bookingDetails.totalPrice.toFixed(2)}`);
+
+            // Balance Due (only show if deposit)
+            if (bookingDetails.paymentType === 'deposit' && bookingDetails.balanceDue && bookingDetails.balanceDue > 0) {
+                doc.font('Helvetica-Bold')
+                    .text(`Baki Perlu Dibayar: RM ${bookingDetails.balanceDue.toFixed(2)}`)
+                    .font('Helvetica');
+            }
+
+            // Payment Method
             if (bookingDetails.paymentMethod) {
                 doc.text(`Kaedah: ${bookingDetails.paymentMethod}`);
             }
+
+            // Status
+            const statusText = bookingDetails.paymentType === 'deposit' ? 'DEPOSIT DIBAYAR' : 'DIBAYAR PENUH';
             doc.fontSize(11)
                 .font('Helvetica-Bold')
-                .text('Status: DIBAYAR', { continued: false });
+                .text(`Status: ${statusText}`, { continued: false });
 
             doc.moveDown(2);
 

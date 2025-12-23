@@ -615,6 +615,8 @@ export async function createPublicBooking(bookingData: CreateBookingData): Promi
                 duration: booking.duration,
                 totalPrice: booking.total_price,
                 paymentMethod: booking.payment_method || undefined,
+                paymentType: booking.payment_type || undefined,
+                balanceDue: booking.balance_due || undefined,
               },
             });
 

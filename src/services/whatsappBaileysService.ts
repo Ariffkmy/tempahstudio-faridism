@@ -372,6 +372,8 @@ export async function sendBookingReceipt(params: {
         duration: number;
         totalPrice: number;
         paymentMethod?: string;
+        paymentType?: string;
+        balanceDue?: number;
     };
 }): Promise<{ success: boolean; error?: string }> {
     try {

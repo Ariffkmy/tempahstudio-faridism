@@ -390,6 +390,8 @@ export default function AdminCustomers() {
                 duration: fullBooking.duration || 0,
                 totalPrice: fullBooking.total_price,
                 paymentMethod: fullBooking.payment_method || undefined,
+                paymentType: fullBooking.payment_type || undefined,
+                balanceDue: fullBooking.balance_due || undefined,
             });
 
             console.log('✅ Receipt generated and downloaded successfully!');

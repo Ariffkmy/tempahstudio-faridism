@@ -13,6 +13,8 @@ interface ReceiptDetails {
     duration: number;
     totalPrice: number;
     paymentMethod?: string;
+    paymentType?: string; // 'deposit' or 'full'
+    balanceDue?: number;
 }
 
 /**
@@ -104,14 +106,36 @@ export function generateReceiptPDF(details: ReceiptDetails): void {
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
+
+    // Payment Type
+    if (details.paymentType) {
+        const paymentTypeText = details.paymentType === 'deposit' ? 'Deposit' : 'Bayaran Penuh';
+        doc.text(`Jenis Bayaran: ${paymentTypeText}`, 20, y);
+        y += 6;
+    }
+
+    // Total Price
     doc.text(`Jumlah: RM ${details.totalPrice.toFixed(2)}`, 20, y);
     y += 6;
+
+    // Balance Due (only show if deposit)
+    if (details.paymentType === 'deposit' && details.balanceDue && details.balanceDue > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Baki Perlu Dibayar: RM ${details.balanceDue.toFixed(2)}`, 20, y);
+        doc.setFont('helvetica', 'normal');
+        y += 6;
+    }
+
+    // Payment Method
     if (details.paymentMethod) {
         doc.text(`Kaedah: ${details.paymentMethod}`, 20, y);
         y += 6;
     }
+
+    // Status
     doc.setFont('helvetica', 'bold');
-    doc.text('Status: DIBAYAR', 20, y);
+    const statusText = details.paymentType === 'deposit' ? 'DEPOSIT DIBAYAR' : 'DIBAYAR PENUH';
+    doc.text(`Status: ${statusText}`, 20, y);
     y += 15;
 
     // Horizontal line

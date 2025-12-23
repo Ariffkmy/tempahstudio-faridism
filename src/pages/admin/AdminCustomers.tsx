@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useSidebar } from '@/contexts/SidebarContext';
-import { Search, Mail, Phone, Calendar, CreditCard, Package, Eye, X } from 'lucide-react';
+import { Search, Mail, Phone, Calendar, CreditCard, Package, Eye, X, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -85,6 +85,7 @@ export default function AdminCustomers() {
     const [selectedCustomer, setSelectedCustomer] = useState<CustomerBooking | null>(null);
     const [customerBookings, setCustomerBookings] = useState<BookingDetail[]>([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [generatingReceipt, setGeneratingReceipt] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         fetchCustomers();
@@ -337,6 +338,94 @@ export default function AdminCustomers() {
                 description: 'Gagal mengemaskini status pengesahan',
                 variant: 'destructive',
             });
+        }
+    };
+
+    const handleGenerateReceipt = async (booking: BookingDetail) => {
+        if (!studio || !selectedCustomer) return;
+
+        // Check if customer has phone number
+        if (!selectedCustomer.customer_phone) {
+            toast({
+                title: 'Ralat',
+                description: 'Pelanggan tidak mempunyai nombor telefon. Resit hanya boleh dihantar melalui WhatsApp.',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        setGeneratingReceipt(prev => ({ ...prev, [booking.id]: true }));
+
+        try {
+            console.log('\n========================================');
+            console.log('📄 MANUAL RECEIPT GENERATION');
+            console.log('========================================');
+            console.log('Booking ID:', booking.id);
+            console.log('Reference:', booking.reference);
+            console.log('Customer:', selectedCustomer.customer_name);
+            console.log('Phone:', selectedCustomer.customer_phone);
+
+            // Get full booking details with layout info
+            const { data: fullBooking, error: bookingError } = await supabase
+                .from('bookings')
+                .select(`
+                    *,
+                    studio_layout:studio_layouts(name),
+                    customer:customers(*)
+                `)
+                .eq('id', booking.id)
+                .single();
+
+            if (bookingError || !fullBooking) {
+                throw new Error('Gagal mendapatkan maklumat tempahan');
+            }
+
+            console.log('✓ Full booking details retrieved');
+
+            // Import WhatsApp service
+            const { sendBookingReceipt } = await import('@/services/whatsappBaileysService');
+
+            console.log('✓ Calling sendBookingReceipt...');
+
+            // Send receipt
+            const result = await sendBookingReceipt({
+                studioId: studio.id,
+                customerPhone: selectedCustomer.customer_phone,
+                bookingDetails: {
+                    reference: fullBooking.reference,
+                    customerName: selectedCustomer.customer_name,
+                    customerEmail: selectedCustomer.customer_email,
+                    date: fullBooking.date,
+                    startTime: fullBooking.start_time,
+                    endTime: fullBooking.end_time,
+                    studioName: studio.name,
+                    layoutName: fullBooking.studio_layout?.name || 'N/A',
+                    duration: fullBooking.duration || 0,
+                    totalPrice: fullBooking.total_price,
+                    paymentMethod: fullBooking.payment_method || undefined,
+                },
+            });
+
+            if (result.success) {
+                console.log('✅ Receipt sent successfully!');
+                console.log('========================================\n');
+                toast({
+                    title: 'Berjaya',
+                    description: `Resit telah dihantar ke ${selectedCustomer.customer_phone} melalui WhatsApp`,
+                });
+            } else {
+                throw new Error(result.error || 'Gagal menghantar resit');
+            }
+        } catch (error: any) {
+            console.error('❌ Error generating receipt:', error);
+            console.log('========================================\n');
+            toast({
+                title: 'Ralat',
+                description: error.message || 'Gagal menjana dan menghantar resit',
+                variant: 'destructive',
+            });
+        } finally {
+            setGeneratingReceipt(prev => ({ ...prev, [booking.id]: false }));
         }
     };
 
@@ -690,10 +779,31 @@ export default function AdminCustomers() {
                                             <div>
                                                 <p className="font-semibold text-lg">{booking.reference}</p>
                                                 <p className="text-sm text-muted-foreground">
-                                                    {format(new Date(booking.date), 'dd/MM/yyyy')} • RM {booking.total_price.toFixed(2)}
+                                                    {format(new Date(booking.date), 'dd/MM/yyyy')} • {booking.start_time} - {booking.end_time} • RM {booking.total_price.toFixed(2)}
                                                 </p>
                                             </div>
-                                            {getStatusBadge(booking.status)}
+                                            <div className="flex items-center gap-2">
+                                                {getStatusBadge(booking.status)}
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleGenerateReceipt(booking)}
+                                                    disabled={generatingReceipt[booking.id] || !selectedCustomer?.customer_phone}
+                                                    className="ml-2"
+                                                >
+                                                    {generatingReceipt[booking.id] ? (
+                                                        <>
+                                                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary mr-2"></div>
+                                                            Menjana...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <FileText className="h-4 w-4 mr-2" />
+                                                            Jana Resit
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            </div>
                                         </div>
 
                                         {(booking.receipt_url || booking.payment_proof_url) ? (

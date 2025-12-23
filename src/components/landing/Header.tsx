@@ -11,7 +11,7 @@ export function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <img src="/studiorayalogo.png" alt="Raya Studio Logo" style={{ width: '64px', height: '38px' }} />
+          <img src="/tempahstudiologo.png" alt="Tempah Studio Logo" style={{ width: '64px', height: '38px' }} />
           <span className="font-semibold text-lg">Tempah Studio</span>
         </Link>
 

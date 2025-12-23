@@ -381,7 +381,7 @@ const AdminBookings = () => {
         <header className="sticky top-0 z-50 bg-background border-b border-border">
           <div className="flex items-center justify-between px-4 py-3">
             <Link to="/admin" className="flex items-center gap-2">
-              <img src="/studiorayalogo.png" alt="Raya Studio Logo" style={{ width: '32px', height: '19px' }} />
+              <img src="/tempahstudiologo.png" alt="Tempah Studio Logo" style={{ width: '32px', height: '19px' }} />
               <span className="font-semibold text-sm">Raya Studio</span>
             </Link>
             <Sheet>
@@ -395,7 +395,7 @@ const AdminBookings = () => {
                   {/* Logo & Studio Info */}
                   <div className="p-4 border-b border-border">
                     <Link to="/admin" className="flex items-center gap-2 mb-3">
-                      <img src="/studiorayalogo.png" alt="Raya Studio Logo" style={{ width: '48px', height: '29px' }} />
+                      <img src="/tempahstudiologo.png" alt="Tempah Studio Logo" style={{ width: '48px', height: '29px' }} />
                       <div>
                         <span className="font-semibold">Raya Studio</span>
                         <p className="text-xs text-muted-foreground">Portal Admin</p>

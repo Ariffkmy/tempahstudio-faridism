@@ -66,7 +66,7 @@ export function FirstTimeUserDialog() {
                     <div className="flex justify-center">
                         <div className="p-4">
                             <img
-                                src="/studiorayalogo.png"
+                                src="/tempahstudiologo.png"
                                 alt="Raya Studio Logo"
                                 className="h-16 w-auto"
                             />

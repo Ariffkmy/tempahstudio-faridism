@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
+import { parseDateLocal } from '@/utils/dateUtils';
 import {
     Dialog,
     DialogContent,
@@ -47,7 +48,7 @@ export function RescheduleDialog({
     useEffect(() => {
         if (open && booking) {
             // Set initial date to current booking date
-            const currentDate = new Date(booking.date);
+            const currentDate = parseDateLocal(booking.date);
             setSelectedDate(currentDate);
             setSelectedTime(null);
         } else if (!open) {
@@ -353,7 +354,7 @@ export function RescheduleDialog({
                                 </div>
                                 <div>
                                     <span className="text-muted-foreground">Tarikh Asal:</span>
-                                    <p className="font-medium">{format(new Date(booking.date), 'dd MMM yyyy')}</p>
+                                    <p className="font-medium">{format(parseDateLocal(booking.date), 'dd MMM yyyy')}</p>
                                 </div>
                                 <div>
                                     <span className="text-muted-foreground">Masa Asal:</span>

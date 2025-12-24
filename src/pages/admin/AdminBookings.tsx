@@ -67,6 +67,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ms } from 'date-fns/locale';
 import { supabase } from '@/lib/supabase';
+import { parseDateLocal } from '@/utils/dateUtils';
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: Home },
@@ -259,7 +260,7 @@ const AdminBookings = () => {
       booking.customerName,
       booking.customerEmail,
       booking.customerPhone || '-',
-      new Date(booking.date).toLocaleDateString('ms-MY'),
+      parseDateLocal(booking.date).toLocaleDateString('ms-MY'),
       booking.startTime,
       booking.endTime,
       booking.duration.toString(),
@@ -574,7 +575,7 @@ const AdminBookings = () => {
                         </Badge>
                       </div>
                       <div className="flex justify-between items-center text-xs text-muted-foreground mb-2">
-                        <span>{new Date(booking.date).toLocaleDateString('ms-MY')}</span>
+                        <span>{parseDateLocal(booking.date).toLocaleDateString('ms-MY')}</span>
                         <span>{booking.startTime} - {booking.endTime}</span>
                       </div>
                       <div className="flex justify-between items-center text-xs">

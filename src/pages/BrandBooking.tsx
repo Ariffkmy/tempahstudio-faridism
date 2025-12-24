@@ -210,6 +210,7 @@ const BrandBooking = () => {
 
         const actualStudioId = studioData.id;
 
+
         // Load studio customizations (will be conditionally rendered)
         setCustomization({
           enableCustomHeader: studioData.enable_custom_header || false,
@@ -641,7 +642,7 @@ const BrandBooking = () => {
 
       <main className="pt-8 pb-16">
         <div className="container max-w-4xl mx-auto px-4">
-          <div className="mb-8 scroll-animate delay-100">
+          <div className="mb-8">
             {/* Studio branding - always visible */}
             <div className="text-center mb-6">
               {/* Show logo if available */}
@@ -650,10 +651,13 @@ const BrandBooking = () => {
                   src={studio.studio_logo}
                   alt="Studio Logo"
                   className="mx-auto h-20 w-auto object-contain mb-2"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
                 />
+              )}
+              {!studio.studio_logo && (
+                <div className="text-xs text-muted-foreground mb-2">
+                  {/* Debug message - remove in production */}
+                  (No studio logo configured)
+                </div>
               )}
               {/* Show studio name only if showStudioName is enabled */}
               {customization.showStudioName && (
@@ -939,7 +943,7 @@ const BrandBooking = () => {
                   <div className="space-y-2 pb-4 border-b">
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Harga Asas:</span>
-                      <span className="font-medium">RM {(layout.pricePerHour * 2).toFixed(2)}</span>
+                      <span className="font-medium">RM {layout.pricePerHour.toFixed(2)}</span>
                     </div>
                     {selectedAddon && (
                       <div className="flex justify-between items-center">
@@ -954,7 +958,7 @@ const BrandBooking = () => {
                     <div className="flex justify-between items-center font-semibold text-lg pt-2">
                       <span>Jumlah Keseluruhan:</span>
                       <span className="text-primary">
-                        RM {(layout.pricePerHour * 2 + (selectedAddon ? (addonPackages.find(p => p.id === selectedAddon)?.price || 0) : 0)).toFixed(2)}
+                        RM {(layout.pricePerHour + (selectedAddon ? (addonPackages.find(p => p.id === selectedAddon)?.price || 0) : 0)).toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -987,7 +991,7 @@ const BrandBooking = () => {
                         <div className="text-2xl font-bold text-primary">
                           RM {paymentType === 'deposit'
                             ? depositAmount.toFixed(2)
-                            : (layout.pricePerHour * 2 + (selectedAddon ? (addonPackages.find(p => p.id === selectedAddon)?.price || 0) : 0)).toFixed(2)}
+                            : (layout.pricePerHour + (selectedAddon ? (addonPackages.find(p => p.id === selectedAddon)?.price || 0) : 0)).toFixed(2)}
                         </div>
                       </div>
                     </div>
@@ -1000,7 +1004,7 @@ const BrandBooking = () => {
                             <div className="font-semibold text-sm text-gray-600">Baki Perlu Dibayar Kemudian:</div>
                           </div>
                           <div className="text-lg font-bold text-gray-700">
-                            RM {((layout.pricePerHour * 2 + (selectedAddon ? (addonPackages.find(p => p.id === selectedAddon)?.price || 0) : 0)) - depositAmount).toFixed(2)}
+                            RM {((layout.pricePerHour + (selectedAddon ? (addonPackages.find(p => p.id === selectedAddon)?.price || 0) : 0)) - depositAmount).toFixed(2)}
                           </div>
                         </div>
                       </div>

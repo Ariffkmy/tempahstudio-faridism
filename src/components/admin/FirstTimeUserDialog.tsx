@@ -25,6 +25,12 @@ export function FirstTimeUserDialog() {
 
             if (!user) return;
 
+            // Check if user has already seen the dialog in this session
+            const hasSeenDialogThisSession = sessionStorage.getItem('firstTimeDialogSeen');
+            if (hasSeenDialogThisSession) {
+                return;
+            }
+
             // Check if user has completed initial setup
             const { data: userData } = await supabase
                 .from('admin_users')
@@ -40,28 +46,45 @@ export function FirstTimeUserDialog() {
                 return;
             }
 
-            // If onboarding is completed, check if studio settings are incomplete
+            // If onboarding is completed, check if ALL required studio settings are complete
             if (userData.studio_id) {
                 const { data: studioData } = await supabase
                     .from('studios')
-                    .select('name, location, phone, email, time_slot_gap, operating_start_time, operating_end_time')
+                    .select('name, location, phone, email, time_slot_gap, operating_start_time, operating_end_time, payment_studio_enabled, payment_qr_enabled, payment_bank_transfer_enabled, payment_fpx_enabled, payment_tng_enabled')
                     .eq('id', userData.studio_id)
                     .single();
 
+                // Also check if there's at least one layout
+                const { data: layouts } = await supabase
+                    .from('studio_layouts')
+                    .select('id')
+                    .eq('studio_id', userData.studio_id);
+
                 if (studioData) {
-                    // Check if essential settings are missing
-                    const hasIncompleteSettings =
-                        !studioData.location ||
-                        !studioData.phone ||
-                        !studioData.email ||
-                        !studioData.time_slot_gap ||
-                        !studioData.operating_start_time ||
-                        !studioData.operating_end_time;
+                    // Check all required fields from the Konfigurasi Wajib checklist:
+                    // 1. Basic Info: name, email, phone, location
+                    const hasBasicInfo = !!(studioData.name && studioData.email && studioData.phone && studioData.location);
 
-                    // Only show dialog if settings are incomplete AND user hasn't seen it in this session
-                    const hasSeenDialogThisSession = sessionStorage.getItem('firstTimeDialogSeen');
+                    // 2. Packages: at least one layout
+                    const hasPackages = layouts && layouts.length > 0;
 
-                    if (hasIncompleteSettings && !hasSeenDialogThisSession) {
+                    // 3. Booking Form: time_slot_gap and at least one payment method
+                    const hasPaymentMethod = !!(
+                        studioData.payment_studio_enabled ||
+                        studioData.payment_qr_enabled ||
+                        studioData.payment_bank_transfer_enabled ||
+                        studioData.payment_fpx_enabled ||
+                        studioData.payment_tng_enabled
+                    );
+                    const hasBookingForm = !!(studioData.time_slot_gap && hasPaymentMethod);
+
+                    // 4. Operating Hours: start and end time
+                    const hasOperatingHours = !!(studioData.operating_start_time && studioData.operating_end_time);
+
+                    // Show dialog if ANY of the required configurations is incomplete
+                    const hasIncompleteSettings = !hasBasicInfo || !hasPackages || !hasBookingForm || !hasOperatingHours;
+
+                    if (hasIncompleteSettings) {
                         setShowDialog(true);
                     }
                 }

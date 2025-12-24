@@ -28,6 +28,9 @@ import { PackageManagement } from '@/components/admin/PackageManagement';
 // Import PaymentSettingsManagement component
 import { PaymentSettingsManagement } from '@/components/admin/PaymentSettingsManagement';
 
+// Import OnboardUserDialog component
+import { OnboardUserDialog } from '@/components/admin/OnboardUserDialog';
+
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: Home },
   { name: 'Tempahan', href: '/admin/bookings', icon: CalendarDays },
@@ -788,13 +791,18 @@ const AdminSuperSettings = () => {
                 <TabsContent value="system-users" className="space-y-4 mt-6">
                   <Card>
                     <CardHeader className="pb-3">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <UserCheck className="h-5 w-5" />
-                        System Users
-                      </CardTitle>
-                      <CardDescription className="text-sm">
-                        Manage administrator and super admin accounts in the system
-                      </CardDescription>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            <UserCheck className="h-5 w-5" />
+                            System Users
+                          </CardTitle>
+                          <CardDescription className="text-sm">
+                            Manage administrator and super admin accounts in the system
+                          </CardDescription>
+                        </div>
+                        <OnboardUserDialog onSuccess={loadUsers} />
+                      </div>
                     </CardHeader>
                     <CardContent>
                       {usersLoading ? (
@@ -1601,13 +1609,18 @@ const AdminSuperSettings = () => {
                   <TabsContent value="system-users" className="space-y-4 mt-6">
                     <Card>
                       <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <UserCheck className="h-5 w-5" />
-                          System Users
-                        </CardTitle>
-                        <CardDescription>
-                          Manage administrator and super admin accounts in the system
-                        </CardDescription>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="flex items-center gap-2">
+                              <UserCheck className="h-5 w-5" />
+                              System Users
+                            </CardTitle>
+                            <CardDescription>
+                              Manage administrator and super admin accounts in the system
+                            </CardDescription>
+                          </div>
+                          <OnboardUserDialog onSuccess={loadUsers} />
+                        </div>
                       </CardHeader>
                       <CardContent>
                         {usersLoading ? (

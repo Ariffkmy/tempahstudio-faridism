@@ -14,6 +14,7 @@ import NewBooking from "./pages/NewBooking";
 import BrandBooking from "./pages/BrandBooking";
 import BookingConfirmation from "./pages/BookingConfirmation";
 import AdminLogin from "./pages/admin/AdminLogin";
+import AdminResetPassword from "./pages/admin/AdminResetPassword";
 import AdminRegister from "./pages/admin/AdminRegister";
 import VerifyEmail from "./pages/admin/VerifyEmail";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -76,6 +77,7 @@ const App = () => (
 
                 {/* Admin Auth Routes (Public) */}
                 <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin/reset-password" element={<AdminResetPassword />} />
                 <Route path="/admin/register" element={<AdminRegister />} />
                 <Route path="/admin/verify-email" element={<VerifyEmail />} />
 

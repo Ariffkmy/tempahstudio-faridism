@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
+import { parseDateLocal } from '@/utils/dateUtils';
 import {
   Table,
   TableBody,
@@ -255,7 +256,7 @@ export function BookingTable({ bookings, onViewBooking, onStatusUpdate, onResche
                   </TableCell>
                   <TableCell>
                     <div>
-                      <p className="font-medium">{format(new Date(booking.date), 'MMM d, yyyy')}</p>
+                      <p className="font-medium">{format(parseDateLocal(booking.date), 'MMM d, yyyy')}</p>
                       <p className="text-xs text-muted-foreground">
                         {booking.startTime} – {booking.endTime}
                       </p>

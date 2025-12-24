@@ -128,8 +128,8 @@ const CustomBookingHeader = ({
         <div className="container max-w-6xl mx-auto px-4">
           <div className="flex flex-col items-center py-3 gap-3">
             {/* Logo */}
-            <div className="flex items-center">
-              {logo ? (
+            {logo && (
+              <div className="flex items-center">
                 <img
                   src={logo}
                   alt="Studio Logo"
@@ -138,10 +138,8 @@ const CustomBookingHeader = ({
                     e.currentTarget.style.display = 'none';
                   }}
                 />
-              ) : (
-                <div className="text-lg font-bold">Studio</div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Desktop Navigation */}
             {filteredNavItems.length > 0 && (

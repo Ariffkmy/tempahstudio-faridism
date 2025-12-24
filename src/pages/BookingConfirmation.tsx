@@ -12,7 +12,11 @@ const BookingConfirmation = () => {
   const reference = location.state?.reference || booking?.reference || 'RAYA-2024-001';
 
   // Determine navigation paths based on user type
-  const bookAnotherSessionPath = isAuthenticated ? '/admin' : '/book';
+  // For "Book Another Session", always go to the booking form with the same studio
+  const studioBookingPath = booking?.studio?.id
+    ? `/book/${booking.studio.id}`
+    : '/book';
+  const bookAnotherSessionPath = studioBookingPath;
   const backToHomePath = isAuthenticated ? '/admin' : '/';
 
   // Format date for display
@@ -109,9 +113,7 @@ const BookingConfirmation = () => {
             </Card>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center animate-slide-up stagger-3">
-              <Button variant="outline" asChild>
-                <Link to={backToHomePath}>Kembali ke Halaman Utama</Link>
-              </Button>
+
               <Button asChild>
                 <Link to={bookAnotherSessionPath}>Tempah Sesi Lain</Link>
               </Button>

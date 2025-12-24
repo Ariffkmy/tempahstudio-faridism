@@ -113,11 +113,12 @@ async function createGoogleCalendarEvent(studio: any, eventData: CalendarEventDa
   const startTimeFormatted = startTime.includes(':') && startTime.split(':').length === 3 ? startTime : `${startTime}:00`
   const endTimeFormatted = endTime.includes(':') && endTime.split(':').length === 3 ? endTime : `${endTime}:00`
 
-  // Combine date and time for full datetime
-  const startDateTimeStr = `${bookingDate}T${startTimeFormatted}`
-  const endDateTimeStr = `${bookingDate}T${endTimeFormatted}`
+  // Combine date and time with Malaysia timezone offset (+08:00)
+  // This prevents JavaScript from interpreting the datetime as UTC
+  const startDateTimeStr = `${bookingDate}T${startTimeFormatted}+08:00`
+  const endDateTimeStr = `${bookingDate}T${endTimeFormatted}+08:00`
 
-  console.log('Parsed date/time strings:', { startDateTimeStr, endDateTimeStr })
+  console.log('Parsed date/time strings with timezone:', { startDateTimeStr, endDateTimeStr })
 
   const startDateTime = new Date(startDateTimeStr)
   const endDateTime = new Date(endDateTimeStr)
@@ -127,7 +128,7 @@ async function createGoogleCalendarEvent(studio: any, eventData: CalendarEventDa
     throw new Error(`Invalid date/time values: start=${startDateTimeStr} (${startDateTime.toString()}), end=${endDateTimeStr} (${endDateTime.toString()})`)
   }
 
-  // Convert to Google Calendar format (RFC3339)
+  // Convert to Google Calendar format (RFC3339) - already in correct timezone
   const calendarStartTime = startDateTime.toISOString()
   const calendarEndTime = endDateTime.toISOString()
 

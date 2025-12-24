@@ -19,13 +19,11 @@ const Index = () => {
       id: '1',
       name: 'Silver',
       slug: 'silver',
-      price: 299,
+      price: 499,
       period: 'tahun',
       is_popular: false,
       features: [
         '🌐 Tempahan atas talian',
-        '📅 Integrasi Google Calendar',
-        '🔔 Notifikasi emel & Whatsapp',
         '📊 Data analitik tentang tempahan, pengguna, dan banyak lagi',
         '🧾 Resit elektronik untuk setiap tempahan',
         '👤 1 akaun admin user',
@@ -37,11 +35,13 @@ const Index = () => {
       id: '2',
       name: 'Gold',
       slug: 'gold',
-      price: 599,
+      price: 799,
       period: 'tahun',
       is_popular: true,
       features: [
         '🎯 Semua dalam Silver',
+        '📅 Integrasi Google Calendar',
+        '🔔 Notifikasi emel & Whatsapp',
         '📲 Whatsapp blast untuk menghantar link gambar raya ke pelanggan anda (link Googledrive, Googlephoto, etc)',
         '📲 Whatsapp blast untuk menghantar link tempahan studio ke semua pelanggan lama anda',
         '👤 Tambahan admin user (2 akaun)',
@@ -52,7 +52,7 @@ const Index = () => {
       id: '3',
       name: 'Platinum',
       slug: 'platinum',
-      price: 1199,
+      price: 1299,
       period: 'tahun',
       is_popular: false,
       features: [
@@ -276,7 +276,25 @@ const Index = () => {
               <p className="text-muted-foreground mb-4">
                 Semua pakej termasuk setup percuma dan sokongan 24 jam
               </p>
+            </div>
+          </div>
+        </section>
 
+        {/* Marketing Highlight Section */}
+        <section className="py-16 md:py-20 bg-primary">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-12">
+              <img
+                src="/3d-camera.png"
+                alt="3D Camera"
+                className="w-32 h-32 md:w-40 md:h-40 object-contain"
+              />
+              <div className="relative max-w-3xl">
+                <p className="text-xl md:text-2xl font-bold text-white py-6 px-8 rounded-xl text-center md:text-left pb-12">
+                  ✨ Anda boleh menggunakan sistem booking ini untuk klien <span className="font-extrabold">wedding</span>, <span className="font-extrabold">convo</span> dan pelbagai lagi selepas musim raya !
+                </p>
+
+              </div>
             </div>
           </div>
         </section>

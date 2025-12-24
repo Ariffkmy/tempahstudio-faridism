@@ -28,20 +28,43 @@ export function FirstTimeUserDialog() {
             // Check if user has completed initial setup
             const { data: userData } = await supabase
                 .from('admin_users')
-                .select('onboarding_completed, created_at')
+                .select('onboarding_completed, created_at, studio_id')
                 .eq('auth_user_id', user.id)
                 .single();
 
             if (!userData) return;
 
-            // Show dialog if:
-            // 1. Onboarding not completed OR
-            // 2. Account created recently (within last 5 minutes) and haven't dismissed this dialog
-            const isNewUser = !userData.onboarding_completed;
-            const hasSeenDialog = localStorage.getItem('firstTimeDialogSeen');
-
-            if (isNewUser && !hasSeenDialog) {
+            // If onboarding is not completed, always show the dialog
+            if (!userData.onboarding_completed) {
                 setShowDialog(true);
+                return;
+            }
+
+            // If onboarding is completed, check if studio settings are incomplete
+            if (userData.studio_id) {
+                const { data: studioData } = await supabase
+                    .from('studios')
+                    .select('name, location, phone, email, time_slot_gap, operating_start_time, operating_end_time')
+                    .eq('id', userData.studio_id)
+                    .single();
+
+                if (studioData) {
+                    // Check if essential settings are missing
+                    const hasIncompleteSettings =
+                        !studioData.location ||
+                        !studioData.phone ||
+                        !studioData.email ||
+                        !studioData.time_slot_gap ||
+                        !studioData.operating_start_time ||
+                        !studioData.operating_end_time;
+
+                    // Only show dialog if settings are incomplete AND user hasn't seen it in this session
+                    const hasSeenDialogThisSession = sessionStorage.getItem('firstTimeDialogSeen');
+
+                    if (hasIncompleteSettings && !hasSeenDialogThisSession) {
+                        setShowDialog(true);
+                    }
+                }
             }
         } catch (error) {
             console.error('Error checking first-time user:', error);
@@ -49,13 +72,13 @@ export function FirstTimeUserDialog() {
     };
 
     const handleNavigateToSettings = () => {
-        localStorage.setItem('firstTimeDialogSeen', 'true');
+        sessionStorage.setItem('firstTimeDialogSeen', 'true');
         setShowDialog(false);
         navigate('/admin/settings');
     };
 
     const handleDismiss = () => {
-        localStorage.setItem('firstTimeDialogSeen', 'true');
+        sessionStorage.setItem('firstTimeDialogSeen', 'true');
         setShowDialog(false);
     };
 

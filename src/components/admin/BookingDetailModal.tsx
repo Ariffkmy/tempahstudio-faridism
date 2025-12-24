@@ -27,6 +27,7 @@ import {
     Send
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { parseDateLocal } from '@/utils/dateUtils';
 
 interface BookingDetailModalProps {
     booking: Booking | null;
@@ -102,7 +103,7 @@ export function BookingDetailModal({ booking, open, onOpenChange }: BookingDetai
             `Terima kasih atas tempahan anda!\n\n` +
             `📋 *Butiran Tempahan*\n` +
             `Rujukan: ${booking.reference}\n` +
-            `Tarikh: ${format(new Date(booking.date), 'dd/MM/yyyy')}\n` +
+            `Tarikh: ${format(parseDateLocal(booking.date), 'dd/MM/yyyy')}\n` +
             `Masa: ${booking.startTime} - ${booking.endTime}\n` +
             `Layout: ${booking.layoutName}\n` +
             `Jumlah: RM ${booking.totalPrice.toFixed(2)}\n\n` +
@@ -248,7 +249,7 @@ export function BookingDetailModal({ booking, open, onOpenChange }: BookingDetai
                                     <Calendar className="h-4 w-4 mt-0.5 text-muted-foreground" />
                                     <div className="flex-1">
                                         <p className="text-xs text-muted-foreground">Tarikh</p>
-                                        <p className="font-medium">{format(new Date(booking.date), 'EEEE, dd MMMM yyyy')}</p>
+                                        <p className="font-medium">{format(parseDateLocal(booking.date), 'EEEE, dd MMMM yyyy')}</p>
                                     </div>
                                 </div>
 

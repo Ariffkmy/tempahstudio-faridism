@@ -45,7 +45,8 @@ const Index = () => {
         '📲 Whatsapp blast untuk menghantar link gambar raya ke pelanggan anda (link Googledrive, Googlephoto, etc)',
         '📲 Whatsapp blast untuk menghantar link tempahan studio ke semua pelanggan lama anda',
         '👤 Tambahan admin user (2 akaun)',
-        '🎨 Penyesuaian booking form mengikut branding studio anda'
+        '🎨 Penyesuaian booking form mengikut branding studio anda',
+        '📷 Assign shooter/photographer dalam slot tempahan (akan datang)'
       ]
     },
     {

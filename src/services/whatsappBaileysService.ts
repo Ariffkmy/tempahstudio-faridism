@@ -245,6 +245,34 @@ export async function getBlastHistory(studioId: string): Promise<BlastHistory[]>
 }
 
 /**
+ * Get blast progress (for real-time updates)
+ */
+export async function getBlastProgress(blastId: string): Promise<{
+    blastId: string;
+    status: string;
+    totalRecipients: number;
+    successfulSends: number;
+    failedSends: number;
+    progressPercentage: number;
+    currentRecipientIndex: number;
+    startedAt: string;
+    completedAt?: string;
+}> {
+    try {
+        const response = await fetch(`${WHATSAPP_SERVICE_URL}/api/whatsapp/blast-progress/${blastId}`);
+
+        if (!response.ok) {
+            throw new Error('Failed to get blast progress');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error getting blast progress:', error);
+        throw error;
+    }
+}
+
+/**
  * Send booking confirmation notification via WhatsApp
  */
 export async function sendBookingNotification(params: {

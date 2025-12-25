@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, ProtectedRoute } from "@/contexts/AuthContext";
 import { StudioProvider } from "@/contexts/StudioContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import Index from "./pages/Index";
 import Studios from "./pages/Studios";
 import StudioSlots from "./pages/StudioSlots";
@@ -47,6 +48,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <SpeedInsights />
       <BrowserRouter>
         <AuthProvider>
           <StudioProvider>

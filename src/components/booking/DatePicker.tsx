@@ -27,9 +27,7 @@ export function DatePicker({ selected, onSelect }: DatePickerProps) {
         }}
         className={cn("rounded-md pointer-events-auto")}
       />
-      <p className="text-xs text-muted-foreground mt-3">
-        Closed on Sundays. Book up to 3 months in advance.
-      </p>
+
     </Card>
   );
 }

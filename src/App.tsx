@@ -40,6 +40,7 @@ import Blog from "./pages/Blog";
 import ContactSupport from "./pages/ContactSupport";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import MetaTagsManager from "./components/MetaTagsManager";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +53,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <StudioProvider>
+            <MetaTagsManager />
             <SidebarProvider>
               <Routes>
                 {/* Public Routes */}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Send, Plus, X, Eye, History, CheckCircle2, XCircle, Clock } from 'lucide-react';
-import { sendBlast, getBlastHistory, type BlastRecipient, type BlastHistory, type MessageTracking } from '@/services/whatsappBaileysService';
+import { sendBlast, getBlastHistory, getBlastProgress, type BlastRecipient, type BlastHistory, type MessageTracking } from '@/services/whatsappBaileysService';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 
@@ -34,6 +34,15 @@ export function CustomBlastCard({ studioId, isConnected, recipients, setRecipien
     const [selectedBlastId, setSelectedBlastId] = useState<string | null>(null);
     const [messageTracking, setMessageTracking] = useState<MessageTracking[]>([]);
     const [loadingTracking, setLoadingTracking] = useState(false);
+
+    // Progress tracking state
+    const [currentBlastId, setCurrentBlastId] = useState<string | null>(null);
+    const [blastProgress, setBlastProgress] = useState<{
+        percentage: number;
+        sent: number;
+        total: number;
+        failed: number;
+    } | null>(null);
 
     // Fetch blast history
     // Note: Recipients are now managed by parent component and passed as props
@@ -92,6 +101,50 @@ export function CustomBlastCard({ studioId, isConnected, recipients, setRecipien
         }
     }, [isConnected, studioId]);
 
+    // Track if we've already pre-filled the message
+    const hasPrefilledRef = useRef(false);
+
+    // Fetch studio settings and pre-fill message template
+    useEffect(() => {
+        const fetchStudioSettings = async () => {
+            console.log('🔍 Fetching studio settings...', {
+                studioId,
+                hasPrefilledBefore: hasPrefilledRef.current
+            });
+
+            // Only pre-fill once
+            if (hasPrefilledRef.current) {
+                console.log('⏭️ Already pre-filled, skipping');
+                return;
+            }
+
+            try {
+                const { loadStudioSettings } = await import('@/services/studioSettings');
+                const settings = await loadStudioSettings(studioId);
+
+                console.log('📋 Settings loaded:', settings);
+
+                if (settings && settings.studioName) {
+                    // Pre-fill message template with actual values
+                    const bookingUrl = settings.bookingLink || 'https://your-booking-link.com';
+                    const defaultMessage = `Assalammualaikum! ${settings.studioName} kini sudah menerima tempahan studio raya untuk 2026. Klik link untuk membuat tempahan!\n\n${bookingUrl}`;
+                    console.log('✅ Pre-filling message:', defaultMessage);
+                    setMessage(defaultMessage);
+                    hasPrefilledRef.current = true;
+                } else {
+                    console.log('❌ Missing studio name:', {
+                        hasSettings: !!settings,
+                        hasStudioName: !!settings?.studioName,
+                    });
+                }
+            } catch (error) {
+                console.error('❌ Error fetching studio settings:', error);
+            }
+        };
+
+        fetchStudioSettings();
+    }, [studioId]); // Only run when studioId changes
+
     // Fetch tracking when blast is selected and poll for updates
     useEffect(() => {
         if (selectedBlastId) {
@@ -103,6 +156,37 @@ export function CustomBlastCard({ studioId, isConnected, recipients, setRecipien
             return () => clearInterval(interval);
         }
     }, [selectedBlastId]);
+
+    // Poll for blast progress when sending
+    useEffect(() => {
+        if (currentBlastId && sending) {
+            const pollProgress = async () => {
+                try {
+                    const progress = await getBlastProgress(currentBlastId);
+                    setBlastProgress({
+                        percentage: progress.progressPercentage,
+                        sent: progress.successfulSends,
+                        total: progress.totalRecipients,
+                        failed: progress.failedSends,
+                    });
+
+                    // Stop polling if blast is completed
+                    if (progress.status === 'completed' || progress.status === 'failed') {
+                        setCurrentBlastId(null);
+                        setBlastProgress(null);
+                    }
+                } catch (error) {
+                    console.error('Error fetching progress:', error);
+                }
+            };
+
+            // Poll immediately, then every second
+            pollProgress();
+            const interval = setInterval(pollProgress, 1000);
+
+            return () => clearInterval(interval);
+        }
+    }, [currentBlastId, sending]);
 
     const handleViewDetails = (blastId: string) => {
         setSelectedBlastId(blastId);
@@ -174,19 +258,6 @@ export function CustomBlastCard({ studioId, isConnected, recipients, setRecipien
         setRecipients(recipients.filter((_, i) => i !== index));
     };
 
-    const insertVariable = (variable: string) => {
-        setMessage(message + `{${variable}}`);
-    };
-
-    const getPreviewMessage = (recipient: BlastRecipient) => {
-        let preview = message;
-        if (recipient.name) {
-            preview = preview.replace(/{name}/g, recipient.name);
-        }
-        preview = preview.replace(/{studio}/g, 'RayaStudio'); // Replace with actual studio name
-        return preview;
-    };
-
     const handleSendBlast = async () => {
         console.log('\n🚀 Frontend: Starting blast send...');
 
@@ -218,6 +289,12 @@ export function CustomBlastCard({ studioId, isConnected, recipients, setRecipien
 
         try {
             setSending(true);
+            setBlastProgress({
+                percentage: 0,
+                sent: 0,
+                total: recipients.length,
+                failed: 0,
+            });
             console.log('📤 Frontend: Calling sendBlast API...');
 
             const result = await sendBlast({
@@ -227,6 +304,11 @@ export function CustomBlastCard({ studioId, isConnected, recipients, setRecipien
             });
 
             console.log('✓ Frontend: Blast API response:', result);
+
+            // Set blast ID for progress tracking
+            if (result.blastId) {
+                setCurrentBlastId(result.blastId);
+            }
 
             toast({
                 title: 'Blast Sent',
@@ -252,6 +334,8 @@ export function CustomBlastCard({ studioId, isConnected, recipients, setRecipien
             });
         } finally {
             setSending(false);
+            setCurrentBlastId(null);
+            setBlastProgress(null);
             console.log('🏁 Frontend: Blast send complete\n');
         }
     };
@@ -292,39 +376,21 @@ export function CustomBlastCard({ studioId, isConnected, recipients, setRecipien
                 <CardContent className="space-y-6">
                     {/* Message Template */}
                     <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <Label htmlFor="message">Message Template</Label>
-                            <div className="flex gap-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => insertVariable('name')}
-                                >
-                                    + {'{name}'}
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => insertVariable('studio')}
-                                >
-                                    + {'{studio}'}
-                                </Button>
-                            </div>
-                        </div>
+                        <Label htmlFor="message">Message</Label>
                         <Textarea
                             id="message"
-                            placeholder="Enter your message here... Use {name} for recipient name and {studio} for studio name"
+                            placeholder="Enter your message here..."
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
                             rows={6}
                             className="resize-none"
                         />
                         <p className="text-sm text-muted-foreground">
-                            {message.length} characters • Variables: {'{name}'}, {'{studio}'}
+                            {message.length} characters
                         </p>
                     </div>
+
+
 
                     {/* Add Recipients */}
                     <div className="space-y-4">
@@ -376,7 +442,7 @@ export function CustomBlastCard({ studioId, isConnected, recipients, setRecipien
                                                 <div className="text-sm text-muted-foreground">{recipient.phone}</div>
                                                 {showPreview && (
                                                     <div className="text-sm mt-2 p-2 bg-background rounded border">
-                                                        {getPreviewMessage(recipient)}
+                                                        {message}
                                                     </div>
                                                 )}
                                             </div>
@@ -407,6 +473,33 @@ export function CustomBlastCard({ studioId, isConnected, recipients, setRecipien
                             Send Blast to {recipients.length} Recipient{recipients.length > 1 ? 's' : ''}
                         </Button>
                     </div>
+
+                    {/* Progress Bar */}
+                    {sending && blastProgress && (
+                        <div className="space-y-2 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="font-medium text-blue-900 dark:text-blue-100">
+                                    Sending messages...
+                                </span>
+                                <span className="font-bold text-blue-900 dark:text-blue-100">
+                                    {blastProgress.percentage}%
+                                </span>
+                            </div>
+                            <Progress value={blastProgress.percentage} className="h-2" />
+                            <div className="flex items-center gap-4 text-xs text-blue-800 dark:text-blue-200">
+                                <div className="flex items-center gap-1">
+                                    <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                    <span>Sent: {blastProgress.sent}/{blastProgress.total}</span>
+                                </div>
+                                {blastProgress.failed > 0 && (
+                                    <div className="flex items-center gap-1">
+                                        <XCircle className="h-3 w-3 text-red-600" />
+                                        <span>Failed: {blastProgress.failed}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Warning */}
                     <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">

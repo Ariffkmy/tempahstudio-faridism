@@ -50,7 +50,8 @@ const AdminWhatsappBlaster = () => {
 
   // WhatsApp connection state
   const [isWhatsAppConnected, setIsWhatsAppConnected] = useState(false);
-  const [activeTab, setActiveTab] = useState('delivery');
+  const [checkingConnection, setCheckingConnection] = useState(true);
+  const [activeTab, setActiveTab] = useState('connection'); // Start with connection tab
   const [importedContacts, setImportedContacts] = useState<Array<{ name: string; phone: string }>>([]);
   const [importTrigger, setImportTrigger] = useState(0); // Counter to force re-render
 
@@ -101,10 +102,14 @@ const AdminWhatsappBlaster = () => {
       if (!effectiveStudioId) return;
 
       try {
+        setCheckingConnection(true);
         const status = await getConnectionStatus(effectiveStudioId);
         setIsWhatsAppConnected(status.isConnected);
       } catch (error) {
         console.error('Error checking WhatsApp connection:', error);
+        setIsWhatsAppConnected(false);
+      } finally {
+        setCheckingConnection(false);
       }
     };
 
@@ -250,10 +255,17 @@ const AdminWhatsappBlaster = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant={isWhatsAppConnected ? 'default' : 'secondary'} className="gap-1">
-                <Smartphone className="h-3 w-3" />
-                {isWhatsAppConnected ? 'Connected' : 'Not Connected'}
-              </Badge>
+              {checkingConnection ? (
+                <Badge variant="outline" className="gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Checking...
+                </Badge>
+              ) : (
+                <Badge variant={isWhatsAppConnected ? 'default' : 'secondary'} className="gap-1">
+                  <Smartphone className="h-3 w-3" />
+                  {isWhatsAppConnected ? 'Connected' : 'Not Connected'}
+                </Badge>
+              )}
               {loading && (
                 <Badge variant="outline" className="text-lg px-4 py-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -301,10 +313,6 @@ const AdminWhatsappBlaster = () => {
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="delivery" className="gap-2">
-                <Send className="h-4 w-4" />
-                Ready for Delivery
-              </TabsTrigger>
               <TabsTrigger value="connection" className="gap-2">
                 <Smartphone className="h-4 w-4" />
                 WhatsApp Connection
@@ -315,11 +323,72 @@ const AdminWhatsappBlaster = () => {
               </TabsTrigger>
               <TabsTrigger value="blast" className="gap-2" disabled={!isWhatsAppConnected}>
                 <MessageSquare className="h-4 w-4" />
-                Custom Blast
+                Marketing Blast
+              </TabsTrigger>
+              <TabsTrigger value="delivery" className="gap-2">
+                <Send className="h-4 w-4" />
+                Ready for Delivery
               </TabsTrigger>
             </TabsList>
 
-            {/* Tab 1: Ready for Delivery (Existing Feature) */}
+
+            {/* Tab 1: WhatsApp Connection */}
+            <TabsContent value="connection">
+              {effectiveStudioId && <WhatsAppConnectionCard studioId={effectiveStudioId} />}
+            </TabsContent>
+
+            {/* Tab 2: Contact Management */}
+            <TabsContent value="contacts">
+              {checkingConnection ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-12">
+                      <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin text-primary" />
+                      <p className="text-lg font-medium mb-2">Checking WhatsApp Connection...</p>
+                      <p className="text-sm text-muted-foreground">
+                        Please wait while we verify your WhatsApp connection status
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : effectiveStudioId && (
+                <ContactManagementCard
+                  studioId={effectiveStudioId}
+                  isConnected={isWhatsAppConnected} onImportContacts={handleImportContacts} />
+              )}
+            </TabsContent>
+
+            {/* Tab 3: Marketing Blast */}
+            <TabsContent value="blast">
+              {checkingConnection ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-12">
+                      <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin text-primary" />
+                      <p className="text-lg font-medium mb-2">Checking WhatsApp Connection...</p>
+                      <p className="text-sm text-muted-foreground">
+                        Please wait while we verify your WhatsApp connection status
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : effectiveStudioId && (() => {
+                console.log('🟣 [AdminWhatsappBlaster] Rendering CustomBlastCard');
+                console.log('  - studioId:', effectiveStudioId);
+                console.log('  - isConnected:', isWhatsAppConnected);
+                console.log('  - recipients to pass:', recipients);
+                return (
+                  <CustomBlastCard
+                    studioId={effectiveStudioId}
+                    isConnected={isWhatsAppConnected}
+                    recipients={recipients}
+                    setRecipients={setRecipients}
+                  />
+                );
+              })()}
+            </TabsContent>
+
+            {/* Tab 4: Ready for Delivery */}
             <TabsContent value="delivery">
               <Card>
                 <CardHeader>
@@ -416,38 +485,6 @@ const AdminWhatsappBlaster = () => {
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            {/* Tab 2: WhatsApp Connection */}
-            <TabsContent value="connection">
-              {effectiveStudioId && <WhatsAppConnectionCard studioId={effectiveStudioId} />}
-            </TabsContent>
-
-            {/* Tab 3: Contact Management */}
-            <TabsContent value="contacts">
-              {effectiveStudioId && (
-                <ContactManagementCard
-                  studioId={effectiveStudioId}
-                  isConnected={isWhatsAppConnected} onImportContacts={handleImportContacts} />
-              )}
-            </TabsContent>
-
-            {/* Tab 4: Custom Blast */}
-            <TabsContent value="blast">
-              {effectiveStudioId && (() => {
-                console.log('🟣 [AdminWhatsappBlaster] Rendering CustomBlastCard');
-                console.log('  - studioId:', effectiveStudioId);
-                console.log('  - isConnected:', isWhatsAppConnected);
-                console.log('  - recipients to pass:', recipients);
-                return (
-                  <CustomBlastCard
-                    studioId={effectiveStudioId}
-                    isConnected={isWhatsAppConnected}
-                    recipients={recipients}
-                    setRecipients={setRecipients}
-                  />
-                );
-              })()}
             </TabsContent>
           </Tabs>
 

@@ -81,14 +81,44 @@ const BookingConfirmation = () => {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <MapPin className="h-5 w-5 text-muted-foreground" />
-                    <div>
+                    <MapPin className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    <div className="flex-1">
                       <p className="font-medium">
                         {booking?.studio?.name || 'Tempah Studio'}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {booking?.studio?.location || 'Kuala Lumpur, Malaysia'}
                       </p>
+
+                      {/* Show map links if available */}
+                      {(booking?.studio?.google_maps_link || booking?.studio?.waze_link) && (
+                        <div className="flex items-center gap-2 mt-2">
+                          {booking?.studio?.google_maps_link && (
+                            <a
+                              href={booking.studio.google_maps_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#4285F4] hover:bg-[#357ae8] rounded-md transition-colors"
+                              title="Buka di Google Maps"
+                            >
+                              <img src="/google-maps-svgrepo-com.svg" alt="Google Maps" className="w-4 h-4" />
+                              Google Maps
+                            </a>
+                          )}
+                          {booking?.studio?.waze_link && (
+                            <a
+                              href={booking.studio.waze_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#33CCFF] hover:bg-[#00B8E6] rounded-md transition-colors"
+                              title="Buka di Waze"
+                            >
+                              <img src="/brand-waze-svgrepo-com.svg" alt="Waze" className="w-4 h-4" />
+                              Waze
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 

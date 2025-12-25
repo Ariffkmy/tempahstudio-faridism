@@ -976,6 +976,21 @@ app.post('/api/whatsapp/send-blast', async (req, res) => {
                     }
                 }
 
+                // Update progress in blast record after each message
+                if (blastRecord) {
+                    const progress = Math.round(((i + 1) / recipients.length) * 100);
+                    await supabase
+                        .from('whatsapp_blast_history')
+                        .update({
+                            successful_sends: successCount,
+                            failed_sends: failCount,
+                            progress_percentage: progress,
+                            current_recipient_index: i + 1,
+                        })
+                        .eq('id', blastRecord.id);
+                    console.log(`  → Progress updated: ${progress}% (${i + 1}/${recipients.length})`);
+                }
+
                 // Delay between messages
                 if (i < recipients.length - 1) {
                     console.log(`  → Waiting 3 seconds before next message...`);
@@ -1004,6 +1019,18 @@ app.post('/api/whatsapp/send-blast', async (req, res) => {
                             error_message: error.message,
                             failed_at: new Date().toISOString(),
                         });
+
+                    // Update progress even for failed messages
+                    const progress = Math.round(((i + 1) / recipients.length) * 100);
+                    await supabase
+                        .from('whatsapp_blast_history')
+                        .update({
+                            successful_sends: successCount,
+                            failed_sends: failCount,
+                            progress_percentage: progress,
+                            current_recipient_index: i + 1,
+                        })
+                        .eq('id', blastRecord.id);
                 }
             }
         }
@@ -1047,6 +1074,38 @@ app.post('/api/whatsapp/send-blast', async (req, res) => {
         console.error('Error sending blast:', error);
         console.error('Stack trace:', error.stack);
         console.error('==========================================\n');
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get blast progress (for real-time updates)
+app.get('/api/whatsapp/blast-progress/:blastId', async (req, res) => {
+    try {
+        const { blastId } = req.params;
+
+        const { data, error } = await supabase
+            .from('whatsapp_blast_history')
+            .select('*')
+            .eq('id', blastId)
+            .single();
+
+        if (error) {
+            return res.status(404).json({ error: 'Blast not found' });
+        }
+
+        res.json({
+            blastId: data.id,
+            status: data.status,
+            totalRecipients: data.total_recipients,
+            successfulSends: data.successful_sends || 0,
+            failedSends: data.failed_sends || 0,
+            progressPercentage: data.progress_percentage || 0,
+            currentRecipientIndex: data.current_recipient_index || 0,
+            startedAt: data.started_at,
+            completedAt: data.completed_at,
+        });
+    } catch (error) {
+        console.error('Error getting blast progress:', error);
         res.status(500).json({ error: error.message });
     }
 });

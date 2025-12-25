@@ -68,6 +68,7 @@ const AdminSettings = () => {
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
   const [isUploadingAboutPhoto, setIsUploadingAboutPhoto] = useState(false);
   const [isUploadingTngQr, setIsUploadingTngQr] = useState(false);
+  const [isUploadingQr, setIsUploadingQr] = useState(false);
   const [portfolioPhotos, setPortfolioPhotos] = useState<string[]>([]);
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false);
   const [deletingPhotoUrl, setDeletingPhotoUrl] = useState<string | null>(null);
@@ -1686,15 +1687,36 @@ const AdminSettings = () => {
                                       </Label>
                                       {settings.qrCode && <Check className="h-2.5 w-2.5 text-green-600 shrink-0" />}
                                     </div>
-                                    <Input
-                                      type="file"
-                                      accept="image/*"
-                                      className="h-8 text-[10px] bg-background cursor-pointer px-1 file:text-[9px] file:mr-1 file:px-1"
-                                      onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) handleSettingChange('qrCode', file.name);
-                                      }}
-                                    />
+                                    <div className="flex flex-col gap-2">
+                                      {settings.qrCode && (
+                                        <div className="relative w-full aspect-square max-w-[120px] rounded-lg border overflow-hidden mx-auto bg-white">
+                                          <img src={settings.qrCode} className="w-full h-full object-contain" alt="QR Code" />
+                                        </div>
+                                      )}
+                                      <Input
+                                        type="file"
+                                        accept="image/*"
+                                        className="h-8 text-[10px] bg-background cursor-pointer px-1 file:text-[9px] file:mr-1 file:px-1"
+                                        disabled={isUploadingQr}
+                                        onChange={async (e) => {
+                                          const file = e.target.files?.[0];
+                                          if (!file || !effectiveStudioId) return;
+                                          setIsUploadingQr(true);
+                                          try {
+                                            const { uploadLogo } = await import('@/services/fileUploadService');
+                                            const result = await uploadLogo(file, effectiveStudioId);
+                                            if (result.success && result.url) {
+                                              handleSettingChange('qrCode', result.url);
+                                              toast({ title: "QR Uploaded", description: "QR code updated successfully" });
+                                            }
+                                          } catch (error) {
+                                            toast({ title: "Error", description: "Failed to upload QR code", variant: "destructive" });
+                                          } finally {
+                                            setIsUploadingQr(false);
+                                          }
+                                        }}
+                                      />
+                                    </div>
                                   </div>
                                 </div>
                               </AccordionContent>
@@ -2212,43 +2234,156 @@ const AdminSettings = () => {
                 <CardDescription className="text-sm">Maklumat akaun bank untuk pembayaran</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="bankAccountNumber" className="text-sm">No Akaun Bank</Label>
-                  <div className="relative">
-                    <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bankAccountNumber" className="text-sm">No Akaun Bank</Label>
+                    <div className="relative">
+                      <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="bankAccountNumber"
+                        value={settings.bankAccountNumber}
+                        onChange={(e) => handleSettingChange('bankAccountNumber', e.target.value)}
+                        placeholder="1234567890"
+                        className="pl-9"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="accountOwnerName" className="text-sm">Nama Pemilik Akaun</Label>
                     <Input
-                      id="bankAccountNumber"
-                      value={settings.bankAccountNumber}
-                      onChange={(e) => handleSettingChange('bankAccountNumber', e.target.value)}
-                      placeholder="1234567890"
-                      className="pl-9"
+                      id="accountOwnerName"
+                      value={settings.accountOwnerName}
+                      onChange={(e) => handleSettingChange('accountOwnerName', e.target.value)}
+                      placeholder="Nama pada akaun bank"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="accountOwnerName" className="text-sm">Nama Pemilik Akaun</Label>
-                  <Input
-                    id="accountOwnerName"
-                    value={settings.accountOwnerName}
-                    onChange={(e) => handleSettingChange('accountOwnerName', e.target.value)}
-                    placeholder="Nama pada akaun bank"
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="qrCode" className="text-sm">Kod QR</Label>
+                  {settings.qrCode && (
+                    <div className="relative w-full aspect-square max-w-[200px] rounded-lg border overflow-hidden bg-white">
+                      <img src={settings.qrCode} className="w-full h-full object-contain" alt="QR Code" />
+                    </div>
+                  )}
                   <Input
                     id="qrCode"
                     type="file"
                     accept="image/*"
-                    onChange={(e) => {
+                    disabled={isUploadingQr}
+                    onChange={async (e) => {
+                      alert('🔵 QR UPLOAD HANDLER FIRED! Check console for details.');
+                      console.log('🔵 [QR Upload] onChange event fired!');
+                      console.log('🔵 [QR Upload] Event target:', e.target);
+                      console.log('🔵 [QR Upload] Files:', e.target.files);
+                      console.log('🔵 [QR Upload] Starting QR code upload process...');
                       const file = e.target.files?.[0];
-                      if (file) {
-                        handleSettingChange('qrCode', file.name);
+
+                      if (!file) {
+                        console.log('❌ [QR Upload] No file selected');
+                        return;
+                      }
+
+                      console.log('📄 [QR Upload] File details:', {
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                        sizeInMB: (file.size / (1024 * 1024)).toFixed(2) + 'MB'
+                      });
+
+                      if (!effectiveStudioId) {
+                        console.log('❌ [QR Upload] No effective studio ID found');
+                        toast({
+                          title: "Error",
+                          description: "Studio ID not found. Please refresh the page.",
+                          variant: "destructive"
+                        });
+                        return;
+                      }
+
+                      console.log('🏢 [QR Upload] Studio ID:', effectiveStudioId);
+
+                      setIsUploadingQr(true);
+                      try {
+                        console.log('📤 [QR Upload] Importing upload service...');
+                        const { uploadLogo } = await import('@/services/fileUploadService');
+
+                        console.log('📤 [QR Upload] Calling uploadLogo function...');
+                        const result = await uploadLogo(file, effectiveStudioId);
+
+                        console.log('📥 [QR Upload] Upload result:', result);
+
+                        if (result.success && result.url) {
+                          console.log('✅ [QR Upload] File uploaded successfully!');
+                          console.log('🔗 [QR Upload] Public URL:', result.url);
+
+                          // Update state
+                          console.log('💾 [QR Upload] Updating local state...');
+                          handleSettingChange('qrCode', result.url);
+
+                          // Auto-save to database immediately
+                          console.log('💾 [QR Upload] Importing save settings service...');
+                          const { saveStudioSettings } = await import('@/services/studioSettings');
+
+                          console.log('💾 [QR Upload] Preparing settings payload...');
+                          const updatedSettings = { ...settings, qrCode: result.url };
+                          console.log('💾 [QR Upload] Updated settings:', {
+                            qrCode: updatedSettings.qrCode,
+                            studioName: updatedSettings.studioName,
+                            studioId: effectiveStudioId
+                          });
+
+                          console.log('💾 [QR Upload] Calling saveStudioSettings...');
+                          const saveResult = await saveStudioSettings(
+                            updatedSettings,
+                            layouts,
+                            effectiveStudioId
+                          );
+
+                          console.log('💾 [QR Upload] Save result:', saveResult);
+
+                          if (saveResult.success) {
+                            console.log('✅ [QR Upload] Settings saved to database successfully!');
+                            toast({
+                              title: "Success",
+                              description: "QR code uploaded and saved successfully"
+                            });
+                          } else {
+                            console.error('❌ [QR Upload] Failed to save to database:', saveResult.error);
+                            toast({
+                              title: "Warning",
+                              description: "QR code uploaded but failed to save. Please click 'Simpan Tetapan' to save manually.",
+                              variant: "destructive"
+                            });
+                          }
+                        } else {
+                          console.error('❌ [QR Upload] Upload failed:', result.error);
+                          toast({
+                            title: "Error",
+                            description: result.error || "Failed to upload QR code",
+                            variant: "destructive"
+                          });
+                        }
+                      } catch (error) {
+                        console.error('❌ [QR Upload] Unexpected error:', error);
+                        console.error('❌ [QR Upload] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+                        toast({
+                          title: "Error",
+                          description: "Failed to upload QR code",
+                          variant: "destructive"
+                        });
+                      } finally {
+                        console.log('🏁 [QR Upload] Upload process completed');
+                        setIsUploadingQr(false);
+                        // Reset the input so the same file can be selected again
+                        e.target.value = '';
                       }
                     }}
                   />
+                  {isUploadingQr && (
+                    <p className="text-xs text-muted-foreground">Uploading QR code...</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -2696,12 +2831,82 @@ const AdminSettings = () => {
                                           )}
                                         </div>
                                         <Input
+                                          id="desktop-checklist-qr-code"
                                           type="file"
                                           accept="image/*"
+                                          disabled={isUploadingQr}
                                           className="h-9 text-xs bg-muted/30 border-none cursor-pointer file:bg-primary file:text-primary-foreground file:border-none file:px-2 file:py-1 file:rounded-md file:mr-2 file:text-[9px]"
-                                          onChange={(e) => {
+                                          onChange={async (e) => {
+                                            console.log('🔵 [Desktop Checklist QR] onChange event fired!');
+                                            console.log('🔵 [Desktop Checklist QR] Input ID:', e.target.id);
                                             const file = e.target.files?.[0];
-                                            if (file) handleSettingChange('qrCode', file.name);
+
+                                            if (!file) {
+                                              console.log('❌ [Desktop Checklist QR] No file selected');
+                                              return;
+                                            }
+
+                                            console.log('📄 [Desktop Checklist QR] File:', file.name, file.size);
+
+                                            if (!effectiveStudioId) {
+                                              console.log('❌ [Desktop Checklist QR] No studio ID');
+                                              toast({
+                                                title: "Error",
+                                                description: "Studio ID not found",
+                                                variant: "destructive"
+                                              });
+                                              return;
+                                            }
+
+                                            setIsUploadingQr(true);
+                                            try {
+                                              console.log('📤 [Desktop Checklist QR] Uploading...');
+                                              const { uploadLogo } = await import('@/services/fileUploadService');
+                                              const result = await uploadLogo(file, effectiveStudioId);
+
+                                              console.log('📥 [Desktop Checklist QR] Result:', result);
+
+                                              if (result.success && result.url) {
+                                                handleSettingChange('qrCode', result.url);
+
+                                                // Auto-save
+                                                const { saveStudioSettings } = await import('@/services/studioSettings');
+                                                const saveResult = await saveStudioSettings(
+                                                  { ...settings, qrCode: result.url },
+                                                  layouts,
+                                                  effectiveStudioId
+                                                );
+
+                                                if (saveResult.success) {
+                                                  toast({
+                                                    title: "Success",
+                                                    description: "QR code uploaded and saved"
+                                                  });
+                                                } else {
+                                                  toast({
+                                                    title: "Warning",
+                                                    description: "Uploaded but not saved. Click 'Simpan Tetapan'.",
+                                                    variant: "destructive"
+                                                  });
+                                                }
+                                              } else {
+                                                toast({
+                                                  title: "Error",
+                                                  description: result.error || "Upload failed",
+                                                  variant: "destructive"
+                                                });
+                                              }
+                                            } catch (error) {
+                                              console.error('❌ [Desktop Checklist QR] Error:', error);
+                                              toast({
+                                                title: "Error",
+                                                description: "Failed to upload QR code",
+                                                variant: "destructive"
+                                              });
+                                            } finally {
+                                              setIsUploadingQr(false);
+                                              e.target.value = '';
+                                            }
                                           }}
                                         />
                                       </div>
@@ -3423,20 +3628,131 @@ const AdminSettings = () => {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="qrCode">Kod QR</Label>
-                      <Input
-                        id="qrCode"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleSettingChange('qrCode', file.name);
-                          }
-                        }}
-                      />
+                <div className="space-y-2">
+                  <Label htmlFor="qrCode">Kod QR</Label>
+                  {settings.qrCode && (
+                    <div className="relative w-full aspect-square max-w-[200px] rounded-lg border overflow-hidden bg-white">
+                      <img src={settings.qrCode} className="w-full h-full object-contain" alt="QR Code" />
                     </div>
+                  )}
+                  <Input
+                    id="qrCode"
+                    type="file"
+                    accept="image/*"
+                    disabled={isUploadingQr}
+                    onChange={async (e) => {
+                      alert('🔵 MAIN QR UPLOAD HANDLER FIRED! Check console for details.');
+                      console.log('🔵 [Main QR Upload] onChange event fired!');
+                      console.log('🔵 [Main QR Upload] Event target:', e.target);
+                      console.log('🔵 [Main QR Upload] Files:', e.target.files);
+                      console.log('🔵 [Main QR Upload] Starting QR code upload process...');
+                      const file = e.target.files?.[0];
+
+                      if (!file) {
+                        console.log('❌ [Main QR Upload] No file selected');
+                        return;
+                      }
+
+                      console.log('📄 [Main QR Upload] File details:', {
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                        sizeInMB: (file.size / (1024 * 1024)).toFixed(2) + 'MB'
+                      });
+
+                      if (!effectiveStudioId) {
+                        console.log('❌ [Main QR Upload] No effective studio ID found');
+                        toast({
+                          title: "Error",
+                          description: "Studio ID not found. Please refresh the page.",
+                          variant: "destructive"
+                        });
+                        return;
+                      }
+
+                      console.log('🏢 [Main QR Upload] Studio ID:', effectiveStudioId);
+
+                      setIsUploadingQr(true);
+                      try {
+                        console.log('📤 [Main QR Upload] Importing upload service...');
+                        const { uploadLogo } = await import('@/services/fileUploadService');
+
+                        console.log('📤 [Main QR Upload] Calling uploadLogo function...');
+                        const result = await uploadLogo(file, effectiveStudioId);
+
+                        console.log('📥 [Main QR Upload] Upload result:', result);
+
+                        if (result.success && result.url) {
+                          console.log('✅ [Main QR Upload] File uploaded successfully!');
+                          console.log('🔗 [Main QR Upload] Public URL:', result.url);
+
+                          // Update state
+                          console.log('💾 [Main QR Upload] Updating local state...');
+                          handleSettingChange('qrCode', result.url);
+
+                          // Auto-save to database immediately
+                          console.log('💾 [Main QR Upload] Importing save settings service...');
+                          const { saveStudioSettings } = await import('@/services/studioSettings');
+
+                          console.log('💾 [Main QR Upload] Preparing settings payload...');
+                          const updatedSettings = { ...settings, qrCode: result.url };
+                          console.log('💾 [Main QR Upload] Updated settings:', {
+                            qrCode: updatedSettings.qrCode,
+                            studioName: updatedSettings.studioName,
+                            studioId: effectiveStudioId
+                          });
+
+                          console.log('💾 [Main QR Upload] Calling saveStudioSettings...');
+                          const saveResult = await saveStudioSettings(
+                            updatedSettings,
+                            layouts,
+                            effectiveStudioId
+                          );
+
+                          console.log('💾 [Main QR Upload] Save result:', saveResult);
+
+                          if (saveResult.success) {
+                            console.log('✅ [Main QR Upload] Settings saved to database successfully!');
+                            toast({
+                              title: "Success",
+                              description: "QR code uploaded and saved successfully"
+                            });
+                          } else {
+                            console.error('❌ [Main QR Upload] Failed to save to database:', saveResult.error);
+                            toast({
+                              title: "Warning",
+                              description: "QR code uploaded but failed to save. Please click 'Simpan Tetapan' to save manually.",
+                              variant: "destructive"
+                            });
+                          }
+                        } else {
+                          console.error('❌ [Main QR Upload] Upload failed:', result.error);
+                          toast({
+                            title: "Error",
+                            description: result.error || "Failed to upload QR code",
+                            variant: "destructive"
+                          });
+                        }
+                      } catch (error) {
+                        console.error('❌ [Main QR Upload] Unexpected error:', error);
+                        console.error('❌ [Main QR Upload] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+                        toast({
+                          title: "Error",
+                          description: "Failed to upload QR code",
+                          variant: "destructive"
+                        });
+                      } finally {
+                        console.log('🏁 [Main QR Upload] Upload process completed');
+                        setIsUploadingQr(false);
+                        // Reset the input so the same file can be selected again
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                  {isUploadingQr && (
+                    <p className="text-xs text-muted-foreground">Uploading QR code...</p>
+                  )}
+                </div>
                   </CardContent>
                 </Card>
 

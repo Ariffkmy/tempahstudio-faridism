@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, ProtectedRoute } from "@/contexts/AuthContext";
 import { StudioProvider } from "@/contexts/StudioContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import Index from "./pages/Index";
 import Studios from "./pages/Studios";
 import StudioSlots from "./pages/StudioSlots";
@@ -39,6 +40,7 @@ import Blog from "./pages/Blog";
 import ContactSupport from "./pages/ContactSupport";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import MetaTagsManager from "./components/MetaTagsManager";
 
 const queryClient = new QueryClient();
 
@@ -47,9 +49,11 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <SpeedInsights />
       <BrowserRouter>
         <AuthProvider>
           <StudioProvider>
+            <MetaTagsManager />
             <SidebarProvider>
               <Routes>
                 {/* Public Routes */}

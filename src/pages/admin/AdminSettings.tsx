@@ -3628,131 +3628,131 @@ const AdminSettings = () => {
                       </div>
                     </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="qrCode">Kod QR</Label>
-                  {settings.qrCode && (
-                    <div className="relative w-full aspect-square max-w-[200px] rounded-lg border overflow-hidden bg-white">
-                      <img src={settings.qrCode} className="w-full h-full object-contain" alt="QR Code" />
-                    </div>
-                  )}
-                  <Input
-                    id="qrCode"
-                    type="file"
-                    accept="image/*"
-                    disabled={isUploadingQr}
-                    onChange={async (e) => {
-                      alert('🔵 MAIN QR UPLOAD HANDLER FIRED! Check console for details.');
-                      console.log('🔵 [Main QR Upload] onChange event fired!');
-                      console.log('🔵 [Main QR Upload] Event target:', e.target);
-                      console.log('🔵 [Main QR Upload] Files:', e.target.files);
-                      console.log('🔵 [Main QR Upload] Starting QR code upload process...');
-                      const file = e.target.files?.[0];
+                    <div className="space-y-2">
+                      <Label htmlFor="qrCode">Kod QR</Label>
+                      {settings.qrCode && (
+                        <div className="relative w-full aspect-square max-w-[200px] rounded-lg border overflow-hidden bg-white">
+                          <img src={settings.qrCode} className="w-full h-full object-contain" alt="QR Code" />
+                        </div>
+                      )}
+                      <Input
+                        id="qrCode"
+                        type="file"
+                        accept="image/*"
+                        disabled={isUploadingQr}
+                        onChange={async (e) => {
 
-                      if (!file) {
-                        console.log('❌ [Main QR Upload] No file selected');
-                        return;
-                      }
+                          console.log('🔵 [Main QR Upload] onChange event fired!');
+                          console.log('🔵 [Main QR Upload] Event target:', e.target);
+                          console.log('🔵 [Main QR Upload] Files:', e.target.files);
+                          console.log('🔵 [Main QR Upload] Starting QR code upload process...');
+                          const file = e.target.files?.[0];
 
-                      console.log('📄 [Main QR Upload] File details:', {
-                        name: file.name,
-                        size: file.size,
-                        type: file.type,
-                        sizeInMB: (file.size / (1024 * 1024)).toFixed(2) + 'MB'
-                      });
+                          if (!file) {
+                            console.log('❌ [Main QR Upload] No file selected');
+                            return;
+                          }
 
-                      if (!effectiveStudioId) {
-                        console.log('❌ [Main QR Upload] No effective studio ID found');
-                        toast({
-                          title: "Error",
-                          description: "Studio ID not found. Please refresh the page.",
-                          variant: "destructive"
-                        });
-                        return;
-                      }
-
-                      console.log('🏢 [Main QR Upload] Studio ID:', effectiveStudioId);
-
-                      setIsUploadingQr(true);
-                      try {
-                        console.log('📤 [Main QR Upload] Importing upload service...');
-                        const { uploadLogo } = await import('@/services/fileUploadService');
-
-                        console.log('📤 [Main QR Upload] Calling uploadLogo function...');
-                        const result = await uploadLogo(file, effectiveStudioId);
-
-                        console.log('📥 [Main QR Upload] Upload result:', result);
-
-                        if (result.success && result.url) {
-                          console.log('✅ [Main QR Upload] File uploaded successfully!');
-                          console.log('🔗 [Main QR Upload] Public URL:', result.url);
-
-                          // Update state
-                          console.log('💾 [Main QR Upload] Updating local state...');
-                          handleSettingChange('qrCode', result.url);
-
-                          // Auto-save to database immediately
-                          console.log('💾 [Main QR Upload] Importing save settings service...');
-                          const { saveStudioSettings } = await import('@/services/studioSettings');
-
-                          console.log('💾 [Main QR Upload] Preparing settings payload...');
-                          const updatedSettings = { ...settings, qrCode: result.url };
-                          console.log('💾 [Main QR Upload] Updated settings:', {
-                            qrCode: updatedSettings.qrCode,
-                            studioName: updatedSettings.studioName,
-                            studioId: effectiveStudioId
+                          console.log('📄 [Main QR Upload] File details:', {
+                            name: file.name,
+                            size: file.size,
+                            type: file.type,
+                            sizeInMB: (file.size / (1024 * 1024)).toFixed(2) + 'MB'
                           });
 
-                          console.log('💾 [Main QR Upload] Calling saveStudioSettings...');
-                          const saveResult = await saveStudioSettings(
-                            updatedSettings,
-                            layouts,
-                            effectiveStudioId
-                          );
-
-                          console.log('💾 [Main QR Upload] Save result:', saveResult);
-
-                          if (saveResult.success) {
-                            console.log('✅ [Main QR Upload] Settings saved to database successfully!');
+                          if (!effectiveStudioId) {
+                            console.log('❌ [Main QR Upload] No effective studio ID found');
                             toast({
-                              title: "Success",
-                              description: "QR code uploaded and saved successfully"
-                            });
-                          } else {
-                            console.error('❌ [Main QR Upload] Failed to save to database:', saveResult.error);
-                            toast({
-                              title: "Warning",
-                              description: "QR code uploaded but failed to save. Please click 'Simpan Tetapan' to save manually.",
+                              title: "Error",
+                              description: "Studio ID not found. Please refresh the page.",
                               variant: "destructive"
                             });
+                            return;
                           }
-                        } else {
-                          console.error('❌ [Main QR Upload] Upload failed:', result.error);
-                          toast({
-                            title: "Error",
-                            description: result.error || "Failed to upload QR code",
-                            variant: "destructive"
-                          });
-                        }
-                      } catch (error) {
-                        console.error('❌ [Main QR Upload] Unexpected error:', error);
-                        console.error('❌ [Main QR Upload] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-                        toast({
-                          title: "Error",
-                          description: "Failed to upload QR code",
-                          variant: "destructive"
-                        });
-                      } finally {
-                        console.log('🏁 [Main QR Upload] Upload process completed');
-                        setIsUploadingQr(false);
-                        // Reset the input so the same file can be selected again
-                        e.target.value = '';
-                      }
-                    }}
-                  />
-                  {isUploadingQr && (
-                    <p className="text-xs text-muted-foreground">Uploading QR code...</p>
-                  )}
-                </div>
+
+                          console.log('🏢 [Main QR Upload] Studio ID:', effectiveStudioId);
+
+                          setIsUploadingQr(true);
+                          try {
+                            console.log('📤 [Main QR Upload] Importing upload service...');
+                            const { uploadLogo } = await import('@/services/fileUploadService');
+
+                            console.log('📤 [Main QR Upload] Calling uploadLogo function...');
+                            const result = await uploadLogo(file, effectiveStudioId);
+
+                            console.log('📥 [Main QR Upload] Upload result:', result);
+
+                            if (result.success && result.url) {
+                              console.log('✅ [Main QR Upload] File uploaded successfully!');
+                              console.log('🔗 [Main QR Upload] Public URL:', result.url);
+
+                              // Update state
+                              console.log('💾 [Main QR Upload] Updating local state...');
+                              handleSettingChange('qrCode', result.url);
+
+                              // Auto-save to database immediately
+                              console.log('💾 [Main QR Upload] Importing save settings service...');
+                              const { saveStudioSettings } = await import('@/services/studioSettings');
+
+                              console.log('💾 [Main QR Upload] Preparing settings payload...');
+                              const updatedSettings = { ...settings, qrCode: result.url };
+                              console.log('💾 [Main QR Upload] Updated settings:', {
+                                qrCode: updatedSettings.qrCode,
+                                studioName: updatedSettings.studioName,
+                                studioId: effectiveStudioId
+                              });
+
+                              console.log('💾 [Main QR Upload] Calling saveStudioSettings...');
+                              const saveResult = await saveStudioSettings(
+                                updatedSettings,
+                                layouts,
+                                effectiveStudioId
+                              );
+
+                              console.log('💾 [Main QR Upload] Save result:', saveResult);
+
+                              if (saveResult.success) {
+                                console.log('✅ [Main QR Upload] Settings saved to database successfully!');
+                                toast({
+                                  title: "Success",
+                                  description: "QR code uploaded and saved successfully"
+                                });
+                              } else {
+                                console.error('❌ [Main QR Upload] Failed to save to database:', saveResult.error);
+                                toast({
+                                  title: "Warning",
+                                  description: "QR code uploaded but failed to save. Please click 'Simpan Tetapan' to save manually.",
+                                  variant: "destructive"
+                                });
+                              }
+                            } else {
+                              console.error('❌ [Main QR Upload] Upload failed:', result.error);
+                              toast({
+                                title: "Error",
+                                description: result.error || "Failed to upload QR code",
+                                variant: "destructive"
+                              });
+                            }
+                          } catch (error) {
+                            console.error('❌ [Main QR Upload] Unexpected error:', error);
+                            console.error('❌ [Main QR Upload] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+                            toast({
+                              title: "Error",
+                              description: "Failed to upload QR code",
+                              variant: "destructive"
+                            });
+                          } finally {
+                            console.log('🏁 [Main QR Upload] Upload process completed');
+                            setIsUploadingQr(false);
+                            // Reset the input so the same file can be selected again
+                            e.target.value = '';
+                          }
+                        }}
+                      />
+                      {isUploadingQr && (
+                        <p className="text-xs text-muted-foreground">Uploading QR code...</p>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
 

@@ -7,6 +7,7 @@ import { AuthProvider, ProtectedRoute } from "@/contexts/AuthContext";
 import { StudioProvider } from "@/contexts/StudioContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { SpeedInsights } from "@vercel/speed-insights/react";
+import { Analytics } from "@vercel/analytics/react";
 import Index from "./pages/Index";
 import Studios from "./pages/Studios";
 import StudioSlots from "./pages/StudioSlots";
@@ -50,6 +51,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <SpeedInsights />
+      <Analytics />
       <BrowserRouter>
         <AuthProvider>
           <StudioProvider>

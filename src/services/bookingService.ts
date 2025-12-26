@@ -46,7 +46,9 @@ export async function getStudioBookingsWithDetails(studioId: string): Promise<Bo
         *,
         customer:customers(*),
         studio:studios(*),
-        studio_layout:studio_layouts(*)
+        studio_layout:studio_layouts(*),
+        photographer:studio_staff!photographer_id(*),
+        editor:studio_staff!editor_id(*)
       `)
       .eq('studio_id', studioId)
       .order('date', { ascending: false })
@@ -330,6 +332,42 @@ export async function updateBookingDeliveryLink(
     return { success: false, error: 'Gagal mengemaskini pautan penghantaran' };
   }
 }
+
+/**
+ * Update photographer and editor assignment for a booking
+ */
+export async function updateBookingAssignment(
+  bookingId: string,
+  photographerId?: string | null,
+  editorId?: string | null
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const updateData: any = {};
+
+    if (photographerId !== undefined) {
+      updateData.photographer_id = photographerId;
+    }
+
+    if (editorId !== undefined) {
+      updateData.editor_id = editorId;
+    }
+
+    const { error } = await supabase
+      .from('bookings')
+      .update(updateData)
+      .eq('id', bookingId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating booking assignment:', error);
+    return { success: false, error: 'Gagal mengemaskini tugasan' };
+  }
+}
+
 
 // =============================================
 // BOOKING CREATION (Public)

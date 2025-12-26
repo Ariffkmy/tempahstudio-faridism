@@ -29,15 +29,21 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RescheduleDialog } from './RescheduleDialog';
+import type { StudioStaff } from '@/types/studioStaff';
 
 interface BookingTableProps {
   bookings: Booking[];
+  photographers: StudioStaff[];
+  editors: StudioStaff[];
   onViewBooking: (booking: Booking) => void;
   onStatusUpdate?: (bookingId: string, newStatus: BookingStatus) => void;
   onRescheduleSuccess?: () => void;
+  onAssignmentUpdate?: (bookingId: string, photographerId?: string | null, editorId?: string | null) => void;
 }
 
 const statusVariants: Record<BookingStatus, 'success' | 'warning' | 'destructive' | 'secondary' | 'default'> = {
+  'pending': 'warning',
+  'confirmed': 'default',
   'done-payment': 'default',
   'done-photoshoot': 'secondary',
   'start-editing': 'warning',
@@ -49,6 +55,8 @@ const statusVariants: Record<BookingStatus, 'success' | 'warning' | 'destructive
 };
 
 const statusLabels: Record<BookingStatus, string> = {
+  'pending': 'Menunggu',
+  'confirmed': 'Disahkan',
   'done-payment': 'Bayaran Selesai',
   'done-photoshoot': 'Photoshoot Selesai',
   'start-editing': 'Mula Edit',
@@ -59,7 +67,7 @@ const statusLabels: Record<BookingStatus, string> = {
   'cancelled': 'Dibatalkan',
 };
 
-export function BookingTable({ bookings, onViewBooking, onStatusUpdate, onRescheduleSuccess }: BookingTableProps) {
+export function BookingTable({ bookings, photographers, editors, onViewBooking, onStatusUpdate, onRescheduleSuccess, onAssignmentUpdate }: BookingTableProps) {
   const [referenceFilter, setReferenceFilter] = useState('');
   const [customerFilter, setCustomerFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
@@ -71,6 +79,11 @@ export function BookingTable({ bookings, onViewBooking, onStatusUpdate, onResche
   // Reschedule dialog state
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
   const [bookingToReschedule, setBookingToReschedule] = useState<Booking | null>(null);
+
+  // Assignment editing state
+  const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null);
+  const [tempPhotographerId, setTempPhotographerId] = useState<string>('');
+  const [tempEditorId, setTempEditorId] = useState<string>('');
 
   // Get unique layouts for filter
   const uniqueLayouts = Array.from(new Set(bookings.map(b => b.layoutName)));
@@ -116,6 +129,29 @@ export function BookingTable({ bookings, onViewBooking, onStatusUpdate, onResche
     console.log('[BookingTable] handleRescheduleSuccess completed');
   };
 
+  const handleStartEditAssignment = (booking: Booking) => {
+    setEditingAssignmentId(booking.id);
+    setTempPhotographerId(booking.photographerId || '');
+    setTempEditorId(booking.editorId || '');
+  };
+
+  const handleSaveAssignment = (bookingId: string) => {
+    if (onAssignmentUpdate) {
+      const photographerId = tempPhotographerId || null;
+      const editorId = tempEditorId || null;
+      onAssignmentUpdate(bookingId, photographerId, editorId);
+    }
+    setEditingAssignmentId(null);
+    setTempPhotographerId('');
+    setTempEditorId('');
+  };
+
+  const handleCancelEditAssignment = () => {
+    setEditingAssignmentId(null);
+    setTempPhotographerId('');
+    setTempEditorId('');
+  };
+
   const hasActiveFilters = referenceFilter || customerFilter || dateFilter || minPriceFilter || maxPriceFilter || layoutFilter !== 'all' || statusFilter !== 'all';
 
   return (
@@ -146,6 +182,7 @@ export function BookingTable({ bookings, onViewBooking, onStatusUpdate, onResche
               <TableHead>Layout</TableHead>
               <TableHead>Jumlah</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Tugasan Oleh</TableHead>
               <TableHead className="w-[70px]"></TableHead>
             </TableRow>
             {/* Filter Row */}
@@ -235,12 +272,13 @@ export function BookingTable({ bookings, onViewBooking, onStatusUpdate, onResche
                 </Select>
               </TableHead>
               <TableHead className="h-12"></TableHead>
+              <TableHead className="h-12"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredBookings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   {hasActiveFilters ? 'Tiada tempahan yang sepadan dengan penapis' : 'Tiada tempahan dijumpai'}
                 </TableCell>
               </TableRow>
@@ -268,6 +306,62 @@ export function BookingTable({ bookings, onViewBooking, onStatusUpdate, onResche
                     <Badge variant={statusVariants[booking.status]}>
                       {statusLabels[booking.status]}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {editingAssignmentId === booking.id ? (
+                      <div className="space-y-2 min-w-[200px]">
+                        <Select value={tempPhotographerId} onValueChange={setTempPhotographerId}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Pilih Photographer" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Tiada</SelectItem>
+                            {photographers.map(p => (
+                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={tempEditorId} onValueChange={setTempEditorId}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Pilih Editor" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Tiada</SelectItem>
+                            {editors.map(e => (
+                              <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="flex gap-1">
+                          <Button size="sm" onClick={() => handleSaveAssignment(booking.id)} className="h-7 text-xs">
+                            Simpan
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={handleCancelEditAssignment} className="h-7 text-xs">
+                            Batal
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        className="cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
+                        onClick={() => handleStartEditAssignment(booking)}
+                      >
+                        <div className="text-xs space-y-1">
+                          <div>
+                            <span className="font-medium">Photographer: </span>
+                            <span className={booking.photographerName ? '' : 'text-muted-foreground italic'}>
+                              {booking.photographerName || 'Belum Ditetapkan'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium">Editor: </span>
+                            <span className={booking.editorName ? '' : 'text-muted-foreground italic'}>
+                              {booking.editorName || 'Belum Ditetapkan'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

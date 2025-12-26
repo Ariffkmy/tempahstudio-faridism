@@ -58,8 +58,10 @@ import { Booking } from '@/types/booking';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveStudioId } from '@/contexts/StudioContext';
 import { getStudioBookingsWithDetails, updateBookingStatus } from '@/services/bookingService';
+import { getActivePhotographers, getActiveEditors } from '@/services/studioStaffService';
 import { loadStudioSettings } from '@/services/studioSettings';
 import type { BookingWithDetails } from '@/types/database';
+import type { StudioStaff } from '@/types/studioStaff';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -103,6 +105,10 @@ const AdminBookings = () => {
   // Create booking dialog state
   const [createBookingDialogOpen, setCreateBookingDialogOpen] = useState(false);
 
+  // Staff data state
+  const [photographers, setPhotographers] = useState<StudioStaff[]>([]);
+  const [editors, setEditors] = useState<StudioStaff[]>([]);
+
   // Helper functions
   const getInitials = (name: string | undefined) => {
     if (!name) return 'AD';
@@ -132,8 +138,12 @@ const AdminBookings = () => {
     setIsLoading(true);
 
     try {
-      // Fetch bookings
-      const bookingsData = await getStudioBookingsWithDetails(effectiveStudioId);
+      // Fetch bookings and staff data in parallel
+      const [bookingsData, photographersData, editorsData] = await Promise.all([
+        getStudioBookingsWithDetails(effectiveStudioId),
+        getActivePhotographers(effectiveStudioId),
+        getActiveEditors(effectiveStudioId),
+      ]);
 
       // Convert database bookings to the format expected by BookingTable
       const formattedBookings: Booking[] = bookingsData.map((b: BookingWithDetails) => ({
@@ -155,11 +165,17 @@ const AdminBookings = () => {
         status: b.status,
         notes: b.notes || undefined,
         internalNotes: b.internal_notes || undefined,
+        photographerId: b.photographer_id || undefined,
+        editorId: b.editor_id || undefined,
+        photographerName: (b as any).photographer?.name || undefined,
+        editorName: (b as any).editor?.name || undefined,
         createdAt: b.created_at,
         updatedAt: b.updated_at,
       }));
 
       setBookings(formattedBookings);
+      setPhotographers(photographersData);
+      setEditors(editorsData);
 
       // Fetch studio slug for cleaner booking link
       const { data: studioData } = await supabase
@@ -217,6 +233,10 @@ const AdminBookings = () => {
         status: b.status,
         notes: b.notes || undefined,
         internalNotes: b.internal_notes || undefined,
+        photographerId: b.photographer_id || undefined,
+        editorId: b.editor_id || undefined,
+        photographerName: (b as any).photographer?.name || undefined,
+        editorName: (b as any).editor?.name || undefined,
         createdAt: b.created_at,
         updatedAt: b.updated_at,
       }));
@@ -328,6 +348,10 @@ const AdminBookings = () => {
           companyId: b.company_id,
           studioId: b.studio_id,
           layoutId: b.layout_id,
+          photographerId: b.photographer_id || undefined,
+          editorId: b.editor_id || undefined,
+          photographerName: (b as any).photographer?.name || undefined,
+          editorName: (b as any).editor?.name || undefined,
           createdAt: b.created_at,
           updatedAt: b.updated_at,
         }));
@@ -349,6 +373,36 @@ const AdminBookings = () => {
       toast({
         title: 'Ralat',
         description: 'Gagal mengemaskini status tempahan',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleAssignmentUpdate = async (bookingId: string, photographerId?: string | null, editorId?: string | null) => {
+    try {
+      const { updateBookingAssignment } = await import('@/services/bookingService');
+      const result = await updateBookingAssignment(bookingId, photographerId, editorId);
+
+      if (result.success) {
+        // Refresh bookings to show updated assignments
+        await refreshBookings();
+
+        toast({
+          title: 'Tugasan Dikemaskini',
+          description: 'Tugasan photographer dan editor berjaya dikemaskini',
+        });
+      } else {
+        toast({
+          title: 'Ralat',
+          description: result.error || 'Gagal mengemaskini tugasan',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error updating assignment:', error);
+      toast({
+        title: 'Ralat',
+        description: 'Gagal mengemaskini tugasan',
         variant: 'destructive',
       });
     }
@@ -873,9 +927,12 @@ const AdminBookings = () => {
                 ) : bookings.length > 0 ? (
                   <BookingTable
                     bookings={bookings}
+                    photographers={photographers}
+                    editors={editors}
                     onViewBooking={handleViewBooking}
                     onStatusUpdate={handleStatusUpdate}
                     onRescheduleSuccess={refreshBookings}
+                    onAssignmentUpdate={handleAssignmentUpdate}
                   />
                 ) : (
                   <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed">

@@ -239,6 +239,8 @@ export interface Booking {
   receipt_url?: string | null;
   payment_proof_url?: string | null;
   payment_verification?: PaymentVerificationStatus;
+  photographer_id?: string | null;
+  editor_id?: string | null;
   created_at: string;
   updated_at: string;
 }

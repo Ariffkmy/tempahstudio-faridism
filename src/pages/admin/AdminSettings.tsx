@@ -36,12 +36,15 @@ import { supabase } from '@/lib/supabase';
 import { uploadLogo, uploadTermsPdf } from '@/services/fileUploadService';
 import BookingFormPreview, { PreviewSettings } from '@/components/booking/preview/BookingFormPreview';
 import { BookingTitleCustomization } from '@/components/admin/BookingTitleCustomization';
+import { StaffManagementCard } from '@/components/admin/StaffManagementCard';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import type { StudioLayout } from '@/types/database';
 import type { AddonPackage } from '@/types/booking';
 import { createStudioUser, getStudioAdmins, updateStudioUser, deleteStudioUser } from '@/services/adminAuth';
+import { getStudioStaff, createStaff, updateStaff, deleteStaff } from '@/services/studioStaffService';
 import type { AdminUser } from '@/types/database';
+import type { StudioStaff, StaffRole } from '@/types/studioStaff';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { usePackageAccess } from '@/hooks/usePackageAccess';
 import { FEATURES } from '@/config/packageFeatures';
@@ -185,6 +188,17 @@ const AdminSettings = () => {
     phone: '',
   });
   const [isDeletingUser, setIsDeletingUser] = useState<string | null>(null);
+
+  // Staff management state
+  const [staffMembers, setStaffMembers] = useState<StudioStaff[]>([]);
+  const [isLoadingStaff, setIsLoadingStaff] = useState(false);
+  const [isStaffDialogOpen, setIsStaffDialogOpen] = useState(false);
+  const [editingStaffId, setEditingStaffId] = useState<string | null>(null);
+  const [staffForm, setStaffForm] = useState({
+    name: '',
+    role: 'Photographer' as StaffRole,
+  });
+  const [isDeletingStaff, setIsDeletingStaff] = useState<string | null>(null);
 
   // Unavailable dates state
   const [isDateRange, setIsDateRange] = useState(false);
@@ -743,6 +757,136 @@ const AdminSettings = () => {
     } finally {
       setIsDeletingUser(null);
     }
+  };
+
+  // ===== STAFF MANAGEMENT FUNCTIONS =====
+
+  // Load staff members
+  const loadStaffMembers = async () => {
+    if (!effectiveStudioId) return;
+
+    setIsLoadingStaff(true);
+    try {
+      const staff = await getStudioStaff(effectiveStudioId);
+      setStaffMembers(staff);
+    } catch (error) {
+      console.error('Error loading staff:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load staff members",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingStaff(false);
+    }
+  };
+
+  // Load staff when studio ID is available
+  useEffect(() => {
+    if (effectiveStudioId) {
+      loadStaffMembers();
+    }
+  }, [effectiveStudioId]);
+
+  // Handle create/edit staff
+  const handleSaveStaff = async () => {
+    if (!staffForm.name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter staff name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!effectiveStudioId) return;
+
+    try {
+      let result;
+      if (editingStaffId) {
+        // Update existing staff
+        result = await updateStaff(editingStaffId, staffForm.name);
+      } else {
+        // Create new staff
+        result = await createStaff(effectiveStudioId, staffForm.name, staffForm.role);
+      }
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: editingStaffId ? "Staff updated successfully" : "Staff created successfully",
+        });
+        setIsStaffDialogOpen(false);
+        setStaffForm({ name: '', role: 'Photographer' });
+        setEditingStaffId(null);
+        await loadStaffMembers();
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to save staff",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error saving staff:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save staff",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle edit staff
+  const handleEditStaff = (staff: StudioStaff) => {
+    setEditingStaffId(staff.id);
+    setStaffForm({
+      name: staff.name,
+      role: staff.role,
+    });
+    setIsStaffDialogOpen(true);
+  };
+
+  // Handle delete staff
+  const handleDeleteStaff = async (staffId: string, staffName: string) => {
+    if (!confirm(`Adakah anda pasti mahu memadam ${staffName}? Tindakan ini tidak boleh dibatalkan.`)) {
+      return;
+    }
+
+    setIsDeletingStaff(staffId);
+    try {
+      const result = await deleteStaff(staffId);
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Staff deleted successfully",
+        });
+        await loadStaffMembers();
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to delete staff",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting staff:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete staff",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingStaff(null);
+    }
+  };
+
+  // Handle open new staff dialog
+  const handleOpenNewStaffDialog = () => {
+    setEditingStaffId(null);
+    setStaffForm({ name: '', role: 'Photographer' });
+    setIsStaffDialogOpen(true);
   };
 
   // Handle OAuth callback on component mount
@@ -2686,6 +2830,24 @@ const AdminSettings = () => {
               </CardContent>
             </Card>
 
+            {/* Staff Management */}
+            <StaffManagementCard
+              staffMembers={staffMembers}
+              isLoading={isLoadingStaff}
+              isDialogOpen={isStaffDialogOpen}
+              editingStaffId={editingStaffId}
+              staffForm={staffForm}
+              isDeletingStaff={isDeletingStaff}
+              onOpenDialog={handleOpenNewStaffDialog}
+              onCloseDialog={() => setIsStaffDialogOpen(false)}
+              onSaveStaff={handleSaveStaff}
+              onEditStaff={handleEditStaff}
+              onDeleteStaff={handleDeleteStaff}
+              onFormChange={(field, value) => {
+                setStaffForm(prev => ({ ...prev, [field]: value }));
+              }}
+            />
+
             {/* Booking Title Customization */}
             <BookingTitleCustomization
               settings={{
@@ -3628,131 +3790,131 @@ const AdminSettings = () => {
                       </div>
                     </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="qrCode">Kod QR</Label>
-                  {settings.qrCode && (
-                    <div className="relative w-full aspect-square max-w-[200px] rounded-lg border overflow-hidden bg-white">
-                      <img src={settings.qrCode} className="w-full h-full object-contain" alt="QR Code" />
-                    </div>
-                  )}
-                  <Input
-                    id="qrCode"
-                    type="file"
-                    accept="image/*"
-                    disabled={isUploadingQr}
-                    onChange={async (e) => {
-                      alert('🔵 MAIN QR UPLOAD HANDLER FIRED! Check console for details.');
-                      console.log('🔵 [Main QR Upload] onChange event fired!');
-                      console.log('🔵 [Main QR Upload] Event target:', e.target);
-                      console.log('🔵 [Main QR Upload] Files:', e.target.files);
-                      console.log('🔵 [Main QR Upload] Starting QR code upload process...');
-                      const file = e.target.files?.[0];
+                    <div className="space-y-2">
+                      <Label htmlFor="qrCode">Kod QR</Label>
+                      {settings.qrCode && (
+                        <div className="relative w-full aspect-square max-w-[200px] rounded-lg border overflow-hidden bg-white">
+                          <img src={settings.qrCode} className="w-full h-full object-contain" alt="QR Code" />
+                        </div>
+                      )}
+                      <Input
+                        id="qrCode"
+                        type="file"
+                        accept="image/*"
+                        disabled={isUploadingQr}
+                        onChange={async (e) => {
 
-                      if (!file) {
-                        console.log('❌ [Main QR Upload] No file selected');
-                        return;
-                      }
+                          console.log('🔵 [Main QR Upload] onChange event fired!');
+                          console.log('🔵 [Main QR Upload] Event target:', e.target);
+                          console.log('🔵 [Main QR Upload] Files:', e.target.files);
+                          console.log('🔵 [Main QR Upload] Starting QR code upload process...');
+                          const file = e.target.files?.[0];
 
-                      console.log('📄 [Main QR Upload] File details:', {
-                        name: file.name,
-                        size: file.size,
-                        type: file.type,
-                        sizeInMB: (file.size / (1024 * 1024)).toFixed(2) + 'MB'
-                      });
+                          if (!file) {
+                            console.log('❌ [Main QR Upload] No file selected');
+                            return;
+                          }
 
-                      if (!effectiveStudioId) {
-                        console.log('❌ [Main QR Upload] No effective studio ID found');
-                        toast({
-                          title: "Error",
-                          description: "Studio ID not found. Please refresh the page.",
-                          variant: "destructive"
-                        });
-                        return;
-                      }
-
-                      console.log('🏢 [Main QR Upload] Studio ID:', effectiveStudioId);
-
-                      setIsUploadingQr(true);
-                      try {
-                        console.log('📤 [Main QR Upload] Importing upload service...');
-                        const { uploadLogo } = await import('@/services/fileUploadService');
-
-                        console.log('📤 [Main QR Upload] Calling uploadLogo function...');
-                        const result = await uploadLogo(file, effectiveStudioId);
-
-                        console.log('📥 [Main QR Upload] Upload result:', result);
-
-                        if (result.success && result.url) {
-                          console.log('✅ [Main QR Upload] File uploaded successfully!');
-                          console.log('🔗 [Main QR Upload] Public URL:', result.url);
-
-                          // Update state
-                          console.log('💾 [Main QR Upload] Updating local state...');
-                          handleSettingChange('qrCode', result.url);
-
-                          // Auto-save to database immediately
-                          console.log('💾 [Main QR Upload] Importing save settings service...');
-                          const { saveStudioSettings } = await import('@/services/studioSettings');
-
-                          console.log('💾 [Main QR Upload] Preparing settings payload...');
-                          const updatedSettings = { ...settings, qrCode: result.url };
-                          console.log('💾 [Main QR Upload] Updated settings:', {
-                            qrCode: updatedSettings.qrCode,
-                            studioName: updatedSettings.studioName,
-                            studioId: effectiveStudioId
+                          console.log('📄 [Main QR Upload] File details:', {
+                            name: file.name,
+                            size: file.size,
+                            type: file.type,
+                            sizeInMB: (file.size / (1024 * 1024)).toFixed(2) + 'MB'
                           });
 
-                          console.log('💾 [Main QR Upload] Calling saveStudioSettings...');
-                          const saveResult = await saveStudioSettings(
-                            updatedSettings,
-                            layouts,
-                            effectiveStudioId
-                          );
-
-                          console.log('💾 [Main QR Upload] Save result:', saveResult);
-
-                          if (saveResult.success) {
-                            console.log('✅ [Main QR Upload] Settings saved to database successfully!');
+                          if (!effectiveStudioId) {
+                            console.log('❌ [Main QR Upload] No effective studio ID found');
                             toast({
-                              title: "Success",
-                              description: "QR code uploaded and saved successfully"
-                            });
-                          } else {
-                            console.error('❌ [Main QR Upload] Failed to save to database:', saveResult.error);
-                            toast({
-                              title: "Warning",
-                              description: "QR code uploaded but failed to save. Please click 'Simpan Tetapan' to save manually.",
+                              title: "Error",
+                              description: "Studio ID not found. Please refresh the page.",
                               variant: "destructive"
                             });
+                            return;
                           }
-                        } else {
-                          console.error('❌ [Main QR Upload] Upload failed:', result.error);
-                          toast({
-                            title: "Error",
-                            description: result.error || "Failed to upload QR code",
-                            variant: "destructive"
-                          });
-                        }
-                      } catch (error) {
-                        console.error('❌ [Main QR Upload] Unexpected error:', error);
-                        console.error('❌ [Main QR Upload] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-                        toast({
-                          title: "Error",
-                          description: "Failed to upload QR code",
-                          variant: "destructive"
-                        });
-                      } finally {
-                        console.log('🏁 [Main QR Upload] Upload process completed');
-                        setIsUploadingQr(false);
-                        // Reset the input so the same file can be selected again
-                        e.target.value = '';
-                      }
-                    }}
-                  />
-                  {isUploadingQr && (
-                    <p className="text-xs text-muted-foreground">Uploading QR code...</p>
-                  )}
-                </div>
+
+                          console.log('🏢 [Main QR Upload] Studio ID:', effectiveStudioId);
+
+                          setIsUploadingQr(true);
+                          try {
+                            console.log('📤 [Main QR Upload] Importing upload service...');
+                            const { uploadLogo } = await import('@/services/fileUploadService');
+
+                            console.log('📤 [Main QR Upload] Calling uploadLogo function...');
+                            const result = await uploadLogo(file, effectiveStudioId);
+
+                            console.log('📥 [Main QR Upload] Upload result:', result);
+
+                            if (result.success && result.url) {
+                              console.log('✅ [Main QR Upload] File uploaded successfully!');
+                              console.log('🔗 [Main QR Upload] Public URL:', result.url);
+
+                              // Update state
+                              console.log('💾 [Main QR Upload] Updating local state...');
+                              handleSettingChange('qrCode', result.url);
+
+                              // Auto-save to database immediately
+                              console.log('💾 [Main QR Upload] Importing save settings service...');
+                              const { saveStudioSettings } = await import('@/services/studioSettings');
+
+                              console.log('💾 [Main QR Upload] Preparing settings payload...');
+                              const updatedSettings = { ...settings, qrCode: result.url };
+                              console.log('💾 [Main QR Upload] Updated settings:', {
+                                qrCode: updatedSettings.qrCode,
+                                studioName: updatedSettings.studioName,
+                                studioId: effectiveStudioId
+                              });
+
+                              console.log('💾 [Main QR Upload] Calling saveStudioSettings...');
+                              const saveResult = await saveStudioSettings(
+                                updatedSettings,
+                                layouts,
+                                effectiveStudioId
+                              );
+
+                              console.log('💾 [Main QR Upload] Save result:', saveResult);
+
+                              if (saveResult.success) {
+                                console.log('✅ [Main QR Upload] Settings saved to database successfully!');
+                                toast({
+                                  title: "Success",
+                                  description: "QR code uploaded and saved successfully"
+                                });
+                              } else {
+                                console.error('❌ [Main QR Upload] Failed to save to database:', saveResult.error);
+                                toast({
+                                  title: "Warning",
+                                  description: "QR code uploaded but failed to save. Please click 'Simpan Tetapan' to save manually.",
+                                  variant: "destructive"
+                                });
+                              }
+                            } else {
+                              console.error('❌ [Main QR Upload] Upload failed:', result.error);
+                              toast({
+                                title: "Error",
+                                description: result.error || "Failed to upload QR code",
+                                variant: "destructive"
+                              });
+                            }
+                          } catch (error) {
+                            console.error('❌ [Main QR Upload] Unexpected error:', error);
+                            console.error('❌ [Main QR Upload] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+                            toast({
+                              title: "Error",
+                              description: "Failed to upload QR code",
+                              variant: "destructive"
+                            });
+                          } finally {
+                            console.log('🏁 [Main QR Upload] Upload process completed');
+                            setIsUploadingQr(false);
+                            // Reset the input so the same file can be selected again
+                            e.target.value = '';
+                          }
+                        }}
+                      />
+                      {isUploadingQr && (
+                        <p className="text-xs text-muted-foreground">Uploading QR code...</p>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -6214,6 +6376,24 @@ const AdminSettings = () => {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Staff Management */}
+                <StaffManagementCard
+                  staffMembers={staffMembers}
+                  isLoading={isLoadingStaff}
+                  isDialogOpen={isStaffDialogOpen}
+                  editingStaffId={editingStaffId}
+                  staffForm={staffForm}
+                  isDeletingStaff={isDeletingStaff}
+                  onOpenDialog={handleOpenNewStaffDialog}
+                  onCloseDialog={() => setIsStaffDialogOpen(false)}
+                  onSaveStaff={handleSaveStaff}
+                  onEditStaff={handleEditStaff}
+                  onDeleteStaff={handleDeleteStaff}
+                  onFormChange={(field, value) => {
+                    setStaffForm(prev => ({ ...prev, [field]: value }));
+                  }}
+                />
 
                 {/* Save Button */}
                 <div className="flex justify-end">

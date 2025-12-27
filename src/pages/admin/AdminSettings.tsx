@@ -2830,24 +2830,6 @@ const AdminSettings = () => {
               </CardContent>
             </Card>
 
-            {/* Staff Management */}
-            <StaffManagementCard
-              staffMembers={staffMembers}
-              isLoading={isLoadingStaff}
-              isDialogOpen={isStaffDialogOpen}
-              editingStaffId={editingStaffId}
-              staffForm={staffForm}
-              isDeletingStaff={isDeletingStaff}
-              onOpenDialog={handleOpenNewStaffDialog}
-              onCloseDialog={() => setIsStaffDialogOpen(false)}
-              onSaveStaff={handleSaveStaff}
-              onEditStaff={handleEditStaff}
-              onDeleteStaff={handleDeleteStaff}
-              onFormChange={(field, value) => {
-                setStaffForm(prev => ({ ...prev, [field]: value }));
-              }}
-            />
-
             {/* Booking Title Customization */}
             <BookingTitleCustomization
               settings={{
@@ -3583,7 +3565,7 @@ const AdminSettings = () => {
             {/* Settings Tabs */}
             <Tabs defaultValue="maklumat-asas" className="w-full">
               <div className="border-b border-border">
-                <TabsList className="grid w-full grid-cols-6 md:flex md:w-auto h-auto p-0 bg-transparent justify-start">
+                <TabsList className="grid w-full grid-cols-7 md:flex md:w-auto h-auto p-0 bg-transparent justify-start">
                   <TabsTrigger
                     value="maklumat-asas"
                     className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
@@ -3625,6 +3607,13 @@ const AdminSettings = () => {
                   >
                     <span className="mr-2">🕒</span>
                     Waktu Operasi
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="kakitangan"
+                    className="text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    <span className="mr-2">👨‍💼</span>
+                    Staf Studio
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -6377,7 +6366,23 @@ const AdminSettings = () => {
                   </CardContent>
                 </Card>
 
-                {/* Staff Management */}
+                {/* Save Button */}
+                <div className="flex justify-end">
+                  <Button onClick={saveSettings} size="lg" disabled={isSaving}>
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Menyimpan...
+                      </>
+                    ) : (
+                      'Simpan Tetapan'
+                    )}
+                  </Button>
+                </div>
+              </TabsContent>
+
+              {/* Tab 7: Kakitangan */}
+              <TabsContent value="kakitangan" className="space-y-6 mt-6">
                 <StaffManagementCard
                   staffMembers={staffMembers}
                   isLoading={isLoadingStaff}
@@ -6394,20 +6399,6 @@ const AdminSettings = () => {
                     setStaffForm(prev => ({ ...prev, [field]: value }));
                   }}
                 />
-
-                {/* Save Button */}
-                <div className="flex justify-end">
-                  <Button onClick={saveSettings} size="lg" disabled={isSaving}>
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Menyimpan...
-                      </>
-                    ) : (
-                      'Simpan Tetapan'
-                    )}
-                  </Button>
-                </div>
               </TabsContent>
             </Tabs >
           </div >

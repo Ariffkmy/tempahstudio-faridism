@@ -53,7 +53,7 @@ export function StaffManagementCard({
                         <div>
                             <CardTitle className="flex items-center gap-2">
                                 <Users className="h-5 w-5" />
-                                Pengurusan Kakitangan
+                                Pengurusan Staf Studio
                             </CardTitle>
                             <CardDescription>
                                 Urus photographer dan editor untuk tugasan tempahan
@@ -61,7 +61,7 @@ export function StaffManagementCard({
                         </div>
                         <Button onClick={onOpenDialog}>
                             <Plus className="h-4 w-4 mr-2" />
-                            Tambah Kakitangan
+                            Tambah Staf
                         </Button>
                     </div>
                 </CardHeader>
@@ -73,8 +73,8 @@ export function StaffManagementCard({
                     ) : staffMembers.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground">
                             <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                            <p>Tiada kakitangan ditambah lagi</p>
-                            <p className="text-sm">Klik butang "Tambah Kakitangan" untuk bermula</p>
+                            <p>Tiada staf ditambah lagi</p>
+                            <p className="text-sm">Klik butang "Tambah Staf" untuk bermula</p>
                         </div>
                     ) : (
                         <div className="space-y-6">
@@ -183,12 +183,12 @@ export function StaffManagementCard({
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
-                            {editingStaffId ? 'Edit Kakitangan' : 'Tambah Kakitangan Baru'}
+                            {editingStaffId ? 'Edit Staf' : 'Tambah Staf Baru'}
                         </DialogTitle>
                         <DialogDescription>
                             {editingStaffId
-                                ? 'Kemaskini maklumat kakitangan'
-                                : 'Masukkan maklumat kakitangan baru (photographer atau editor)'}
+                                ? 'Kemaskini maklumat staf'
+                                : 'Masukkan maklumat staf baru (photographer atau editor)'}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">

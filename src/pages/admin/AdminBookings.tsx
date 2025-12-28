@@ -138,12 +138,8 @@ const AdminBookings = () => {
     setIsLoading(true);
 
     try {
-      // Fetch bookings and staff data in parallel
-      const [bookingsData, photographersData, editorsData] = await Promise.all([
-        getStudioBookingsWithDetails(effectiveStudioId),
-        getActivePhotographers(effectiveStudioId),
-        getActiveEditors(effectiveStudioId),
-      ]);
+      // Fetch bookings first (critical)
+      const bookingsData = await getStudioBookingsWithDetails(effectiveStudioId);
 
       // Convert database bookings to the format expected by BookingTable
       const formattedBookings: Booking[] = bookingsData.map((b: BookingWithDetails) => ({
@@ -174,24 +170,61 @@ const AdminBookings = () => {
       }));
 
       setBookings(formattedBookings);
-      setPhotographers(photographersData);
-      setEditors(editorsData);
+
+      // Fetch staff data separately (non-blocking)
+      // If studio_staff table doesn't exist, this won't block the booking link
+      try {
+        const photographersData = await getActivePhotographers(effectiveStudioId);
+        setPhotographers(photographersData);
+      } catch (staffError) {
+        console.warn('Could not fetch photographers (table may not exist):', staffError);
+        setPhotographers([]);
+      }
+
+      try {
+        const editorsData = await getActiveEditors(effectiveStudioId);
+        setEditors(editorsData);
+      } catch (staffError) {
+        console.warn('Could not fetch editors (table may not exist):', staffError);
+        setEditors([]);
+      }
 
       // Fetch studio slug for cleaner booking link
-      const { data: studioData } = await supabase
-        .from('studios')
-        .select('slug')
-        .eq('id', effectiveStudioId)
-        .single();
-
-      // Generate booking link for this studio - use slug if available
       const baseUrl = window.location.origin;
-      const studioBookingLink = studioData?.slug
-        ? `${baseUrl}/${studioData.slug}`
-        : `${baseUrl}/book/${effectiveStudioId}`;
+      let studioBookingLink = `${baseUrl}/book/${effectiveStudioId}`; // Default fallback
+
+      try {
+        const { data: studioData, error: slugError } = await supabase
+          .from('studios')
+          .select('slug')
+          .eq('id', effectiveStudioId)
+          .single();
+
+        if (slugError) {
+          console.error('Error fetching studio slug:', slugError);
+        }
+
+        // Generate booking link for this studio - use slug if available
+        if (studioData?.slug) {
+          studioBookingLink = `${baseUrl}/${studioData.slug}`;
+          console.log('Using slug-based booking link:', studioBookingLink);
+        } else {
+          console.log('Using ID-based booking link:', studioBookingLink);
+        }
+      } catch (slugFetchError) {
+        console.error('Exception fetching studio slug:', slugFetchError);
+      }
+
       setBookingLink(studioBookingLink);
+      console.log('Booking link set to:', studioBookingLink);
     } catch (error) {
       console.error('Error fetching data:', error);
+
+      // Even if bookings fetch fails, still try to set the booking link
+      const baseUrl = window.location.origin;
+      const fallbackLink = `${baseUrl}/book/${effectiveStudioId}`;
+      setBookingLink(fallbackLink);
+      console.log('Fallback booking link set to:', fallbackLink);
     } finally {
       setIsLoading(false);
     }
@@ -200,6 +233,13 @@ const AdminBookings = () => {
   useEffect(() => {
     fetchData();
   }, [effectiveStudioId]);
+
+  // Debug: Log when bookingLink changes
+  useEffect(() => {
+    console.log('BookingLink state changed:', bookingLink);
+    console.log('BookingLink is truthy:', !!bookingLink);
+  }, [bookingLink]);
+
 
   // Refresh bookings without full loading state
   const refreshBookings = useCallback(async () => {

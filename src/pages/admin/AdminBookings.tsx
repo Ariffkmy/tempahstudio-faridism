@@ -53,6 +53,8 @@ import {
   Copy,
   ExternalLink,
   Home,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Booking } from '@/types/booking';
 import { useAuth } from '@/contexts/AuthContext';
@@ -89,6 +91,8 @@ const AdminBookings = () => {
   const isMobile = useIsMobile();
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [selectedDayBookings, setSelectedDayBookings] = useState<Booking[]>([]);
+  const [calendarView, setCalendarView] = useState<'month' | 'day'>('month');
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   // State for real data
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -363,6 +367,23 @@ const AdminBookings = () => {
   };
 
   const handleStatusUpdate = async (bookingId: string, newStatus: Booking['status']) => {
+    // Show confirmation for critical status changes
+    const criticalStatuses: Booking['status'][] = ['no-show', 'cancelled', 'done-photoshoot'];
+
+    if (criticalStatuses.includes(newStatus)) {
+      const statusMessages = {
+        'no-show': 'Adakah anda pasti untuk menandakan tempahan ini sebagai "Tidak Hadir"?',
+        'cancelled': 'Adakah anda pasti untuk membatalkan tempahan ini?',
+        'done-photoshoot': 'Adakah anda pasti untuk menandakan tempahan ini sebagai "Photoshoot Selesai"?'
+      };
+
+      const confirmed = window.confirm(statusMessages[newStatus] || 'Adakah anda pasti untuk mengemaskini status ini?');
+
+      if (!confirmed) {
+        return; // User cancelled the action
+      }
+    }
+
     try {
       const result = await updateBookingStatus(bookingId, newStatus);
 
@@ -459,7 +480,9 @@ const AdminBookings = () => {
 
   const handleDayClick = (dayNumber: number) => {
     const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${dayNumber.toString().padStart(2, '0')}`;
-    const bookingsOnThisDay = bookings.filter(booking => booking.date === dateStr);
+    const bookingsOnThisDay = bookings
+      .filter(booking => booking.date === dateStr)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime)); // Sort by start time ascending
     setSelectedDay(dayNumber);
     setSelectedDayBookings(bookingsOnThisDay);
   };
@@ -735,7 +758,7 @@ const AdminBookings = () => {
                   <div className="grid grid-cols-7 gap-1">
                     {/* Empty cells for days before the 1st */}
                     {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                      <div key={`empty-${i}`} className="aspect-square"></div>
+                      <div key={`empty-${i}`} className="min-h-[80px] border border-transparent"></div>
                     ))}
 
                     {/* Calendar days */}
@@ -744,24 +767,60 @@ const AdminBookings = () => {
                       const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${dayNumber.toString().padStart(2, '0')}`;
 
                       // Check if there are bookings on this date
-                      const bookingsOnThisDay = bookings.filter(booking => booking.date === dateStr);
+                      const bookingsOnThisDay = bookings
+                        .filter(booking => booking.date === dateStr)
+                        .sort((a, b) => a.startTime.localeCompare(b.startTime)); // Sort by start time ascending
                       const hasBookings = bookingsOnThisDay.length > 0;
 
                       return (
                         <div
                           key={dayNumber}
                           onClick={() => hasBookings && handleDayClick(dayNumber)}
-                          className={`aspect-square border rounded-md p-2 text-sm relative cursor-pointer transition-colors ${hasBookings
-                            ? 'bg-primary/10 border-primary/30 text-primary font-semibold hover:bg-primary/20'
+                          className={`min-h-[80px] border rounded-md p-1 text-sm relative cursor-pointer transition-colors ${hasBookings
+                            ? 'bg-primary/5 border-primary/20 hover:bg-primary/10'
                             : 'border-border hover:bg-muted/50'
                             }`}
                         >
-                          <div className="text-center font-medium">{dayNumber}</div>
-                          {hasBookings && (
-                            <div className="absolute bottom-1 left-0 right-0">
-                              <div className="text-[10px] bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center mx-auto font-bold">
+                          <div className="flex items-start justify-between mb-1">
+                            <div className="text-center font-medium flex-1">{dayNumber}</div>
+                            {hasBookings && (
+                              <div className="bg-primary text-primary-foreground rounded-full w-4 h-4 flex items-center justify-center text-[9px] font-bold">
                                 {bookingsOnThisDay.length}
                               </div>
+                            )}
+                          </div>
+                          {hasBookings && (
+                            <div className="space-y-0.5 px-0.5">
+                              {bookingsOnThisDay.slice(0, 3).map((booking, idx) => {
+                                const statusColor =
+                                  booking.status === 'done-payment' ? 'bg-blue-500' :
+                                    booking.status === 'done-photoshoot' ? 'bg-purple-500' :
+                                      booking.status === 'completed' ? 'bg-green-500' :
+                                        booking.status === 'cancelled' ? 'bg-red-500' :
+                                          booking.status === 'no-show' ? 'bg-gray-500' : 'bg-orange-500';
+
+                                const initials = booking.customerName
+                                  .split(' ')
+                                  .map(n => n[0])
+                                  .join('')
+                                  .substring(0, 2)
+                                  .toUpperCase();
+
+                                return (
+                                  <div
+                                    key={booking.id}
+                                    className={`${statusColor} text-white text-[9px] px-1 py-0.5 rounded truncate font-medium`}
+                                    title={`${booking.customerName} - ${booking.startTime}`}
+                                  >
+                                    {initials}
+                                  </div>
+                                );
+                              })}
+                              {bookingsOnThisDay.length > 3 && (
+                                <div className="text-[9px] text-muted-foreground text-center font-medium">
+                                  +{bookingsOnThisDay.length - 3}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -770,8 +829,34 @@ const AdminBookings = () => {
                   </div>
 
                   {/* Legend */}
-                  <div className="mt-4 text-center">
-                    <p className="text-xs text-muted-foreground"> Klik untuk lihat tempahan</p>
+                  <div className="mt-4 space-y-2">
+                    <p className="text-xs text-muted-foreground text-center">Klik untuk lihat tempahan</p>
+                    <div className="flex flex-wrap items-center justify-center gap-2 text-[10px]">
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded bg-blue-500"></div>
+                        <span>Bayaran Selesai</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded bg-purple-500"></div>
+                        <span>Photoshoot Selesai</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded bg-green-500"></div>
+                        <span>Selesai</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded bg-red-500"></div>
+                        <span>Dibatalkan</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded bg-gray-500"></div>
+                        <span>Tidak Hadir</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-3 h-3 rounded bg-orange-500"></div>
+                        <span>Lain-lain</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -786,81 +871,108 @@ const AdminBookings = () => {
                   Tempahan untuk {selectedDay} {monthNames[month]} {year}
                 </DialogTitle>
               </DialogHeader>
-              <div className="space-y-3">
+              <div className="space-y-0">
                 {selectedDayBookings.length > 0 ? (
-                  selectedDayBookings.map((booking) => (
-                    <div key={booking.id} className="border rounded-md p-3 space-y-2">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-2">
-                          <User className="h-3 w-3 text-muted-foreground" />
-                          <span className="text-xs font-medium">{booking.customerName}</span>
+                  <>
+                    {/* Timeline view */}
+                    {Array.from({ length: 18 }, (_, i) => {
+                      const hour = i + 7; // Start from 7am
+                      const timeLabel = hour < 12 ? `${hour}:00 AM` : hour === 12 ? '12:00 PM' : `${hour - 12}:00 PM`;
+                      const hourStr = hour.toString().padStart(2, '0');
+
+                      // Find bookings that start in this hour
+                      const bookingsInHour = selectedDayBookings.filter(booking => {
+                        const bookingHour = parseInt(booking.startTime.split(':')[0]);
+                        return bookingHour === hour;
+                      });
+
+                      return (
+                        <div key={hour} className="flex gap-2 border-b border-border/50 py-2">
+                          {/* Time column */}
+                          <div className="w-16 flex-shrink-0 text-xs font-medium text-muted-foreground pt-1">
+                            {timeLabel}
+                          </div>
+
+                          {/* Bookings column */}
+                          <div className="flex-1 space-y-2">
+                            {bookingsInHour.length > 0 ? (
+                              bookingsInHour.map((booking) => (
+                                <div key={booking.id} className="border rounded-md p-2 space-y-1.5 shadow-md bg-card">
+                                  <div className="flex justify-between items-start gap-2">
+                                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                      <User className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                                      <span className="text-xs font-medium truncate">{booking.customerName}</span>
+                                    </div>
+                                    <Badge variant={
+                                      booking.status === 'done-payment' ? 'default' :
+                                        booking.status === 'done-photoshoot' ? 'secondary' :
+                                          booking.status === 'start-editing' ? 'secondary' :
+                                            booking.status === 'ready-for-delivery' ? 'default' :
+                                              booking.status === 'completed' ? 'default' :
+                                                booking.status === 'rescheduled' ? 'secondary' :
+                                                  booking.status === 'no-show' ? 'destructive' :
+                                                    booking.status === 'cancelled' ? 'destructive' : 'outline'
+                                    } className="text-[9px] px-1.5 py-0">
+                                      {booking.status === 'done-payment' ? 'Bayaran' :
+                                        booking.status === 'done-photoshoot' ? 'Photoshoot' :
+                                          booking.status === 'start-editing' ? 'Edit' :
+                                            booking.status === 'ready-for-delivery' ? 'Sedia' :
+                                              booking.status === 'completed' ? 'Selesai' :
+                                                booking.status === 'rescheduled' ? 'Dijadual' :
+                                                  booking.status === 'no-show' ? 'X' :
+                                                    booking.status === 'cancelled' ? 'Batal' : booking.status}
+                                    </Badge>
+                                  </div>
+
+                                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                    <Clock className="h-2.5 w-2.5" />
+                                    <span>{booking.startTime} – {booking.endTime}</span>
+                                    <span className="mx-1">•</span>
+                                    <span>{booking.duration}m</span>
+                                  </div>
+
+                                  <div className="text-[10px]">
+                                    <span className="font-medium">Layout:</span> {booking.layoutName}
+                                  </div>
+
+                                  <div className="text-[10px] text-muted-foreground">
+                                    <span className="font-medium">RM {booking.totalPrice.toFixed(2)}</span>
+                                  </div>
+
+                                  {/* Status Update Dropdown */}
+                                  <div className="pt-1.5 border-t">
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="default" size="sm" className="w-full h-6 text-[10px]">
+                                          <MoreHorizontal className="h-2.5 w-2.5 mr-1" />
+                                          Tukar Status
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleViewBooking(booking)}>
+                                          <Eye className="h-3 w-3 mr-2" />
+                                          Lihat Butiran
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'done-photoshoot')}>Photoshoot Selesai</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleOpenReschedule(booking)}>Dijadual Semula</DropdownMenuItem>
+                                        <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'no-show')}>Tidak Hadir</DropdownMenuItem>
+                                        <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'cancelled')}>Dibatalkan</DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="h-8"></div>
+                            )}
+                          </div>
                         </div>
-                        <Badge variant={
-                          booking.status === 'done-payment' ? 'default' :
-                            booking.status === 'done-photoshoot' ? 'secondary' :
-                              booking.status === 'start-editing' ? 'secondary' :
-                                booking.status === 'ready-for-delivery' ? 'default' :
-                                  booking.status === 'completed' ? 'default' :
-                                    booking.status === 'rescheduled' ? 'secondary' :
-                                      booking.status === 'no-show' ? 'destructive' :
-                                        booking.status === 'cancelled' ? 'destructive' : 'outline'
-                        } className="text-xs">
-                          {booking.status === 'done-payment' ? 'Bayaran Selesai' :
-                            booking.status === 'done-photoshoot' ? 'Photoshoot Selesai' :
-                              booking.status === 'start-editing' ? 'Mula Edit' :
-                                booking.status === 'ready-for-delivery' ? 'Sedia Hantar' :
-                                  booking.status === 'completed' ? 'Selesai' :
-                                    booking.status === 'rescheduled' ? 'Dijadual Semula' :
-                                      booking.status === 'no-show' ? 'Tidak Hadir' :
-                                        booking.status === 'cancelled' ? 'Dibatalkan' : booking.status}
-                        </Badge>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-1 text-xs">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3 text-muted-foreground" />
-                          <span>{booking.startTime} – {booking.endTime}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <CalendarDays className="h-3 w-3 text-muted-foreground" />
-                          <span>{booking.duration} minit</span>
-                        </div>
-                      </div>
-
-                      <div className="text-xs">
-                        <span className="font-medium">Layout:</span> {booking.layoutName}
-                      </div>
-
-                      <div className="text-xs text-muted-foreground">
-                        <span className="font-medium">Jumlah:</span> RM {booking.totalPrice.toFixed(2)}
-                      </div>
-
-                      {/* Status Update Dropdown */}
-                      <div className="pt-2 border-t">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="w-full h-7 text-xs">
-                              <MoreHorizontal className="h-3 w-3 mr-1" />
-                              Tukar Status
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewBooking(booking)}>
-                              <Eye className="h-3 w-3 mr-2" />
-                              Lihat Butiran
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'done-photoshoot')}>Photoshoot Selesai</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleOpenReschedule(booking)}>Dijadual Semula</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'no-show')}>Tidak Hadir</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'cancelled')}>Dibatalkan</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                  ))
+                      );
+                    })}
+                  </>
                 ) : (
-                  <p className="text-center text-muted-foreground text-sm py-2">
+                  <p className="text-center text-muted-foreground text-sm py-8">
                     Tiada tempahan pada tarikh ini.
                   </p>
                 )}
@@ -984,77 +1096,298 @@ const AdminBookings = () => {
                   </div>
                 )}
               </TabsContent>
-
               <TabsContent value="calendar">
                 <div className="rounded-lg border bg-card">
                   <div className="p-6">
                     <div className="flex items-center justify-between mb-6">
-                      <h3 className="text-lg font-semibold">{monthNames[month]} {year}</h3>
+                      <div className="flex items-center gap-4">
+                        <h3 className="text-lg font-semibold">
+                          {calendarView === 'month' ? `${monthNames[month]} ${year}` : selectedDate.toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        </h3>
+                        <div className="flex items-center gap-1 border rounded-md p-1">
+                          <Button
+                            variant={calendarView === 'month' ? 'default' : 'ghost'}
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => setCalendarView('month')}
+                          >
+                            Bulan
+                          </Button>
+                          <Button
+                            variant={calendarView === 'day' ? 'default' : 'ghost'}
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => setCalendarView('day')}
+                          >
+                            Hari
+                          </Button>
+                        </div>
+                      </div>
                       <div className="text-sm text-muted-foreground">
                         {bookings.length} tempahan
                       </div>
                     </div>
 
-                    {/* Calendar Grid */}
-                    <div className="grid grid-cols-7 gap-1 mb-4">
-                      {['Ahd', 'Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab'].map((day) => (
-                        <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground">
-                          {day}
+                    {calendarView === 'month' ? (
+                      <>
+                        {/* Calendar Grid */}
+                        <div className="grid grid-cols-7 gap-1 mb-4">
+                          {['Ahd', 'Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab'].map((day) => (
+                            <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground">
+                              {day}
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
 
-                    <div className="grid grid-cols-7 gap-1">
-                      {/* Empty cells for days before the 1st */}
-                      {Array.from({ length: firstDayOfMonth }).map((_, i) => (
-                        <div key={`empty-${i}`} className="aspect-square"></div>
-                      ))}
+                        <div className="grid grid-cols-7 gap-1">
+                          {/* Empty cells for days before the 1st */}
+                          {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+                            <div key={`empty-${i}`} className="min-h-[120px] border border-transparent"></div>
+                          ))}
 
-                      {/* Calendar days */}
-                      {Array.from({ length: daysInMonth }).map((_, day) => {
-                        const dayNumber = day + 1;
-                        const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${dayNumber.toString().padStart(2, '0')}`;
+                          {/* Calendar days */}
+                          {Array.from({ length: daysInMonth }).map((_, day) => {
+                            const dayNumber = day + 1;
+                            const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${dayNumber.toString().padStart(2, '0')}`;
 
-                        // Check if there are bookings on this date
-                        const bookingsOnThisDay = bookings.filter(booking => booking.date === dateStr);
-                        const hasBookings = bookingsOnThisDay.length > 0;
+                            // Check if there are bookings on this date
+                            const bookingsOnThisDay = bookings
+                              .filter(booking => booking.date === dateStr)
+                              .sort((a, b) => a.startTime.localeCompare(b.startTime)); // Sort by start time ascending
+                            const hasBookings = bookingsOnThisDay.length > 0;
 
-                        return (
-                          <div
-                            key={dayNumber}
-                            onClick={() => hasBookings && handleDayClick(dayNumber)}
-                            className={`aspect-square border rounded-lg p-1 text-sm relative cursor-pointer ${hasBookings
-                              ? 'bg-primary/10 border-primary/20 text-primary hover:bg-primary/20'
-                              : 'border-border hover:bg-muted/50'
-                              }`}
-                          >
-                            <div className="text-center font-medium">{dayNumber}</div>
-                            {hasBookings && (
-                              <div className="absolute bottom-1 left-1 right-1">
-                                <div className="text-xs bg-primary text-primary-foreground rounded px-1 py-0.5 text-center">
-                                  {bookingsOnThisDay.length} tempahan
+                            return (
+                              <div
+                                key={dayNumber}
+                                onClick={() => hasBookings && handleDayClick(dayNumber)}
+                                className={`min-h-[120px] border rounded-lg p-2 text-sm relative cursor-pointer transition-colors ${hasBookings
+                                  ? 'bg-primary/5 border-primary/20 hover:bg-primary/10'
+                                  : 'border-border hover:bg-muted/50'
+                                  }`}
+                              >
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="text-center font-medium flex-1">{dayNumber}</div>
+                                  {hasBookings && (
+                                    <div className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold">
+                                      {bookingsOnThisDay.length}
+                                    </div>
+                                  )}
                                 </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
+                                {hasBookings && (
+                                  <div className="space-y-1">
+                                    {bookingsOnThisDay.slice(0, 4).map((booking) => {
+                                      const statusColor =
+                                        booking.status === 'done-payment' ? 'bg-blue-500' :
+                                          booking.status === 'done-photoshoot' ? 'bg-purple-500' :
+                                            booking.status === 'completed' ? 'bg-green-500' :
+                                              booking.status === 'cancelled' ? 'bg-red-500' :
+                                                booking.status === 'no-show' ? 'bg-gray-500' : 'bg-orange-500';
 
-                    {/* Legend */}
-                    <div className="mt-6 space-y-3">
-                      <p className="text-sm text-muted-foreground">Klik untuk lihat tempahan</p>
-                      <div className="flex items-center gap-6 text-sm">
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border rounded bg-primary/10 border-primary/20"></div>
-                          <span>Ada tempahan</span>
+                                      const initials = booking.customerName
+                                        .split(' ')
+                                        .map(n => n[0])
+                                        .join('')
+                                        .substring(0, 2)
+                                        .toUpperCase();
+
+                                      return (
+                                        <div
+                                          key={booking.id}
+                                          className={`${statusColor} text-white text-[10px] px-1.5 py-1 rounded truncate font-medium flex items-center justify-between gap-1`}
+                                          title={`${booking.customerName} - ${booking.startTime}`}
+                                        >
+                                          <span className="truncate">{initials}</span>
+                                          <span className="text-[9px] opacity-90">{booking.startTime.substring(0, 5)}</span>
+                                        </div>
+                                      );
+                                    })}
+                                    {bookingsOnThisDay.length > 4 && (
+                                      <div className="text-[10px] text-muted-foreground text-center font-medium bg-muted/50 rounded py-0.5">
+                                        +{bookingsOnThisDay.length - 4} lagi
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border rounded border-border"></div>
-                          <span>Tiada tempahan</span>
+
+                        {/* Legend */}
+                        <div className="mt-6 space-y-3">
+                          <p className="text-sm text-muted-foreground">Klik untuk lihat tempahan</p>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 rounded bg-blue-500"></div>
+                              <span>Bayaran Selesai</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 rounded bg-purple-500"></div>
+                              <span>Photoshoot Selesai</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 rounded bg-green-500"></div>
+                              <span>Selesai</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 rounded bg-red-500"></div>
+                              <span>Dibatalkan</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 rounded bg-gray-500"></div>
+                              <span>Tidak Hadir</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-4 h-4 rounded bg-orange-500"></div>
+                              <span>Lain-lain</span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* Day View - Timeline */}
+                        <div className="flex items-center justify-between mb-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const newDate = new Date(selectedDate);
+                              newDate.setDate(newDate.getDate() - 1);
+                              setSelectedDate(newDate);
+                            }}
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                            Hari Sebelum
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedDate(new Date())}
+                          >
+                            Hari Ini
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const newDate = new Date(selectedDate);
+                              newDate.setDate(newDate.getDate() + 1);
+                              setSelectedDate(newDate);
+                            }}
+                          >
+                            Hari Seterusnya
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {/* Timeline */}
+                        <div className="space-y-0">
+                          {(() => {
+                            // Format date as YYYY-MM-DD in local timezone
+                            const year = selectedDate.getFullYear();
+                            const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                            const day = String(selectedDate.getDate()).padStart(2, '0');
+                            const dateStr = `${year}-${month}-${day}`;
+
+                            const dayBookings = bookings
+                              .filter(booking => booking.date === dateStr)
+                              .sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+                            return (
+                              <>
+                                {Array.from({ length: 18 }, (_, i) => {
+                                  const hour = i + 7;
+                                  const timeLabel = hour < 12 ? `${hour}:00 AM` : hour === 12 ? '12:00 PM' : `${hour - 12}:00 PM`;
+
+                                  const bookingsInHour = dayBookings.filter(booking => {
+                                    const bookingHour = parseInt(booking.startTime.split(':')[0]);
+                                    return bookingHour === hour;
+                                  });
+
+                                  return (
+                                    <div key={hour} className="flex gap-3 border-b border-border/50 py-3">
+                                      <div className="w-20 flex-shrink-0 text-sm font-semibold text-muted-foreground pt-1">
+                                        {timeLabel}
+                                      </div>
+
+                                      <div className="flex-1 space-y-3">
+                                        {bookingsInHour.length > 0 ? (
+                                          bookingsInHour.map((booking) => {
+                                            // Determine color based on status
+                                            const statusColor =
+                                              booking.status === 'done-payment' ? 'bg-blue-50 border-l-4 border-l-blue-500' :
+                                                booking.status === 'done-photoshoot' ? 'bg-purple-50 border-l-4 border-l-purple-500' :
+                                                  booking.status === 'completed' ? 'bg-green-50 border-l-4 border-l-green-500' :
+                                                    booking.status === 'cancelled' ? 'bg-red-50 border-l-4 border-l-red-500' :
+                                                      booking.status === 'no-show' ? 'bg-gray-50 border-l-4 border-l-gray-500' :
+                                                        'bg-orange-50 border-l-4 border-l-orange-500';
+
+                                            return (
+                                              <div
+                                                key={booking.id}
+                                                className={`border rounded-lg p-3 space-y-2 shadow-md cursor-pointer hover:shadow-lg transition-shadow ${statusColor}`}
+                                                onClick={() => handleViewBooking(booking)}
+                                              >
+                                                <div className="flex items-center justify-between">
+                                                  <div className="flex items-center gap-2">
+                                                    <User className="h-4 w-4 text-muted-foreground" />
+                                                    <span className="font-medium">{booking.customerName}</span>
+                                                  </div>
+                                                  <Badge variant={
+                                                    booking.status === 'done-payment' ? 'default' :
+                                                      booking.status === 'done-photoshoot' ? 'secondary' :
+                                                        booking.status === 'completed' ? 'default' :
+                                                          booking.status === 'cancelled' ? 'destructive' :
+                                                            booking.status === 'no-show' ? 'destructive' : 'outline'
+                                                  }>
+                                                    {booking.status === 'done-payment' ? 'Bayaran Selesai' :
+                                                      booking.status === 'done-photoshoot' ? 'Photoshoot Selesai' :
+                                                        booking.status === 'completed' ? 'Selesai' :
+                                                          booking.status === 'cancelled' ? 'Dibatalkan' :
+                                                            booking.status === 'no-show' ? 'Tidak Hadir' : booking.status}
+                                                  </Badge>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                                  <div className="flex items-center gap-2">
+                                                    <Clock className="h-4 w-4 text-muted-foreground" />
+                                                    <span>{booking.startTime} – {booking.endTime}</span>
+                                                  </div>
+                                                  <div className="flex items-center gap-2">
+                                                    <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                                                    <span>{booking.duration} minit</span>
+                                                  </div>
+                                                </div>
+
+                                                <div className="text-sm">
+                                                  <span className="font-medium">Layout:</span> {booking.layoutName}
+                                                </div>
+
+                                                <div className="text-sm text-muted-foreground">
+                                                  <span className="font-medium">Jumlah:</span> RM {booking.totalPrice.toFixed(2)}
+                                                </div>
+                                              </div>
+                                            );
+                                          })
+                                        ) : (
+                                          <div className="h-10"></div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                                {dayBookings.length === 0 && (
+                                  <div className="text-center py-12 text-muted-foreground">
+                                    Tiada tempahan pada hari ini
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </TabsContent>
@@ -1066,91 +1399,121 @@ const AdminBookings = () => {
                 <DialogHeader>
                   <DialogTitle>Tempahan untuk {selectedDay} {monthNames[month]} {year}</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4">
+                <div className="space-y-0">
                   {selectedDayBookings.length > 0 ? (
-                    selectedDayBookings.map((booking) => (
-                      <div key={booking.id} className="border rounded-lg p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">{booking.customerName}</span>
+                    <>
+                      {/* Timeline view */}
+                      {Array.from({ length: 18 }, (_, i) => {
+                        const hour = i + 7; // Start from 7am
+                        const timeLabel = hour < 12 ? `${hour}:00 AM` : hour === 12 ? '12:00 PM' : `${hour - 12}:00 PM`;
+
+                        // Find bookings that start in this hour
+                        const bookingsInHour = selectedDayBookings.filter(booking => {
+                          const bookingHour = parseInt(booking.startTime.split(':')[0]);
+                          return bookingHour === hour;
+                        });
+
+                        return (
+                          <div key={hour} className="flex gap-3 border-b border-border/50 py-3">
+                            {/* Time column */}
+                            <div className="w-20 flex-shrink-0 text-sm font-semibold text-muted-foreground pt-1">
+                              {timeLabel}
+                            </div>
+
+                            {/* Bookings column */}
+                            <div className="flex-1 space-y-3">
+                              {bookingsInHour.length > 0 ? (
+                                bookingsInHour.map((booking) => (
+                                  <div key={booking.id} className="border rounded-lg p-3 space-y-2 shadow-md bg-card">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <User className="h-4 w-4 text-muted-foreground" />
+                                        <span className="font-medium">{booking.customerName}</span>
+                                      </div>
+                                      <Badge variant={
+                                        booking.status === 'done-payment' ? 'default' :
+                                          booking.status === 'done-photoshoot' ? 'secondary' :
+                                            booking.status === 'start-editing' ? 'secondary' :
+                                              booking.status === 'ready-for-delivery' ? 'default' :
+                                                booking.status === 'completed' ? 'default' :
+                                                  booking.status === 'rescheduled' ? 'secondary' :
+                                                    booking.status === 'no-show' ? 'destructive' :
+                                                      booking.status === 'cancelled' ? 'destructive' : 'outline'
+                                      }>
+                                        {booking.status === 'done-payment' ? 'Bayaran Selesai' :
+                                          booking.status === 'done-photoshoot' ? 'Photoshoot Selesai' :
+                                            booking.status === 'start-editing' ? 'Mula Edit' :
+                                              booking.status === 'ready-for-delivery' ? 'Sedia Hantar' :
+                                                booking.status === 'completed' ? 'Selesai' :
+                                                  booking.status === 'rescheduled' ? 'Dijadual Semula' :
+                                                    booking.status === 'no-show' ? 'Tidak Hadir' :
+                                                      booking.status === 'cancelled' ? 'Dibatalkan' : booking.status}
+                                      </Badge>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                      <div className="flex items-center gap-2">
+                                        <Clock className="h-4 w-4 text-muted-foreground" />
+                                        <span>{booking.startTime} – {booking.endTime}</span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                                        <span>{booking.duration} minit</span>
+                                      </div>
+                                    </div>
+
+                                    <div className="text-sm">
+                                      <span className="font-medium">Layout:</span> {booking.layoutName}
+                                    </div>
+
+                                    <div className="text-sm">
+                                      <span className="font-medium">Rujukan:</span> {booking.reference}
+                                    </div>
+
+                                    {booking.notes && (
+                                      <div className="text-sm">
+                                        <span className="font-medium">Catatan:</span> {booking.notes}
+                                      </div>
+                                    )}
+
+                                    <div className="text-sm text-muted-foreground">
+                                      <span className="font-medium">Jumlah:</span> RM {booking.totalPrice.toFixed(2)}
+                                    </div>
+
+                                    {/* Status Update Dropdown */}
+                                    <div className="pt-3 border-t mt-3">
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button variant="default" size="sm" className="w-full">
+                                            <MoreHorizontal className="h-4 w-4 mr-2" />
+                                            Tukar Status
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                          <DropdownMenuItem onClick={() => handleViewBooking(booking)}>
+                                            <Eye className="h-4 w-4 mr-2" />
+                                            Lihat Butiran
+                                          </DropdownMenuItem>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'done-photoshoot')}>Photoshoot Selesai</DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => handleOpenReschedule(booking)}>Dijadual Semula</DropdownMenuItem>
+                                          <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'no-show')}>Tidak Hadir</DropdownMenuItem>
+                                          <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'cancelled')}>Dibatalkan</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="h-10"></div>
+                              )}
+                            </div>
                           </div>
-                          <Badge variant={
-                            booking.status === 'done-payment' ? 'default' :
-                              booking.status === 'done-photoshoot' ? 'secondary' :
-                                booking.status === 'start-editing' ? 'secondary' :
-                                  booking.status === 'ready-for-delivery' ? 'default' :
-                                    booking.status === 'completed' ? 'default' :
-                                      booking.status === 'rescheduled' ? 'secondary' :
-                                        booking.status === 'no-show' ? 'destructive' :
-                                          booking.status === 'cancelled' ? 'destructive' : 'outline'
-                          }>
-                            {booking.status === 'done-payment' ? 'Bayaran Selesai' :
-                              booking.status === 'done-photoshoot' ? 'Photoshoot Selesai' :
-                                booking.status === 'start-editing' ? 'Mula Edit' :
-                                  booking.status === 'ready-for-delivery' ? 'Sedia Hantar' :
-                                    booking.status === 'completed' ? 'Selesai' :
-                                      booking.status === 'rescheduled' ? 'Dijadual Semula' :
-                                        booking.status === 'no-show' ? 'Tidak Hadir' :
-                                          booking.status === 'cancelled' ? 'Dibatalkan' : booking.status}
-                          </Badge>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-muted-foreground" />
-                            <span>{booking.startTime} – {booking.endTime}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                            <span>{booking.duration} minit</span>
-                          </div>
-                        </div>
-
-                        <div className="text-sm">
-                          <span className="font-medium">Layout:</span> {booking.layoutName}
-                        </div>
-
-                        <div className="text-sm">
-                          <span className="font-medium">Rujukan:</span> {booking.reference}
-                        </div>
-
-                        {booking.notes && (
-                          <div className="text-sm">
-                            <span className="font-medium">Catatan:</span> {booking.notes}
-                          </div>
-                        )}
-
-                        <div className="text-sm text-muted-foreground">
-                          <span className="font-medium">Jumlah:</span> RM {booking.totalPrice.toFixed(2)}
-                        </div>
-
-                        {/* Status Update Dropdown */}
-                        <div className="pt-3 border-t mt-3">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="sm" className="w-full">
-                                <MoreHorizontal className="h-4 w-4 mr-2" />
-                                Tukar Status
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleViewBooking(booking)}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                Lihat Butiran
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleStatusUpdate(booking.id, 'done-photoshoot')}>Photoshoot Selesai</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleOpenReschedule(booking)}>Dijadual Semula</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'no-show')}>Tidak Hadir</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive" onClick={() => handleStatusUpdate(booking.id, 'cancelled')}>Dibatalkan</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    ))
+                        );
+                      })}
+                    </>
                   ) : (
-                    <p className="text-center text-muted-foreground py-4">
+                    <p className="text-center text-muted-foreground py-8">
                       Tiada tempahan pada tarikh ini.
                     </p>
                   )}

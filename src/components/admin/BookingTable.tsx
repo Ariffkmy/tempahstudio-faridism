@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { parseDateLocal } from '@/utils/dateUtils';
 import {
@@ -12,8 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Booking, BookingStatus } from '@/types/booking';
-import { Eye, MoreHorizontal, X } from 'lucide-react';
+import { Eye, MoreHorizontal, X, UserCheck } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +21,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -29,15 +36,22 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { RescheduleDialog } from './RescheduleDialog';
+import type { StudioStaff } from '@/types/studioStaff';
+import type { Booking, BookingStatus } from '@/types/booking';
 
 interface BookingTableProps {
   bookings: Booking[];
+  photographers: StudioStaff[];
+  editors: StudioStaff[];
   onViewBooking: (booking: Booking) => void;
   onStatusUpdate?: (bookingId: string, newStatus: BookingStatus) => void;
   onRescheduleSuccess?: () => void;
+  onAssignmentUpdate?: (bookingId: string, photographerId?: string | null, editorId?: string | null) => void;
 }
 
 const statusVariants: Record<BookingStatus, 'success' | 'warning' | 'destructive' | 'secondary' | 'default'> = {
+  'pending': 'warning',
+  'confirmed': 'default',
   'done-payment': 'default',
   'done-photoshoot': 'secondary',
   'start-editing': 'warning',
@@ -49,6 +63,8 @@ const statusVariants: Record<BookingStatus, 'success' | 'warning' | 'destructive
 };
 
 const statusLabels: Record<BookingStatus, string> = {
+  'pending': 'Menunggu',
+  'confirmed': 'Disahkan',
   'done-payment': 'Bayaran Selesai',
   'done-photoshoot': 'Photoshoot Selesai',
   'start-editing': 'Mula Edit',
@@ -59,7 +75,15 @@ const statusLabels: Record<BookingStatus, string> = {
   'cancelled': 'Dibatalkan',
 };
 
-export function BookingTable({ bookings, onViewBooking, onStatusUpdate, onRescheduleSuccess }: BookingTableProps) {
+export function BookingTable({
+  bookings,
+  photographers = [],
+  editors = [],
+  onViewBooking,
+  onStatusUpdate,
+  onRescheduleSuccess,
+  onAssignmentUpdate
+}: BookingTableProps) {
   const [referenceFilter, setReferenceFilter] = useState('');
   const [customerFilter, setCustomerFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
@@ -71,6 +95,84 @@ export function BookingTable({ bookings, onViewBooking, onStatusUpdate, onResche
   // Reschedule dialog state
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
   const [bookingToReschedule, setBookingToReschedule] = useState<Booking | null>(null);
+
+  // Assignment dialog state
+  const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
+  const [bookingToAssign, setBookingToAssign] = useState<Booking | null>(null);
+  const [dialogPhotographerId, setDialogPhotographerId] = useState<string>('none');
+  const [dialogEditorId, setDialogEditorId] = useState<string>('none');
+  const [isSavingAssignment, setIsSavingAssignment] = useState(false);
+
+  // Assignment editing state
+  const [editingAssignmentId, setEditingAssignmentId] = useState<string | null>(null);
+  const [tempPhotographerId, setTempPhotographerId] = useState<string>('');
+  const [tempEditorId, setTempEditorId] = useState<string>('');
+
+  // Cleanup effect to force remove pointer-events: none from body when dialog closes
+  useEffect(() => {
+    if (!assignmentDialogOpen) {
+      // IMMEDIATE cleanup
+      document.body.style.pointerEvents = '';
+      document.documentElement.style.pointerEvents = '';
+
+      // Create a MutationObserver to watch for when Radix UI tries to re-apply pointer-events: none
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+            const target = mutation.target as HTMLElement;
+            if (target.style.pointerEvents === 'none') {
+              console.log('[BookingTable] Detected pointer-events: none being applied, removing it!');
+              target.style.pointerEvents = '';
+            }
+          }
+        });
+      });
+
+      // Start observing body element for style changes
+      observer.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['style']
+      });
+
+      // DELAYED cleanup (in case Radix UI re-applies it)
+      const timeoutId = setTimeout(() => {
+        // Force remove pointer-events: none from body and html elements
+        document.body.style.pointerEvents = '';
+        document.documentElement.style.pointerEvents = '';
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+
+        // Remove any lingering Radix UI overlays from THIS dialog specifically
+        const overlays = document.querySelectorAll('[data-radix-dialog-overlay]');
+        overlays.forEach(overlay => {
+          // Check if this overlay is from a closed dialog (has opacity 0 or is hidden)
+          const style = window.getComputedStyle(overlay as Element);
+          if (style.opacity === '0' || style.visibility === 'hidden' || style.display === 'none') {
+            if (overlay.parentNode) {
+              overlay.parentNode.removeChild(overlay);
+            }
+          }
+        });
+
+        // Final safety check - if NO dialogs are open, force unlock
+        const openDialogs = document.querySelectorAll('[data-state="open"][role="dialog"]');
+        if (openDialogs.length === 0) {
+          console.log('[BookingTable] No open dialogs detected, forcing body unlock');
+          document.body.style.pointerEvents = '';
+          document.documentElement.style.pointerEvents = '';
+        }
+
+        // Disconnect observer after cleanup
+        observer.disconnect();
+      }, 500);
+
+      return () => {
+        clearTimeout(timeoutId);
+        observer.disconnect();
+      };
+    }
+  }, [assignmentDialogOpen]);
+
 
   // Get unique layouts for filter
   const uniqueLayouts = Array.from(new Set(bookings.map(b => b.layoutName)));
@@ -116,6 +218,74 @@ export function BookingTable({ bookings, onViewBooking, onStatusUpdate, onResche
     console.log('[BookingTable] handleRescheduleSuccess completed');
   };
 
+  const handleStartEditAssignment = (booking: Booking) => {
+    setEditingAssignmentId(booking.id);
+    setTempPhotographerId(booking.photographerId || 'none');
+    setTempEditorId(booking.editorId || 'none');
+  };
+
+  const handleSaveAssignment = (bookingId: string) => {
+    if (onAssignmentUpdate) {
+      const photographerId = tempPhotographerId === 'none' ? null : tempPhotographerId || null;
+      const editorId = tempEditorId === 'none' ? null : tempEditorId || null;
+      onAssignmentUpdate(bookingId, photographerId, editorId);
+    }
+    setEditingAssignmentId(null);
+    setTempPhotographerId('none');
+    setTempEditorId('none');
+  };
+
+  const handleCancelEditAssignment = () => {
+    setEditingAssignmentId(null);
+    setTempPhotographerId('none');
+    setTempEditorId('none');
+  };
+
+  const handleOpenAssignmentDialog = (booking: Booking) => {
+    setBookingToAssign(booking);
+    setDialogPhotographerId(booking.photographerId || 'none');
+    setDialogEditorId(booking.editorId || 'none');
+    setAssignmentDialogOpen(true);
+  };
+
+  const handleSaveDialogAssignment = async () => {
+    if (!bookingToAssign || !onAssignmentUpdate) return;
+
+    setIsSavingAssignment(true);
+
+    try {
+      const photographerId = dialogPhotographerId === 'none' ? null : dialogPhotographerId || null;
+      const editorId = dialogEditorId === 'none' ? null : dialogEditorId || null;
+
+      // Wait for the assignment update to complete
+      await onAssignmentUpdate(bookingToAssign.id, photographerId, editorId);
+
+      // Reset state first
+      setBookingToAssign(null);
+      setDialogPhotographerId('none');
+      setDialogEditorId('none');
+
+      // Close dialog last using the controlled state
+      setAssignmentDialogOpen(false);
+    } catch (error) {
+      console.error('Error saving assignment:', error);
+      // Don't close dialog on error so user can retry
+    } finally {
+      setIsSavingAssignment(false);
+    }
+  };
+
+  const handleCancelDialogAssignment = () => {
+    // Reset all state
+    setBookingToAssign(null);
+    setDialogPhotographerId('none');
+    setDialogEditorId('none');
+    setIsSavingAssignment(false);
+
+    // Close dialog
+    setAssignmentDialogOpen(false);
+  };
+
   const hasActiveFilters = referenceFilter || customerFilter || dateFilter || minPriceFilter || maxPriceFilter || layoutFilter !== 'all' || statusFilter !== 'all';
 
   return (
@@ -146,6 +316,7 @@ export function BookingTable({ bookings, onViewBooking, onStatusUpdate, onResche
               <TableHead>Layout</TableHead>
               <TableHead>Jumlah</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Tugasan Oleh</TableHead>
               <TableHead className="w-[70px]"></TableHead>
             </TableRow>
             {/* Filter Row */}
@@ -235,12 +406,13 @@ export function BookingTable({ bookings, onViewBooking, onStatusUpdate, onResche
                 </Select>
               </TableHead>
               <TableHead className="h-12"></TableHead>
+              <TableHead className="h-12"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredBookings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   {hasActiveFilters ? 'Tiada tempahan yang sepadan dengan penapis' : 'Tiada tempahan dijumpai'}
                 </TableCell>
               </TableRow>
@@ -270,6 +442,62 @@ export function BookingTable({ bookings, onViewBooking, onStatusUpdate, onResche
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    {editingAssignmentId === booking.id ? (
+                      <div className="space-y-2 min-w-[200px]">
+                        <Select value={tempPhotographerId} onValueChange={setTempPhotographerId}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Pilih Photographer" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Tiada</SelectItem>
+                            {photographers?.map(p => (
+                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={tempEditorId} onValueChange={setTempEditorId}>
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Pilih Editor" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Tiada</SelectItem>
+                            {editors?.map(e => (
+                              <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="flex gap-1">
+                          <Button size="sm" onClick={() => handleSaveAssignment(booking.id)} className="h-7 text-xs">
+                            Simpan
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={handleCancelEditAssignment} className="h-7 text-xs">
+                            Batal
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        className="cursor-pointer hover:bg-muted/50 p-2 rounded transition-colors"
+                        onClick={() => handleStartEditAssignment(booking)}
+                      >
+                        <div className="text-xs space-y-1">
+                          <div>
+                            <span className="font-medium">Photographer: </span>
+                            <span className={booking.photographerName ? '' : 'text-muted-foreground italic'}>
+                              {booking.photographerName || 'Belum Ditetapkan'}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium">Editor: </span>
+                            <span className={booking.editorName ? '' : 'text-muted-foreground italic'}>
+                              {booking.editorName || 'Belum Ditetapkan'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon-sm">
@@ -280,6 +508,10 @@ export function BookingTable({ bookings, onViewBooking, onStatusUpdate, onResche
                         <DropdownMenuItem onClick={() => onViewBooking(booking)}>
                           <Eye className="h-4 w-4 mr-2" />
                           Lihat Butiran
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleOpenAssignmentDialog(booking)}>
+                          <UserCheck className="h-4 w-4 mr-2" />
+                          Tugasan Oleh
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => onStatusUpdate?.(booking.id, 'done-photoshoot')}>Photoshoot Selesai</DropdownMenuItem>
@@ -310,6 +542,87 @@ export function BookingTable({ bookings, onViewBooking, onStatusUpdate, onResche
         onOpenChange={setRescheduleDialogOpen}
         onSuccess={handleRescheduleSuccess}
       />
+
+      {/* Assignment Dialog */}
+      <Dialog
+        open={assignmentDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleCancelDialogAssignment();
+          }
+        }}
+        modal={true}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Tugasan Oleh</DialogTitle>
+            <DialogDescription>
+              Tetapkan photographer dan editor untuk tempahan ini.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            {/* Booking Info */}
+            {bookingToAssign && (
+              <div className="bg-muted/50 p-3 rounded-lg space-y-1">
+                <p className="text-sm font-medium">{bookingToAssign.customerName}</p>
+                <p className="text-xs text-muted-foreground">{bookingToAssign.reference}</p>
+                <p className="text-xs text-muted-foreground">
+                  {format(parseDateLocal(bookingToAssign.date), 'MMM d, yyyy')} • {bookingToAssign.startTime}
+                </p>
+              </div>
+            )}
+
+            {/* Photographer Selection */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Photographer</label>
+              <Select value={dialogPhotographerId} onValueChange={setDialogPhotographerId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih Photographer" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Tiada</SelectItem>
+                  {photographers?.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Editor Selection */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Editor</label>
+              <Select value={dialogEditorId} onValueChange={setDialogEditorId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih Editor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Tiada</SelectItem>
+                  {editors?.map(e => (
+                    <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCancelDialogAssignment}
+              disabled={isSavingAssignment}
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={handleSaveDialogAssignment}
+              disabled={isSavingAssignment}
+            >
+              {isSavingAssignment ? 'Menyimpan...' : 'Simpan'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

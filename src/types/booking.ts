@@ -49,6 +49,10 @@ export interface Booking {
   internalNotes?: string;
   deliveryLink?: string;
   addonPackageId?: string; // References addon_packages table
+  photographerId?: string;
+  editorId?: string;
+  photographerName?: string; // For display purposes
+  editorName?: string; // For display purposes
   createdAt: string;
   updatedAt: string;
 }

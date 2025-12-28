@@ -1,0 +1,113 @@
+===============================================
+ENVIRONMENT VARIABLES REFERENCE
+===============================================
+
+This file contains all environment variables for both Production and Staging.
+Use these values when setting up Vercel or other deployment platforms.
+
+===============================================
+PRODUCTION ENVIRONMENT
+===============================================
+
+For: Production deployments (main branch)
+Database: Production Supabase (ierrbnbghexwlwgizvww)
+
+VITE_SUPABASE_URL=https://ierrbnbghexwlwgizvww.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllcnJibmJnaGV4d2x3Z2l6dnd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MTMwNzgsImV4cCI6MjA4MDM4OTA3OH0.g_iGvJj9KuoYuAP-UbXcI6Bi612J_5-JEWKc1COvDlY
+
+===============================================
+STAGING ENVIRONMENT
+===============================================
+
+For: Preview deployments / Testing (staging branch)
+Database: Staging Supabase Branch (tvxrdwljausdxdtkugcc)
+
+VITE_SUPABASE_URL=https://tvxrdwljausdxdtkugcc.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2eHJkd2xqYXVzZHhkdGt1Z2NjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3MTczNjEsImV4cCI6MjA4MjI5MzM2MX0.BJ34gQuLNBVHa5rWCFSAW7mV55ubkhl7UCwRMGJOdBI
+
+===============================================
+HOW TO USE IN VERCEL
+===============================================
+
+1. Go to: https://vercel.com/dashboard
+2. Select your project: rayastudio
+3. Go to: Settings → Environment Variables
+4. Add the variables above
+
+For Production:
+- Variable: VITE_SUPABASE_URL
+- Value: https://ierrbnbghexwlwgizvww.supabase.co
+- Environment: ✓ Production
+
+- Variable: VITE_SUPABASE_ANON_KEY
+- Value: eyJhbGci... (production key from above)
+- Environment: ✓ Production
+
+For Preview (optional):
+- Variable: VITE_SUPABASE_URL
+- Value: https://tvxrdwljausdxdtkugcc.supabase.co
+- Environment: ✓ Preview
+
+- Variable: VITE_SUPABASE_ANON_KEY
+- Value: eyJhbGci... (staging key from above)
+- Environment: ✓ Preview
+
+5. Click "Save"
+6. Redeploy your project
+
+===============================================
+LOCAL DEVELOPMENT FILES
+===============================================
+
+Your project has these files:
+
+.env.production  → Production keys (for reference)
+.env.staging     → Staging keys (for reference)
+.env             → Active environment (copy from above)
+
+To switch locally:
+  .\scripts\switch-env.ps1 production
+  .\scripts\switch-env.ps1 staging
+
+===============================================
+SECURITY NOTES
+===============================================
+
+✓ SAFE TO SHARE:
+  - ANON_KEY (it's meant to be public)
+  - Supabase URL (it's public)
+
+✗ NEVER SHARE:
+  - SERVICE_ROLE_KEY (if you have one)
+  - Database passwords
+  - Private API keys
+
+✓ SAFE TO COMMIT:
+  - .env.example (template without real values)
+
+✗ NEVER COMMIT:
+  - .env (already in .gitignore)
+  - .env.production (already in .gitignore)
+  - .env.staging (already in .gitignore)
+
+===============================================
+QUICK COPY-PASTE FOR VERCEL
+===============================================
+
+Production Variables:
+--------------------
+Name: VITE_SUPABASE_URL
+Value: https://ierrbnbghexwlwgizvww.supabase.co
+
+Name: VITE_SUPABASE_ANON_KEY
+Value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImllcnJibmJnaGV4d2x3Z2l6dnd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4MTMwNzgsImV4cCI6MjA4MDM4OTA3OH0.g_iGvJj9KuoYuAP-UbXcI6Bi612J_5-JEWKc1COvDlY
+
+Staging Variables (Preview):
+---------------------------
+Name: VITE_SUPABASE_URL
+Value: https://tvxrdwljausdxdtkugcc.supabase.co
+
+Name: VITE_SUPABASE_ANON_KEY
+Value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2eHJkd2xqYXVzZHhkdGt1Z2NjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3MTczNjEsImV4cCI6MjA4MjI5MzM2MX0.BJ34gQuLNBVHa5rWCFSAW7mV55ubkhl7UCwRMGJOdBI
+
+===============================================

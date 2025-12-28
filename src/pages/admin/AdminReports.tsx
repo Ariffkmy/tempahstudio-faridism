@@ -176,18 +176,20 @@ const AdminReports = () => {
     return acc;
   }, {} as Record<string, number>);
 
-  const photographerData = Object.entries(photographerAssignments)
-    .map(([name, count]) => ({ name, count, role: 'Photographer' }))
+  // Combine photographers and editors into a single list
+  const photographerList = Object.entries(photographerAssignments)
+    .filter(([name]) => name !== 'Tiada')
+    .map(([name, count]) => ({ name, count, role: 'Photographer' }));
+
+  const editorList = Object.entries(editorAssignments)
+    .filter(([name]) => name !== 'Tiada')
+    .map(([name, count]) => ({ name, count, role: 'Editor' }));
+
+  // Combine and sort by count (highest first)
+  const taskDistributionData = [...photographerList, ...editorList]
     .sort((a, b) => b.count - a.count);
 
-  const editorData = Object.entries(editorAssignments)
-    .map(([name, count]) => ({ name, count, role: 'Editor' }))
-    .sort((a, b) => b.count - a.count);
-
-  const totalAssignedPhotographer = photographerData.filter(p => p.name !== 'Tiada').reduce((sum, p) => sum + p.count, 0);
-  const totalAssignedEditor = editorData.filter(e => e.name !== 'Tiada').reduce((sum, e) => sum + e.count, 0);
-  const unassignedPhotographer = photographerAssignments['Tiada'] || 0;
-  const unassignedEditor = editorAssignments['Tiada'] || 0;
+  const unassignedCount = (photographerAssignments['Tiada'] || 0) + (editorAssignments['Tiada'] || 0);
 
   if (isMobile) {
     return (
@@ -482,54 +484,34 @@ const AdminReports = () => {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm">Pembahagian Tugas</CardTitle>
-                <CardDescription className="text-xs">Tugasan kepada photographer dan editor</CardDescription>
+                <CardDescription className="text-xs">Senarai staff dan tugasan mereka</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Photographer Section */}
-                <div>
-                  <div className="text-xs font-semibold text-muted-foreground mb-2">Photographer</div>
-                  <div className="space-y-2">
-                    {photographerData.slice(0, 3).map((item, itemIndex) => (
-                      <div key={itemIndex} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${item.name === 'Tiada' ? 'bg-gray-400' : `bg-${['blue', 'purple', 'green'][itemIndex % 3]}-500`}`} />
-                          <span className="text-xs font-medium">{item.name}</span>
+              <CardContent className="space-y-3">
+                {/* Staff List */}
+                <div className="space-y-2">
+                  {taskDistributionData.slice(0, 5).map((item, index) => (
+                    <div key={index} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${item.role === 'Photographer' ? 'bg-blue-500' : 'bg-orange-500'}`} />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-medium truncate">{item.name}</div>
+                          <div className="text-[10px] text-muted-foreground">{item.role}</div>
                         </div>
-                        <div className="text-sm font-semibold">{item.count}</div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Editor Section */}
-                <div className="pt-3 border-t">
-                  <div className="text-xs font-semibold text-muted-foreground mb-2">Editor</div>
-                  <div className="space-y-2">
-                    {editorData.slice(0, 3).map((item, itemIndex) => (
-                      <div key={itemIndex} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${item.name === 'Tiada' ? 'bg-gray-400' : `bg-${['orange', 'pink', 'cyan'][itemIndex % 3]}-500`}`} />
-                          <span className="text-xs font-medium">{item.name}</span>
-                        </div>
-                        <div className="text-sm font-semibold">{item.count}</div>
-                      </div>
-                    ))}
-                  </div>
+                      <div className="text-sm font-semibold flex-shrink-0">{item.count}</div>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Summary */}
-                <div className="pt-3 border-t">
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <span className="text-muted-foreground">Ditugaskan:</span>
-                      <div className="font-semibold">{totalAssignedPhotographer + totalAssignedEditor}</div>
-                    </div>
-                    <div>
+                {unassignedCount > 0 && (
+                  <div className="pt-3 border-t">
+                    <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Belum ditugaskan:</span>
-                      <div className="font-semibold text-yellow-600">{unassignedPhotographer + unassignedEditor}</div>
+                      <div className="font-semibold text-yellow-600">{unassignedCount}</div>
                     </div>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -743,61 +725,40 @@ const AdminReports = () => {
               <Card>
                 <CardHeader>
                   <CardTitle>Pembahagian Tugas</CardTitle>
-                  <CardDescription>Tugasan kepada photographer dan editor</CardDescription>
+                  <CardDescription>Senarai staff dan tugasan mereka</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-6">
-                    {/* Photographer Section */}
-                    <div>
-                      <div className="text-sm font-semibold text-muted-foreground mb-3">Photographer</div>
-                      <div className="space-y-3">
-                        {photographerData.map((item, index) => (
-                          <div key={item.name} className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className={`w-3 h-3 rounded-full ${item.name === 'Tiada' ? 'bg-gray-400' : index === 0 ? 'bg-blue-500' : index === 1 ? 'bg-purple-500' : 'bg-green-500'}`} />
-                              <span className="text-sm font-medium">{item.name}</span>
+                  <div className="space-y-4">
+                    {/* Staff List */}
+                    <div className="space-y-3">
+                      {taskDistributionData.map((item, index) => (
+                        <div key={index} className="flex items-center justify-between py-2 border-b last:border-0">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className={`w-3 h-3 rounded-full flex-shrink-0 ${item.role === 'Photographer' ? 'bg-blue-500' : 'bg-orange-500'}`} />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium">{item.name}</div>
+                              <Badge variant="outline" className="text-xs mt-1">
+                                {item.role}
+                              </Badge>
                             </div>
-                            <div className="text-lg font-semibold">{item.count}</div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Editor Section */}
-                    <div className="pt-4 border-t">
-                      <div className="text-sm font-semibold text-muted-foreground mb-3">Editor</div>
-                      <div className="space-y-3">
-                        {editorData.map((item, index) => (
-                          <div key={item.name} className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className={`w-3 h-3 rounded-full ${item.name === 'Tiada' ? 'bg-gray-400' : index === 0 ? 'bg-orange-500' : index === 1 ? 'bg-pink-500' : 'bg-cyan-500'}`} />
-                              <span className="text-sm font-medium">{item.name}</span>
-                            </div>
-                            <div className="text-lg font-semibold">{item.count}</div>
-                          </div>
-                        ))}
-                      </div>
+                          <div className="text-2xl font-semibold flex-shrink-0">{item.count}</div>
+                        </div>
+                      ))}
                     </div>
 
                     {/* Summary */}
-                    <div className="pt-4 border-t">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <div className="text-sm text-muted-foreground">Ditugaskan</div>
-                          <div className="text-2xl font-semibold">{totalAssignedPhotographer + totalAssignedEditor}</div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {totalAssignedPhotographer} photographer, {totalAssignedEditor} editor
+                    {unassignedCount > 0 && (
+                      <div className="pt-4 border-t">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-sm text-muted-foreground">Belum ditugaskan</div>
+                            <div className="text-xs text-muted-foreground mt-1">Perlu ditugaskan kepada staff</div>
                           </div>
-                        </div>
-                        <div>
-                          <div className="text-sm text-muted-foreground">Belum ditugaskan</div>
-                          <div className="text-2xl font-semibold text-yellow-600">{unassignedPhotographer + unassignedEditor}</div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Perlu ditugaskan
-                          </div>
+                          <div className="text-2xl font-semibold text-yellow-600">{unassignedCount}</div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

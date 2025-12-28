@@ -10,6 +10,7 @@ import { Calendar, DollarSign, Users, Clock, BarChart3, Menu, Home, CalendarDays
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveStudioId } from '@/contexts/StudioContext';
 import { getDashboardStats, getStudioBookingsWithDetails } from '@/services/bookingService';
+import { getActivePhotographers, getActiveEditors } from '@/services/studioStaffService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { cn } from '@/lib/utils';
@@ -31,6 +32,8 @@ const AdminReports = () => {
 
   // State for real data
   const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
+  const [photographers, setPhotographers] = useState<any[]>([]);
+  const [editors, setEditors] = useState<any[]>([]);
   const [stats, setStats] = useState({
     todayBookings: 0,
     pendingBookings: 0,
@@ -68,14 +71,18 @@ const AdminReports = () => {
       setIsLoading(true);
 
       try {
-        // Fetch bookings and stats in parallel
-        const [statsData, bookingsData] = await Promise.all([
+        // Fetch bookings, stats, and staff in parallel
+        const [statsData, bookingsData, photographersData, editorsData] = await Promise.all([
           getDashboardStats(effectiveStudioId),
           getStudioBookingsWithDetails(effectiveStudioId),
+          getActivePhotographers(effectiveStudioId),
+          getActiveEditors(effectiveStudioId),
         ]);
 
         setStats(statsData);
         setBookings(bookingsData);
+        setPhotographers(photographersData);
+        setEditors(editorsData);
       } catch (error) {
         console.error('Error fetching reports data:', error);
       } finally {
@@ -156,6 +163,77 @@ const AdminReports = () => {
 
   const totalBookings = bookings.length;
   const averageBookingValue = totalBookings > 0 ? Math.round(totalRevenue / totalBookings) : 0;
+
+  // Compute task distribution data (Pembahagian Tugas)
+  const photographerAssignments = bookings.reduce((acc, booking) => {
+    const photographerName = booking.photographer?.name || 'Tiada';
+    if (!acc[photographerName]) {
+      acc[photographerName] = 0;
+    }
+    acc[photographerName]++;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const editorAssignments = bookings.reduce((acc, booking) => {
+    const editorName = booking.editor?.name || 'Tiada';
+    if (!acc[editorName]) {
+      acc[editorName] = 0;
+    }
+    acc[editorName]++;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Get assigned staff list
+  const photographerList = Object.entries(photographerAssignments)
+    .filter(([name]) => name !== 'Tiada')
+    .map(([name, count]) => ({
+      name,
+      count,
+      role: 'Photographer',
+      isUnassigned: false
+    }));
+
+  const editorList = Object.entries(editorAssignments)
+    .filter(([name]) => name !== 'Tiada')
+    .map(([name, count]) => ({
+      name,
+      count,
+      role: 'Editor',
+      isUnassigned: false
+    }));
+
+  // Find staff members with 0 assignments
+  const unassignedPhotographers = photographers
+    .filter(p => !photographerAssignments[p.name])
+    .map(p => ({
+      name: p.name,
+      count: 0,
+      role: 'Photographer',
+      isUnassigned: true
+    }));
+
+  const unassignedEditors = editors
+    .filter(e => !editorAssignments[e.name])
+    .map(e => ({
+      name: e.name,
+      count: 0,
+      role: 'Editor',
+      isUnassigned: true
+    }));
+
+  // Combine and sort: assigned staff first (by count), then unassigned
+  const taskDistributionData = [
+    ...photographerList,
+    ...editorList,
+    ...unassignedPhotographers,
+    ...unassignedEditors
+  ].sort((a, b) => {
+    // Unassigned items go to the end
+    if (a.isUnassigned && !b.isUnassigned) return 1;
+    if (!a.isUnassigned && b.isUnassigned) return -1;
+    // Otherwise sort by count (highest first)
+    return b.count - a.count;
+  });
 
   if (isMobile) {
     return (
@@ -445,6 +523,38 @@ const AdminReports = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Pembahagian Tugas */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Pembahagian Tugas</CardTitle>
+                <CardDescription className="text-xs">Senarai staff dan tugasan mereka</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {/* Staff List */}
+                <div className="space-y-2">
+                  {taskDistributionData.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${item.isUnassigned
+                          ? 'bg-gray-400'
+                          : item.role === 'Photographer' ? 'bg-blue-500' : 'bg-orange-500'
+                          }`} />
+                        <div className="flex-1 min-w-0">
+                          <div className={`text-xs font-medium truncate ${item.isUnassigned ? 'text-muted-foreground' : ''}`}>
+                            {item.name}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">{item.role}</div>
+                        </div>
+                      </div>
+                      <div className={`text-sm font-semibold flex-shrink-0 ${item.isUnassigned ? 'text-yellow-600' : ''}`}>
+                        {item.count}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </main>
       </div>
@@ -647,6 +757,42 @@ const AdminReports = () => {
                       <div className="text-sm text-muted-foreground">
                         Jumlah hasil: RM {revenueByLayout.reduce((sum, item) => sum + item.revenue, 0).toLocaleString()}
                       </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Chart 7: Pembahagian Tugas (Task Distribution) */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pembahagian Tugas</CardTitle>
+                  <CardDescription>Senarai staff dan tugasan mereka</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Staff List */}
+                    <div className="space-y-3">
+                      {taskDistributionData.map((item, index) => (
+                        <div key={index} className="flex items-center justify-between py-2 border-b last:border-0">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className={`w-3 h-3 rounded-full flex-shrink-0 ${item.isUnassigned
+                              ? 'bg-gray-400'
+                              : item.role === 'Photographer' ? 'bg-blue-500' : 'bg-orange-500'
+                              }`} />
+                            <div className="flex-1 min-w-0">
+                              <div className={`text-sm font-medium ${item.isUnassigned ? 'text-muted-foreground' : ''}`}>
+                                {item.name}
+                              </div>
+                              <Badge variant="outline" className="text-xs mt-1">
+                                {item.role}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className={`text-2xl font-semibold flex-shrink-0 ${item.isUnassigned ? 'text-yellow-600' : ''}`}>
+                            {item.count}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </CardContent>

@@ -176,20 +176,32 @@ const AdminReports = () => {
     return acc;
   }, {} as Record<string, number>);
 
-  // Combine photographers and editors into a single list
+  // Combine photographers and editors into a single list (including unassigned)
   const photographerList = Object.entries(photographerAssignments)
-    .filter(([name]) => name !== 'Tiada')
-    .map(([name, count]) => ({ name, count, role: 'Photographer' }));
+    .map(([name, count]) => ({
+      name: name === 'Tiada' ? 'Belum Ditugaskan' : name,
+      count,
+      role: 'Photographer',
+      isUnassigned: name === 'Tiada'
+    }));
 
   const editorList = Object.entries(editorAssignments)
-    .filter(([name]) => name !== 'Tiada')
-    .map(([name, count]) => ({ name, count, role: 'Editor' }));
+    .map(([name, count]) => ({
+      name: name === 'Tiada' ? 'Belum Ditugaskan' : name,
+      count,
+      role: 'Editor',
+      isUnassigned: name === 'Tiada'
+    }));
 
-  // Combine and sort by count (highest first)
+  // Combine and sort: assigned staff first (by count), then unassigned
   const taskDistributionData = [...photographerList, ...editorList]
-    .sort((a, b) => b.count - a.count);
-
-  const unassignedCount = (photographerAssignments['Tiada'] || 0) + (editorAssignments['Tiada'] || 0);
+    .sort((a, b) => {
+      // Unassigned items go to the end
+      if (a.isUnassigned && !b.isUnassigned) return 1;
+      if (!a.isUnassigned && b.isUnassigned) return -1;
+      // Otherwise sort by count (highest first)
+      return b.count - a.count;
+    });
 
   if (isMobile) {
     return (
@@ -489,29 +501,26 @@ const AdminReports = () => {
               <CardContent className="space-y-3">
                 {/* Staff List */}
                 <div className="space-y-2">
-                  {taskDistributionData.slice(0, 5).map((item, index) => (
+                  {taskDistributionData.map((item, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${item.role === 'Photographer' ? 'bg-blue-500' : 'bg-orange-500'}`} />
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${item.isUnassigned
+                          ? 'bg-gray-400'
+                          : item.role === 'Photographer' ? 'bg-blue-500' : 'bg-orange-500'
+                          }`} />
                         <div className="flex-1 min-w-0">
-                          <div className="text-xs font-medium truncate">{item.name}</div>
+                          <div className={`text-xs font-medium truncate ${item.isUnassigned ? 'text-muted-foreground' : ''}`}>
+                            {item.name}
+                          </div>
                           <div className="text-[10px] text-muted-foreground">{item.role}</div>
                         </div>
                       </div>
-                      <div className="text-sm font-semibold flex-shrink-0">{item.count}</div>
+                      <div className={`text-sm font-semibold flex-shrink-0 ${item.isUnassigned ? 'text-yellow-600' : ''}`}>
+                        {item.count}
+                      </div>
                     </div>
                   ))}
                 </div>
-
-                {/* Summary */}
-                {unassignedCount > 0 && (
-                  <div className="pt-3 border-t">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Belum ditugaskan:</span>
-                      <div className="font-semibold text-yellow-600">{unassignedCount}</div>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </div>
@@ -734,31 +743,25 @@ const AdminReports = () => {
                       {taskDistributionData.map((item, index) => (
                         <div key={index} className="flex items-center justify-between py-2 border-b last:border-0">
                           <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div className={`w-3 h-3 rounded-full flex-shrink-0 ${item.role === 'Photographer' ? 'bg-blue-500' : 'bg-orange-500'}`} />
+                            <div className={`w-3 h-3 rounded-full flex-shrink-0 ${item.isUnassigned
+                                ? 'bg-gray-400'
+                                : item.role === 'Photographer' ? 'bg-blue-500' : 'bg-orange-500'
+                              }`} />
                             <div className="flex-1 min-w-0">
-                              <div className="text-sm font-medium">{item.name}</div>
+                              <div className={`text-sm font-medium ${item.isUnassigned ? 'text-muted-foreground' : ''}`}>
+                                {item.name}
+                              </div>
                               <Badge variant="outline" className="text-xs mt-1">
                                 {item.role}
                               </Badge>
                             </div>
                           </div>
-                          <div className="text-2xl font-semibold flex-shrink-0">{item.count}</div>
+                          <div className={`text-2xl font-semibold flex-shrink-0 ${item.isUnassigned ? 'text-yellow-600' : ''}`}>
+                            {item.count}
+                          </div>
                         </div>
                       ))}
                     </div>
-
-                    {/* Summary */}
-                    {unassignedCount > 0 && (
-                      <div className="pt-4 border-t">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="text-sm text-muted-foreground">Belum ditugaskan</div>
-                            <div className="text-xs text-muted-foreground mt-1">Perlu ditugaskan kepada staff</div>
-                          </div>
-                          <div className="text-2xl font-semibold text-yellow-600">{unassignedCount}</div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </CardContent>
               </Card>

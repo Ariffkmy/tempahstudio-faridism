@@ -10,6 +10,7 @@ import { Calendar, DollarSign, Users, Clock, BarChart3, Menu, Home, CalendarDays
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveStudioId } from '@/contexts/StudioContext';
 import { getDashboardStats, getStudioBookingsWithDetails } from '@/services/bookingService';
+import { getActivePhotographers, getActiveEditors } from '@/services/studioStaffService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { cn } from '@/lib/utils';
@@ -31,6 +32,8 @@ const AdminReports = () => {
 
   // State for real data
   const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
+  const [photographers, setPhotographers] = useState<any[]>([]);
+  const [editors, setEditors] = useState<any[]>([]);
   const [stats, setStats] = useState({
     todayBookings: 0,
     pendingBookings: 0,
@@ -68,14 +71,18 @@ const AdminReports = () => {
       setIsLoading(true);
 
       try {
-        // Fetch bookings and stats in parallel
-        const [statsData, bookingsData] = await Promise.all([
+        // Fetch bookings, stats, and staff in parallel
+        const [statsData, bookingsData, photographersData, editorsData] = await Promise.all([
           getDashboardStats(effectiveStudioId),
           getStudioBookingsWithDetails(effectiveStudioId),
+          getActivePhotographers(effectiveStudioId),
+          getActiveEditors(effectiveStudioId),
         ]);
 
         setStats(statsData);
         setBookings(bookingsData);
+        setPhotographers(photographersData);
+        setEditors(editorsData);
       } catch (error) {
         console.error('Error fetching reports data:', error);
       } finally {
@@ -195,21 +202,21 @@ const AdminReports = () => {
       isUnassigned: false
     }));
 
-  // Get individual unassigned bookings with customer names
-  const unassignedPhotographerBookings = bookings
-    .filter(b => !b.photographer_id)
-    .map(b => ({
-      name: `${b.customer?.name || 'Unknown'} (${b.reference})`,
-      count: 1,
+  // Find staff members with 0 assignments
+  const unassignedPhotographers = photographers
+    .filter(p => !photographerAssignments[p.name])
+    .map(p => ({
+      name: p.name,
+      count: 0,
       role: 'Photographer',
       isUnassigned: true
     }));
 
-  const unassignedEditorBookings = bookings
-    .filter(b => !b.editor_id)
-    .map(b => ({
-      name: `${b.customer?.name || 'Unknown'} (${b.reference})`,
-      count: 1,
+  const unassignedEditors = editors
+    .filter(e => !editorAssignments[e.name])
+    .map(e => ({
+      name: e.name,
+      count: 0,
       role: 'Editor',
       isUnassigned: true
     }));
@@ -218,8 +225,8 @@ const AdminReports = () => {
   const taskDistributionData = [
     ...photographerList,
     ...editorList,
-    ...unassignedPhotographerBookings,
-    ...unassignedEditorBookings
+    ...unassignedPhotographers,
+    ...unassignedEditors
   ].sort((a, b) => {
     // Unassigned items go to the end
     if (a.isUnassigned && !b.isUnassigned) return 1;

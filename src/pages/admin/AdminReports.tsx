@@ -176,32 +176,57 @@ const AdminReports = () => {
     return acc;
   }, {} as Record<string, number>);
 
-  // Combine photographers and editors into a single list (including unassigned)
+  // Get assigned staff list
   const photographerList = Object.entries(photographerAssignments)
+    .filter(([name]) => name !== 'Tiada')
     .map(([name, count]) => ({
-      name: name === 'Tiada' ? 'Belum Ditugaskan' : name,
+      name,
       count,
       role: 'Photographer',
-      isUnassigned: name === 'Tiada'
+      isUnassigned: false
     }));
 
   const editorList = Object.entries(editorAssignments)
+    .filter(([name]) => name !== 'Tiada')
     .map(([name, count]) => ({
-      name: name === 'Tiada' ? 'Belum Ditugaskan' : name,
+      name,
       count,
       role: 'Editor',
-      isUnassigned: name === 'Tiada'
+      isUnassigned: false
+    }));
+
+  // Get individual unassigned bookings with customer names
+  const unassignedPhotographerBookings = bookings
+    .filter(b => !b.photographer_id)
+    .map(b => ({
+      name: `${b.customer?.name || 'Unknown'} (${b.reference})`,
+      count: 1,
+      role: 'Photographer',
+      isUnassigned: true
+    }));
+
+  const unassignedEditorBookings = bookings
+    .filter(b => !b.editor_id)
+    .map(b => ({
+      name: `${b.customer?.name || 'Unknown'} (${b.reference})`,
+      count: 1,
+      role: 'Editor',
+      isUnassigned: true
     }));
 
   // Combine and sort: assigned staff first (by count), then unassigned
-  const taskDistributionData = [...photographerList, ...editorList]
-    .sort((a, b) => {
-      // Unassigned items go to the end
-      if (a.isUnassigned && !b.isUnassigned) return 1;
-      if (!a.isUnassigned && b.isUnassigned) return -1;
-      // Otherwise sort by count (highest first)
-      return b.count - a.count;
-    });
+  const taskDistributionData = [
+    ...photographerList,
+    ...editorList,
+    ...unassignedPhotographerBookings,
+    ...unassignedEditorBookings
+  ].sort((a, b) => {
+    // Unassigned items go to the end
+    if (a.isUnassigned && !b.isUnassigned) return 1;
+    if (!a.isUnassigned && b.isUnassigned) return -1;
+    // Otherwise sort by count (highest first)
+    return b.count - a.count;
+  });
 
   if (isMobile) {
     return (
@@ -744,8 +769,8 @@ const AdminReports = () => {
                         <div key={index} className="flex items-center justify-between py-2 border-b last:border-0">
                           <div className="flex items-center gap-3 flex-1 min-w-0">
                             <div className={`w-3 h-3 rounded-full flex-shrink-0 ${item.isUnassigned
-                                ? 'bg-gray-400'
-                                : item.role === 'Photographer' ? 'bg-blue-500' : 'bg-orange-500'
+                              ? 'bg-gray-400'
+                              : item.role === 'Photographer' ? 'bg-blue-500' : 'bg-orange-500'
                               }`} />
                             <div className="flex-1 min-w-0">
                               <div className={`text-sm font-medium ${item.isUnassigned ? 'text-muted-foreground' : ''}`}>

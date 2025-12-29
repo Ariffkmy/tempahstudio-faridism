@@ -1,25 +1,30 @@
 -- Add AI verification statuses to payment_verification enum
--- Migration: 20241229_add_ai_verification_statuses
+-- Migration: 20241229_add_ai_verification_statuses_v2
 
--- Add new AI-specific verification statuses
+-- PostgreSQL doesn't allow conditional ADD VALUE in transactions
+-- So we use a different approach
+
+-- Add 'disahkan_oleh_ai' if it doesn't exist
 DO $$ 
 BEGIN
-    -- Add 'disahkan_oleh_ai' if it doesn't exist
     IF NOT EXISTS (
         SELECT 1 FROM pg_enum 
         WHERE enumlabel = 'disahkan_oleh_ai' 
         AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'payment_verification_status')
     ) THEN
-        ALTER TYPE payment_verification_status ADD VALUE 'disahkan_oleh_ai';
+        EXECUTE 'ALTER TYPE payment_verification_status ADD VALUE ''disahkan_oleh_ai''';
     END IF;
+END $$;
 
-    -- Add 'diragui_oleh_ai' if it doesn't exist
+-- Add 'diragui_oleh_ai' if it doesn't exist  
+DO $$ 
+BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM pg_enum 
         WHERE enumlabel = 'diragui_oleh_ai' 
         AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'payment_verification_status')
     ) THEN
-        ALTER TYPE payment_verification_status ADD VALUE 'diragui_oleh_ai';
+        EXECUTE 'ALTER TYPE payment_verification_status ADD VALUE ''diragui_oleh_ai''';
     END IF;
 END $$;
 

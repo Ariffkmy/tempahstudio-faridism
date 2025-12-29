@@ -130,7 +130,7 @@ export function generateInvoicePDF(details: InvoiceDetails): void {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.text('Perkara', 25, y);
-    doc.text('Jumlah (RM)', 160, y);
+    doc.text('Jumlah (RM)', 190, y, { align: 'right' });
     y += 10;
 
     // Table content
@@ -140,7 +140,7 @@ export function generateInvoicePDF(details: InvoiceDetails): void {
     // Main booking item
     const bookingDescription = `Tempahan Studio - ${details.layoutName}`;
     doc.text(bookingDescription, 25, y);
-    doc.text(details.totalPrice.toFixed(2), 160, y);
+    doc.text(details.totalPrice.toFixed(2), 190, y, { align: 'right' });
     y += 6;
 
     doc.setFontSize(9);
@@ -157,28 +157,28 @@ export function generateInvoicePDF(details: InvoiceDetails): void {
     // Subtotal
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
-    doc.text('Jumlah Kecil:', 120, y);
-    doc.text(`RM ${details.totalPrice.toFixed(2)}`, 160, y);
+    doc.text('Jumlah Kecil:', 110, y);
+    doc.text(`RM ${details.totalPrice.toFixed(2)}`, 190, y, { align: 'right' });
     y += 8;
 
     // If deposit payment, show deposit and balance
     if (details.paymentType === 'deposit' && details.depositAmount) {
-        doc.text('Deposit Dibayar:', 120, y);
-        doc.text(`RM ${details.depositAmount.toFixed(2)}`, 160, y);
+        doc.text('Deposit Dibayar:', 110, y);
+        doc.text(`RM ${details.depositAmount.toFixed(2)}`, 190, y, { align: 'right' });
         y += 8;
 
         // Balance due
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
-        doc.text('Baki Perlu Dibayar:', 120, y);
-        doc.text(`RM ${(details.balanceDue || 0).toFixed(2)}`, 160, y);
+        doc.text('Baki Perlu Dibayar:', 110, y);
+        doc.text(`RM ${(details.balanceDue || 0).toFixed(2)}`, 190, y, { align: 'right' });
         y += 10;
     } else {
         // Total (full payment)
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
-        doc.text('JUMLAH KESELURUHAN:', 120, y);
-        doc.text(`RM ${details.totalPrice.toFixed(2)}`, 160, y);
+        doc.text('JUMLAH KESELURUHAN:', 110, y);
+        doc.text(`RM ${details.totalPrice.toFixed(2)}`, 190, y, { align: 'right' });
         y += 10;
     }
 

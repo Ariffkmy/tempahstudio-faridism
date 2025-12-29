@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useSidebar } from '@/contexts/SidebarContext';
-import { Search, Mail, Phone, Calendar, CreditCard, Package, Eye, X, FileText } from 'lucide-react';
+import { Search, Mail, Phone, Calendar, CreditCard, Package, Eye, X, FileText, Receipt } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -86,6 +86,7 @@ export default function AdminCustomers() {
     const [customerBookings, setCustomerBookings] = useState<BookingDetail[]>([]);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [generatingReceipt, setGeneratingReceipt] = useState<Record<string, boolean>>({});
+    const [generatingInvoice, setGeneratingInvoice] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         fetchCustomers();
@@ -411,6 +412,85 @@ export default function AdminCustomers() {
             });
         } finally {
             setGeneratingReceipt(prev => ({ ...prev, [booking.id]: false }));
+        }
+    };
+
+    const handleGenerateInvoice = async (booking: BookingDetail) => {
+        if (!studio || !selectedCustomer) return;
+
+        setGeneratingInvoice(prev => ({ ...prev, [booking.id]: true }));
+
+        try {
+            console.log('\n========================================')
+            console.log('📄 MANUAL INVOICE GENERATION (CLIENT-SIDE)');
+            console.log('========================================');
+            console.log('Booking ID:', booking.id);
+            console.log('Reference:', booking.reference);
+            console.log('Customer:', selectedCustomer.customer_name);
+
+            // Get full booking details with layout info
+            const { data: fullBooking, error: bookingError } = await supabase
+                .from('bookings')
+                .select(`
+                    *,
+                    studio_layout:studio_layouts(name),
+                    customer:customers(*)
+                `)
+                .eq('id', booking.id)
+                .single();
+
+            if (bookingError || !fullBooking) {
+                throw new Error('Gagal mendapatkan maklumat tempahan');
+            }
+
+            console.log('✓ Full booking details retrieved');
+
+            // Import PDF generator
+            const { generateInvoicePDF } = await import('@/utils/invoiceGenerator');
+
+            console.log('✓ Generating Invoice PDF...');
+
+            // Calculate deposit amount if payment type is deposit
+            const depositAmount = fullBooking.payment_type === 'deposit'
+                ? fullBooking.total_price - (fullBooking.balance_due || 0)
+                : undefined;
+
+            // Generate and download PDF
+            generateInvoicePDF({
+                reference: fullBooking.reference,
+                customerName: selectedCustomer.customer_name,
+                customerEmail: selectedCustomer.customer_email,
+                customerPhone: selectedCustomer.customer_phone || undefined,
+                date: fullBooking.date,
+                startTime: fullBooking.start_time,
+                endTime: fullBooking.end_time,
+                studioName: studio.name,
+                layoutName: fullBooking.studio_layout?.name || 'N/A',
+                duration: fullBooking.duration || 0,
+                totalPrice: fullBooking.total_price,
+                paymentMethod: fullBooking.payment_method || undefined,
+                paymentType: fullBooking.payment_type || undefined,
+                balanceDue: fullBooking.balance_due || undefined,
+                depositAmount: depositAmount,
+            });
+
+            console.log('✅ Invoice generated and downloaded successfully!');
+            console.log('========================================\n');
+
+            toast({
+                title: 'Berjaya',
+                description: `Invois ${fullBooking.reference} telah dimuat turun`,
+            });
+        } catch (error: any) {
+            console.error('❌ Error generating invoice:', error);
+            console.log('========================================\n');
+            toast({
+                title: 'Ralat',
+                description: error.message || 'Gagal menjana invois',
+                variant: 'destructive',
+            });
+        } finally {
+            setGeneratingInvoice(prev => ({ ...prev, [booking.id]: false }));
         }
     };
 
@@ -785,6 +865,24 @@ export default function AdminCustomers() {
                                                         <>
                                                             <FileText className="h-4 w-4 mr-2" />
                                                             Muat Turun Resit
+                                                        </>
+                                                    )}
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleGenerateInvoice(booking)}
+                                                    disabled={generatingInvoice[booking.id]}
+                                                >
+                                                    {generatingInvoice[booking.id] ? (
+                                                        <>
+                                                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary mr-2"></div>
+                                                            Menjana...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Receipt className="h-4 w-4 mr-2" />
+                                                            Muat Turun Invois
                                                         </>
                                                     )}
                                                 </Button>

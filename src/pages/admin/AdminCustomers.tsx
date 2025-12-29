@@ -262,6 +262,8 @@ export default function AdminCustomers() {
             'disahkan': { label: 'Disahkan', variant: 'default' },
             'belum_disahkan': { label: 'Belum Disahkan', variant: 'secondary' },
             'diragui': { label: 'Diragui', variant: 'destructive' },
+            'disahkan_oleh_ai': { label: '🤖 Disahkan oleh AI', variant: 'default' },
+            'diragui_oleh_ai': { label: '⚠️ Diragui oleh AI', variant: 'destructive' },
         };
 
         const config = verificationConfig[verification] || { label: verification, variant: 'secondary' };

@@ -506,6 +506,14 @@ const BrandBooking = () => {
       const result = await createPublicBooking(bookingData);
 
       if (result.success && result.booking) {
+        // Trigger AI receipt validation asynchronously (fire-and-forget)
+        // This runs in the background and doesn't block the user
+        if (receiptUrl) {
+          const { triggerReceiptValidation } = await import('@/services/bookingPaymentService');
+          triggerReceiptValidation(result.booking.id, receiptUrl)
+            .catch(err => console.error('AI validation failed:', err));
+        }
+
         toast({
           title: "Tempahan Berjaya",
           description: `Tempahan anda telah dihantar untuk pengesahan. Rujukan: ${result.booking.reference}`,

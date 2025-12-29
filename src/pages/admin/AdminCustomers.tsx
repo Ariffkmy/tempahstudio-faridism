@@ -122,7 +122,7 @@ export default function AdminCustomers() {
             console.log('📡 Cleaning up real-time subscription...');
             supabase.removeChannel(channel);
         };
-    }, [studio, fetchCustomers]);
+    }, [studio]);
 
     useEffect(() => {
         if (customers.length > 0) {

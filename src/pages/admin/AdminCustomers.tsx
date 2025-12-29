@@ -718,6 +718,8 @@ export default function AdminCustomers() {
                                                                     <SelectItem value="disahkan">Disahkan</SelectItem>
                                                                     <SelectItem value="belum_disahkan">Belum Disahkan</SelectItem>
                                                                     <SelectItem value="diragui">Diragui</SelectItem>
+                                                                    <SelectItem value="disahkan_oleh_ai">🤖 Disahkan oleh AI</SelectItem>
+                                                                    <SelectItem value="diragui_oleh_ai">⚠️ Diragui oleh AI</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
                                                         </TableHead>

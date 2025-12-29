@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useSidebar } from '@/contexts/SidebarContext';
-import { Search, Mail, Phone, Calendar, CreditCard, Package, Eye, X, FileText, Receipt } from 'lucide-react';
+import { Search, Mail, Phone, Calendar, CreditCard, Package, Eye, X, FileText, Receipt, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -96,6 +96,8 @@ export default function AdminCustomers() {
     useEffect(() => {
         if (!studio) return;
 
+        console.log('📡 Setting up real-time subscription for bookings...');
+
         const channel = supabase
             .channel('bookings-changes')
             .on(
@@ -112,12 +114,15 @@ export default function AdminCustomers() {
                     fetchCustomers();
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                console.log('📡 Subscription status:', status);
+            });
 
         return () => {
+            console.log('📡 Cleaning up real-time subscription...');
             supabase.removeChannel(channel);
         };
-    }, [studio]);
+    }, [studio, fetchCustomers]);
 
     useEffect(() => {
         if (customers.length > 0) {
@@ -160,7 +165,7 @@ export default function AdminCustomers() {
     }, [searchQuery, nameFilter, emailFilter, minSpentFilter, maxSpentFilter, statusFilter,
         dateFilter, paymentMethodFilter, verificationFilter, customers]);
 
-    const fetchCustomers = async () => {
+    const fetchCustomers = useCallback(async () => {
         if (!studio) return;
 
         setIsLoading(true);
@@ -250,7 +255,7 @@ export default function AdminCustomers() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [studio, toast]);
 
     const getStatusBadge = (status: string) => {
         const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -594,18 +599,29 @@ export default function AdminCustomers() {
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
-                                        {/* Clear Filters Button */}
-                                        {hasActiveFilters && (
-                                            <div className="flex justify-end">
+                                        {/* Clear Filters and Refresh Buttons */}
+                                        {(hasActiveFilters || true) && (
+                                            <div className="flex justify-end gap-2">
                                                 <Button
-                                                    variant="ghost"
+                                                    variant="outline"
                                                     size="sm"
-                                                    onClick={clearAllFilters}
+                                                    onClick={() => fetchCustomers()}
                                                     className="h-8 px-2 lg:px-3"
                                                 >
-                                                    <X className="h-4 w-4 mr-2" />
-                                                    Kosongkan Penapis
+                                                    <RefreshCw className="h-4 w-4 mr-2" />
+                                                    Muat Semula
                                                 </Button>
+                                                {hasActiveFilters && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={clearAllFilters}
+                                                        className="h-8 px-2 lg:px-3"
+                                                    >
+                                                        <X className="h-4 w-4 mr-2" />
+                                                        Kosongkan Penapis
+                                                    </Button>
+                                                )}
                                             </div>
                                         )}
 

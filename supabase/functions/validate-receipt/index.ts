@@ -68,6 +68,24 @@ serve(async (req: Request) => {
             throw new Error(`Failed to download receipt: ${imageResponse.statusText}`);
         }
 
+        // Detect image format from Content-Type header or URL
+        const contentType = imageResponse.headers.get('content-type') || '';
+        let mediaType = 'image/jpeg'; // default
+
+        if (contentType.includes('png')) {
+            mediaType = 'image/png';
+        } else if (contentType.includes('webp')) {
+            mediaType = 'image/webp';
+        } else if (contentType.includes('gif')) {
+            mediaType = 'image/gif';
+        } else if (receiptUrl.toLowerCase().includes('.png')) {
+            mediaType = 'image/png';
+        } else if (receiptUrl.toLowerCase().includes('.webp')) {
+            mediaType = 'image/webp';
+        }
+
+        console.log(`📸 Detected image format: ${mediaType}`);
+
         const imageBuffer = await imageResponse.arrayBuffer();
         const base64Image = btoa(
             new Uint8Array(imageBuffer).reduce(
@@ -99,7 +117,7 @@ serve(async (req: Request) => {
                                 type: 'image',
                                 source: {
                                     type: 'base64',
-                                    media_type: 'image/jpeg',
+                                    media_type: mediaType,
                                     data: base64Image,
                                 },
                             },

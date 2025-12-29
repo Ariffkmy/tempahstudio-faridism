@@ -837,6 +837,18 @@ export default function AdminCustomers() {
                                                                                 Diragui
                                                                             </div>
                                                                         </SelectItem>
+                                                                        <SelectItem value="disahkan_oleh_ai">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                                                                🤖 Disahkan oleh AI
+                                                                            </div>
+                                                                        </SelectItem>
+                                                                        <SelectItem value="diragui_oleh_ai">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                                                                                ⚠️ Diragui oleh AI
+                                                                            </div>
+                                                                        </SelectItem>
                                                                     </SelectContent>
                                                                 </Select>
                                                             </TableCell>

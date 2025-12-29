@@ -297,6 +297,32 @@ const NewBooking = () => {
   };
 
   const handleFileUpload = (type: 'receipt' | 'proof', file: File | null) => {
+    // Validate file type - only accept images
+    if (file) {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+      const fileType = file.type.toLowerCase();
+
+      if (!allowedTypes.includes(fileType)) {
+        toast({
+          title: "Format Fail Tidak Sah",
+          description: "Sila muat naik fail imej sahaja (JPG, PNG, WebP, GIF). Fail PDF tidak diterima.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        toast({
+          title: "Saiz Fail Terlalu Besar",
+          description: "Saiz fail maksimum adalah 5MB. Sila pilih fail yang lebih kecil.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setUploadedFiles((prev) => ({ ...prev, [type]: file }));
   };
 

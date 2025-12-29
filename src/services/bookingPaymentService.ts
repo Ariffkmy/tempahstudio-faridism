@@ -59,3 +59,35 @@ export async function uploadBookingPaymentProof(file: File): Promise<{ success: 
         return { success: false, error: error.message || 'Failed to upload payment proof' };
     }
 }
+
+/**
+ * Trigger AI receipt validation (async, fire-and-forget)
+ * This calls the Edge Function to validate the receipt using Claude AI
+ */
+export async function triggerReceiptValidation(
+    bookingId: string,
+    receiptUrl: string
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        console.log('🤖 Triggering AI receipt validation for booking:', bookingId);
+
+        const { data, error } = await supabase.functions.invoke('validate-receipt', {
+            body: {
+                bookingId,
+                receiptUrl,
+            },
+        });
+
+        if (error) {
+            console.error('AI validation error:', error);
+            return { success: false, error: error.message };
+        }
+
+        console.log('✅ AI validation triggered successfully:', data);
+        return { success: true };
+    } catch (error: any) {
+        console.error('Error triggering AI validation:', error);
+        return { success: false, error: error.message || 'Failed to trigger AI validation' };
+    }
+}
+

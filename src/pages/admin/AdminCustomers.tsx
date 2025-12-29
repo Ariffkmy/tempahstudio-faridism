@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { useSidebar } from '@/contexts/SidebarContext';
-import { Search, Mail, Phone, Calendar, CreditCard, Package, Eye, X, FileText, Receipt } from 'lucide-react';
+import { Search, Mail, Phone, Calendar, CreditCard, Package, Eye, X, FileText, Receipt, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -92,6 +92,38 @@ export default function AdminCustomers() {
         fetchCustomers();
     }, [studio]);
 
+    // Real-time subscription for booking updates (e.g., AI validation)
+    useEffect(() => {
+        if (!studio) return;
+
+        console.log('📡 Setting up real-time subscription for bookings...');
+
+        const channel = supabase
+            .channel('bookings-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'bookings',
+                    filter: `studio_id=eq.${studio.id}`,
+                },
+                (payload) => {
+                    console.log('🔄 Booking updated, refreshing customers...', payload);
+                    // Refresh the customer list when any booking is updated
+                    fetchCustomers();
+                }
+            )
+            .subscribe((status) => {
+                console.log('📡 Subscription status:', status);
+            });
+
+        return () => {
+            console.log('📡 Cleaning up real-time subscription...');
+            supabase.removeChannel(channel);
+        };
+    }, [studio]);
+
     useEffect(() => {
         if (customers.length > 0) {
             const filtered = customers.filter((customer) => {
@@ -133,7 +165,7 @@ export default function AdminCustomers() {
     }, [searchQuery, nameFilter, emailFilter, minSpentFilter, maxSpentFilter, statusFilter,
         dateFilter, paymentMethodFilter, verificationFilter, customers]);
 
-    const fetchCustomers = async () => {
+    const fetchCustomers = useCallback(async () => {
         if (!studio) return;
 
         setIsLoading(true);
@@ -223,7 +255,7 @@ export default function AdminCustomers() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [studio, toast]);
 
     const getStatusBadge = (status: string) => {
         const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -262,6 +294,8 @@ export default function AdminCustomers() {
             'disahkan': { label: 'Disahkan', variant: 'default' },
             'belum_disahkan': { label: 'Belum Disahkan', variant: 'secondary' },
             'diragui': { label: 'Diragui', variant: 'destructive' },
+            'disahkan_oleh_ai': { label: '🤖 Disahkan oleh AI', variant: 'default' },
+            'diragui_oleh_ai': { label: '⚠️ Diragui oleh AI', variant: 'destructive' },
         };
 
         const config = verificationConfig[verification] || { label: verification, variant: 'secondary' };
@@ -565,18 +599,29 @@ export default function AdminCustomers() {
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
-                                        {/* Clear Filters Button */}
-                                        {hasActiveFilters && (
-                                            <div className="flex justify-end">
+                                        {/* Clear Filters and Refresh Buttons */}
+                                        {(hasActiveFilters || true) && (
+                                            <div className="flex justify-end gap-2">
                                                 <Button
-                                                    variant="ghost"
+                                                    variant="outline"
                                                     size="sm"
-                                                    onClick={clearAllFilters}
+                                                    onClick={() => fetchCustomers()}
                                                     className="h-8 px-2 lg:px-3"
                                                 >
-                                                    <X className="h-4 w-4 mr-2" />
-                                                    Kosongkan Penapis
+                                                    <RefreshCw className="h-4 w-4 mr-2" />
+                                                    Muat Semula
                                                 </Button>
+                                                {hasActiveFilters && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={clearAllFilters}
+                                                        className="h-8 px-2 lg:px-3"
+                                                    >
+                                                        <X className="h-4 w-4 mr-2" />
+                                                        Kosongkan Penapis
+                                                    </Button>
+                                                )}
                                             </div>
                                         )}
 
@@ -689,6 +734,8 @@ export default function AdminCustomers() {
                                                                     <SelectItem value="disahkan">Disahkan</SelectItem>
                                                                     <SelectItem value="belum_disahkan">Belum Disahkan</SelectItem>
                                                                     <SelectItem value="diragui">Diragui</SelectItem>
+                                                                    <SelectItem value="disahkan_oleh_ai">🤖 Disahkan oleh AI</SelectItem>
+                                                                    <SelectItem value="diragui_oleh_ai">⚠️ Diragui oleh AI</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
                                                         </TableHead>
@@ -768,7 +815,7 @@ export default function AdminCustomers() {
                                                                         value
                                                                     )}
                                                                 >
-                                                                    <SelectTrigger className="w-[180px]">
+                                                                    <SelectTrigger className="w-[220px]">
                                                                         <SelectValue />
                                                                     </SelectTrigger>
                                                                     <SelectContent>
@@ -788,6 +835,18 @@ export default function AdminCustomers() {
                                                                             <div className="flex items-center gap-2">
                                                                                 <div className="w-2 h-2 rounded-full bg-red-500"></div>
                                                                                 Diragui
+                                                                            </div>
+                                                                        </SelectItem>
+                                                                        <SelectItem value="disahkan_oleh_ai">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                                                                🤖 Disahkan oleh AI
+                                                                            </div>
+                                                                        </SelectItem>
+                                                                        <SelectItem value="diragui_oleh_ai">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                                                                                ⚠️ Diragui oleh AI
                                                                             </div>
                                                                         </SelectItem>
                                                                     </SelectContent>

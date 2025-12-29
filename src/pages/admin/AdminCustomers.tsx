@@ -92,6 +92,33 @@ export default function AdminCustomers() {
         fetchCustomers();
     }, [studio]);
 
+    // Real-time subscription for booking updates (e.g., AI validation)
+    useEffect(() => {
+        if (!studio) return;
+
+        const channel = supabase
+            .channel('bookings-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'bookings',
+                    filter: `studio_id=eq.${studio.id}`,
+                },
+                (payload) => {
+                    console.log('🔄 Booking updated, refreshing customers...', payload);
+                    // Refresh the customer list when any booking is updated
+                    fetchCustomers();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [studio]);
+
     useEffect(() => {
         if (customers.length > 0) {
             const filtered = customers.filter((customer) => {

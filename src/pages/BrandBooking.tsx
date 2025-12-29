@@ -425,8 +425,8 @@ const BrandBooking = () => {
 
       if (!allowedTypes.includes(fileType)) {
         toast({
-          title: "Format Fail Tidak Sah",
-          description: "Sila muat naik fail imej sahaja (JPG, PNG, WebP, GIF). Fail PDF tidak diterima.",
+          title: "Format Resit Tidak Dibenarkan",
+          description: "Sila muat naik imej sahaja. Fail PDF tidak diterima.",
           variant: "destructive",
         });
         return;

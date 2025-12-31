@@ -98,14 +98,18 @@ export function BookingDetailModal({ booking, open, onOpenChange }: BookingDetai
         );
     }
 
+    const isWedding = booking.bookingType === 'wedding';
+
     const getDefaultWhatsAppMessage = () => {
+        const typeLabel = isWedding ? 'Majlis Perkahwinan' : 'Sesi Studio';
+
         return `Hai ${booking.customerName},\n\n` +
-            `Terima kasih atas tempahan anda!\n\n` +
+            `Terima kasih atas tempahan ${typeLabel} anda!\n\n` +
             `📋 *Butiran Tempahan*\n` +
             `Rujukan: ${booking.reference}\n` +
             `Tarikh: ${format(parseDateLocal(booking.date), 'dd/MM/yyyy')}\n` +
-            `Masa: ${booking.startTime} - ${booking.endTime}\n` +
-            `Layout: ${booking.layoutName}\n` +
+            `Masa: ${isWedding ? 'Majlis Sepanjang Hari' : `${booking.startTime} - ${booking.endTime}`}\n` +
+            `${isWedding ? 'Pakej' : 'Layout'}: ${booking.layoutName}\n` +
             `Jumlah: RM ${booking.totalPrice.toFixed(2)}\n\n` +
             `Jika ada sebarang pertanyaan, sila hubungi kami.`;
     };
@@ -197,6 +201,13 @@ export function BookingDetailModal({ booking, open, onOpenChange }: BookingDetai
                     <div className="space-y-6">
                         {/* Status */}
                         <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-muted-foreground">Jenis Tempahan</span>
+                            <Badge variant="outline" className="capitalize">
+                                {booking.bookingType === 'wedding' ? 'Wedding Reception' : 'Studio Raya'}
+                            </Badge>
+                        </div>
+
+                        <div className="flex items-center justify-between">
                             <span className="text-sm font-medium text-muted-foreground">Status</span>
                             {getStatusBadge(booking.status)}
                         </div>
@@ -257,15 +268,19 @@ export function BookingDetailModal({ booking, open, onOpenChange }: BookingDetai
                                     <Clock className="h-4 w-4 mt-0.5 text-muted-foreground" />
                                     <div className="flex-1">
                                         <p className="text-xs text-muted-foreground">Masa</p>
-                                        <p className="font-medium">{booking.startTime} - {booking.endTime}</p>
-                                        <p className="text-xs text-muted-foreground mt-0.5">{booking.duration} minit</p>
+                                        <p className="font-medium">
+                                            {booking.bookingType === 'wedding' ? 'Majlis Sepanjang Hari' : `${booking.startTime} - ${booking.endTime}`}
+                                        </p>
+                                        {!isWedding && <p className="text-xs text-muted-foreground mt-0.5">{booking.duration} minit</p>}
                                     </div>
                                 </div>
 
                                 <div className="flex items-start gap-3">
                                     <Building2 className="h-4 w-4 mt-0.5 text-muted-foreground" />
                                     <div className="flex-1">
-                                        <p className="text-xs text-muted-foreground">Layout Studio</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {booking.bookingType === 'wedding' ? 'Pakej Dipilih' : 'Layout Studio'}
+                                        </p>
                                         <p className="font-medium">{booking.layoutName}</p>
                                     </div>
                                 </div>

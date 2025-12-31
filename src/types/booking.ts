@@ -37,8 +37,9 @@ export interface Booking {
   customerPhone: string;
   companyId: string;
   studioId: string;
-  layoutId: string;
-  layoutName: string;
+  layoutId?: string | null;
+  layoutName?: string | null;
+  bookingType?: 'studio' | 'wedding';
   date: string;
   startTime: string;
   endTime: string;

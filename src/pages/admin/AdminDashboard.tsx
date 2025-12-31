@@ -15,7 +15,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { getDashboardStats, getStudioBookingsWithDetails, type DashboardStats } from '@/services/bookingService';
+import { getActivePhotographers, getActiveEditors } from '@/services/studioStaffService';
 import type { BookingWithDetails } from '@/types/database';
+import type { StudioStaff } from '@/types/studioStaff';
 import type { Booking } from '@/types/booking';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -50,6 +52,8 @@ const AdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [photographers, setPhotographers] = useState<StudioStaff[]>([]);
+  const [editors, setEditors] = useState<StudioStaff[]>([]);
 
   // Fetch real data from database
   useEffect(() => {
@@ -62,13 +66,17 @@ const AdminDashboard = () => {
       setIsLoading(true);
 
       try {
-        // Fetch stats and bookings in parallel
-        const [statsData, bookingsData] = await Promise.all([
+        // Fetch stats, bookings and staff in parallel
+        const [statsData, bookingsData, photographersData, editorsData] = await Promise.all([
           getDashboardStats(effectiveStudioId),
           getStudioBookingsWithDetails(effectiveStudioId),
+          getActivePhotographers(effectiveStudioId).catch(() => []),
+          getActiveEditors(effectiveStudioId).catch(() => []),
         ]);
 
         setStats(statsData);
+        setPhotographers(photographersData);
+        setEditors(editorsData);
 
         // Convert database bookings to the format expected by BookingTable
         const formattedBookings: Booking[] = bookingsData.slice(0, 10).map((b: BookingWithDetails) => ({
@@ -81,7 +89,8 @@ const AdminDashboard = () => {
           companyId: b.company_id,
           studioId: b.studio_id,
           layoutId: b.layout_id,
-          layoutName: b.studio_layout?.name || 'Unknown',
+          layoutName: b.booking_type === 'wedding' ? 'Wedding Reception' : (b.studio_layout?.name || 'Unknown'),
+          bookingType: b.booking_type as 'studio' | 'wedding',
           date: b.date,
           startTime: b.start_time,
           endTime: b.end_time,
@@ -159,25 +168,16 @@ const AdminDashboard = () => {
                 <div className="flex flex-col h-full">
                   {/* Logo & Studio Info */}
                   <div className="p-4 border-b border-border">
-                    <Link to="/admin" className="flex items-center gap-2 mb-3">
-                      <img src="/image.png" alt="Tempah Studio Logo" style={{ height: '36px', width: 'auto' }} />
-                      <div>
-                        <span className="font-semibold">Raya Studio</span>
-                        <p className="text-xs text-muted-foreground">Portal Admin</p>
+                    <Link to="/admin" className="flex flex-col gap-3 mb-4 select-none">
+                      <img
+                        src="/image.png"
+                        alt="Tempah Studio Logo"
+                        className="h-10 w-auto object-contain"
+                      />
+                      <div className="flex flex-col">
+                        <span className="font-bold text-lg leading-none mb-1">Portal Admin</span>
                       </div>
                     </Link>
-                    {/* Current Studio Badge */}
-                    {studio && (
-                      <div className="flex items-center gap-2 px-2 py-1.5 bg-muted/50 rounded-md">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate">{studio.name}</p>
-                          {studio.location && (
-                            <p className="text-[10px] text-muted-foreground truncate">{studio.location}</p>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {/* Navigation */}
@@ -307,14 +307,21 @@ const AdminDashboard = () => {
                         <p className="text-sm font-medium">{booking.customerName}</p>
                         <p className="text-xs text-muted-foreground">{booking.layoutName}</p>
                       </div>
-                      <Badge variant={booking.status === 'confirmed' ? 'default' : 'secondary'}>
-                        {booking.status === 'confirmed' ? 'Disahkan' : booking.status === 'pending' ? 'Menunggu' : booking.status}
+                      <Badge variant={booking.status === 'confirmed' || booking.status === 'done-payment' ? 'default' : 'secondary'}>
+                        {booking.status === 'confirmed' ? 'Disahkan' :
+                          booking.status === 'done-payment' ? 'Bayaran Selesai' :
+                            booking.status === 'pending' ? 'Menunggu' : booking.status}
                       </Badge>
                     </div>
                     <div className="flex justify-between items-center text-xs text-muted-foreground">
                       <span>{new Date(booking.date).toLocaleDateString('ms-MY')}</span>
-                      <span>{booking.startTime} - {booking.endTime}</span>
+                      <span>{booking.bookingType === 'wedding' ? 'Majlis Sepanjang Hari' : `${booking.startTime} - ${booking.endTime}`}</span>
                       <span>{formatCurrency(booking.totalPrice)}</span>
+                    </div>
+                    <div className="mt-1">
+                      <Badge variant="outline" className="text-[10px] h-4 py-0">
+                        {booking.bookingType === 'wedding' ? 'Wedding' : 'Studio'}
+                      </Badge>
                     </div>
                   </div>
                 ))}
@@ -422,6 +429,8 @@ const AdminDashboard = () => {
               ) : recentBookings.length > 0 ? (
                 <BookingTable
                   bookings={recentBookings}
+                  photographers={photographers}
+                  editors={editors}
                   onViewBooking={handleViewBooking}
                 />
               ) : (

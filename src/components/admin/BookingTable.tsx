@@ -91,6 +91,7 @@ export function BookingTable({
   const [maxPriceFilter, setMaxPriceFilter] = useState('');
   const [layoutFilter, setLayoutFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [bookingTypeFilter, setBookingTypeFilter] = useState('all');
 
   // Reschedule dialog state
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
@@ -187,8 +188,9 @@ export function BookingTable({
     const matchesMaxPrice = !maxPriceFilter || booking.totalPrice <= parseFloat(maxPriceFilter);
     const matchesLayout = layoutFilter === 'all' || booking.layoutName === layoutFilter;
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
+    const matchesBookingType = bookingTypeFilter === 'all' || booking.bookingType === bookingTypeFilter;
 
-    return matchesReference && matchesCustomer && matchesDate && matchesMinPrice && matchesMaxPrice && matchesLayout && matchesStatus;
+    return matchesReference && matchesCustomer && matchesDate && matchesMinPrice && matchesMaxPrice && matchesLayout && matchesStatus && matchesBookingType;
   });
 
   const clearAllFilters = () => {
@@ -199,6 +201,7 @@ export function BookingTable({
     setMaxPriceFilter('');
     setLayoutFilter('all');
     setStatusFilter('all');
+    setBookingTypeFilter('all');
   };
 
   const handleOpenReschedule = (booking: Booking) => {
@@ -286,7 +289,7 @@ export function BookingTable({
     setAssignmentDialogOpen(false);
   };
 
-  const hasActiveFilters = referenceFilter || customerFilter || dateFilter || minPriceFilter || maxPriceFilter || layoutFilter !== 'all' || statusFilter !== 'all';
+  const hasActiveFilters = referenceFilter || customerFilter || dateFilter || minPriceFilter || maxPriceFilter || layoutFilter !== 'all' || statusFilter !== 'all' || bookingTypeFilter !== 'all';
 
   return (
     <div className="space-y-2">
@@ -316,6 +319,7 @@ export function BookingTable({
               <TableHead>Layout</TableHead>
               <TableHead>Jumlah</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Jenis</TableHead>
               <TableHead>Tugasan Oleh</TableHead>
               <TableHead className="w-[70px]"></TableHead>
             </TableRow>
@@ -405,14 +409,25 @@ export function BookingTable({
                   </SelectContent>
                 </Select>
               </TableHead>
-              <TableHead className="h-12"></TableHead>
+              <TableHead className="h-12">
+                <Select value={bookingTypeFilter} onValueChange={setBookingTypeFilter}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Semua" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Jenis</SelectItem>
+                    <SelectItem value="studio">Studio Raya</SelectItem>
+                    <SelectItem value="wedding">Wedding</SelectItem>
+                  </SelectContent>
+                </Select>
+              </TableHead>
               <TableHead className="h-12"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredBookings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   {hasActiveFilters ? 'Tiada tempahan yang sepadan dengan penapis' : 'Tiada tempahan dijumpai'}
                 </TableCell>
               </TableRow>
@@ -439,6 +454,11 @@ export function BookingTable({
                   <TableCell>
                     <Badge variant={statusVariants[booking.status]}>
                       {statusLabels[booking.status]}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize">
+                      {booking.bookingType === 'wedding' ? 'Wedding' : 'Studio'}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -529,11 +549,13 @@ export function BookingTable({
       </div>
 
       {/* Results count */}
-      {hasActiveFilters && (
-        <p className="text-sm text-muted-foreground">
-          Menunjukkan {filteredBookings.length} daripada {bookings.length} tempahan
-        </p>
-      )}
+      {
+        hasActiveFilters && (
+          <p className="text-sm text-muted-foreground">
+            Menunjukkan {filteredBookings.length} daripada {bookings.length} tempahan
+          </p>
+        )
+      }
 
       {/* Reschedule Dialog */}
       <RescheduleDialog
@@ -623,6 +645,6 @@ export function BookingTable({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </div >
   );
 }

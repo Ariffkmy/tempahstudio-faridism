@@ -114,40 +114,19 @@ export function AdminSidebar() {
       {/* Logo & Studio Info */}
       <div className="p-6 border-b border-border">
         {!isCollapsed && (
-          <Link to="/admin" className="flex items-center gap-2 mb-3">
-            <img src="/image.png" alt="Tempah Studio Logo" style={{ height: '36px', width: 'auto' }} />
-            <div>
-              <span className="font-semibold">Raya Studio</span>
-              <p className="text-xs text-muted-foreground">Portal Admin</p>
+          <Link to="/admin" className="flex flex-col gap-3 mb-4 select-none">
+            <img
+              src="/image.png"
+              alt="Tempah Studio Logo"
+              className="h-10 w-auto object-contain"
+            />
+            <div className="flex flex-col">
+              <span className="font-bold text-lg leading-none mb-1">Portal Admin</span>
             </div>
           </Link>
         )}
 
-        {/* Current Studio Badge */}
-        {studio && !isCollapsed && (
-          <div className="flex items-center gap-2 px-2 py-1.5 bg-muted/50 rounded-md">
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between gap-1 mb-0.5">
-                <p className="text-xs font-medium truncate">{studio.name}</p>
-                {activePackage && (
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "text-[8px] px-1 py-0 h-3.5 border-none font-bold uppercase tracking-wider",
-                      getPackageBadgeStyles(activePackage)
-                    )}
-                  >
-                    {activePackage}
-                  </Badge>
-                )}
-              </div>
-              {studio.location && (
-                <p className="text-[10px] text-muted-foreground truncate">{studio.location}</p>
-              )}
-            </div>
-          </div>
-        )}
+
 
         {studio && isCollapsed && (
           <div className="flex justify-center mt-2">

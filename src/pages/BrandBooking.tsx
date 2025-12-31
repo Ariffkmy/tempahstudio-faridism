@@ -186,9 +186,13 @@ const BrandBooking = () => {
         } else if (studioSlug) {
           query = query.eq('slug', studioSlug);
         } else if (isBookingPath) {
-          // If on /booking path, we take the first active studio as default
-          // In a single-studio setup like Faridism, this will load the correct studio
-          query = query.limit(1);
+          // If on /booking path, prioritize the main production studio
+          // First try to find a studio with 'Faridism' in the name (production)
+          // Otherwise fall back to the most recently created active studio
+          query = query
+            .or('name.ilike.%Faridism%,name.ilike.%Production%')
+            .order('created_at', { ascending: false })
+            .limit(1);
         } else {
           toast({
             title: "Error",
@@ -202,6 +206,7 @@ const BrandBooking = () => {
         const { data: studioData, error: studioError } = await query.single();
 
         if (studioError || !studioData) {
+          console.error('❌ Failed to load studio:', studioError);
           toast({
             title: "Error",
             description: "Studio tidak dijumpai",
@@ -210,6 +215,13 @@ const BrandBooking = () => {
           navigate('/');
           return;
         }
+
+        console.log('✅ Loaded studio:', {
+          id: studioData.id,
+          name: studioData.name,
+          slug: studioData.slug,
+          isBookingPath: isBookingPath
+        });
 
         setStudio(studioData);
 
@@ -533,6 +545,14 @@ const BrandBooking = () => {
         receiptUrl,
         paymentProofUrl,
       };
+
+      console.log('📤 Submitting booking with data:', {
+        studioId: bookingData.studioId,
+        studioName: studio.name,
+        layoutId: bookingData.layoutId,
+        date: bookingData.date,
+        customerName: bookingData.customerName
+      });
 
       const result = await createPublicBooking(bookingData);
 

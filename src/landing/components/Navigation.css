@@ -1,0 +1,232 @@
+.landing-app .navigation {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background-color: transparent;
+    transition: all 0.3s ease-in-out;
+    box-shadow: none;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.landing-app .navigation.scrolled {
+    background-color: var(--color-white);
+    box-shadow: var(--shadow-md);
+}
+
+.landing-app .navigation.hidden {
+    transform: translateY(-100%);
+}
+
+.landing-app .nav-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 0;
+}
+
+.landing-app .nav-logo {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    color: var(--color-white);
+    text-decoration: none;
+    transition: var(--transition-fast);
+    display: flex;
+    align-items: center;
+}
+
+.landing-app .navigation.scrolled .nav-logo {
+    color: var(--color-black);
+}
+
+.landing-app .nav-logo:hover {
+    opacity: 0.8;
+}
+
+.landing-app .logo-image {
+    height: 50px;
+    width: auto;
+    object-fit: contain;
+    transition: var(--transition-fast);
+}
+
+.landing-app .nav-logo:hover .logo-image {
+    transform: scale(1.05);
+}
+
+.landing-app .logo-text {
+    letter-spacing: 2px;
+}
+
+.landing-app .nav-menu {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.landing-app .nav-item {
+    position: relative;
+}
+
+.landing-app .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+    color: var(--color-white);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    padding: 0.5rem 0;
+}
+
+.landing-app .navigation.scrolled .nav-link {
+    color: var(--color-black);
+}
+
+.landing-app .nav-link:hover {
+    color: var(--color-primary);
+}
+
+.landing-app .nav-link svg {
+    transition: var(--transition-fast);
+}
+
+.landing-app .has-dropdown:hover .nav-link svg {
+    transform: rotate(180deg);
+}
+
+.landing-app .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 220px;
+    background-color: var(--color-white);
+    box-shadow: var(--shadow-md);
+    border-radius: var(--radius-sm);
+    list-style: none;
+    padding: 0.5rem 0;
+    margin-top: 0.5rem;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: var(--transition-normal);
+}
+
+.landing-app .dropdown-menu.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.landing-app .dropdown-link {
+    display: block;
+    padding: 0.75rem 1.5rem;
+    color: var(--color-text);
+    transition: var(--transition-fast);
+}
+
+.landing-app .dropdown-link:hover {
+    background-color: var(--color-primary);
+    color: var(--color-black);
+}
+
+.landing-app .mobile-menu-toggle {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+}
+
+.landing-app .mobile-menu-toggle span {
+    width: 25px;
+    height: 3px;
+    background-color: var(--color-white);
+    transition: var(--transition-fast);
+    border-radius: 2px;
+}
+
+.landing-app .navigation.scrolled .mobile-menu-toggle span {
+    background-color: var(--color-black);
+}
+
+@media (max-width: 768px) {
+.landing-app .mobile-menu-toggle {
+        display: flex;
+    }
+
+.landing-app .logo-image {
+        height: 40px;
+    }
+
+.landing-app .nav-menu {
+        position: fixed;
+        top: 70px;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        gap: 0;
+        background-color: var(--color-white);
+        padding: 1rem 0;
+        box-shadow: var(--shadow-md);
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transition: var(--transition-normal);
+    }
+
+.landing-app .nav-menu.active {
+        max-height: 500px;
+        opacity: 1;
+    }
+
+.landing-app .nav-menu .nav-link {
+        color: var(--color-black);
+    }
+
+.landing-app .nav-item {
+        width: 100%;
+    }
+
+.landing-app .nav-link {
+        padding: 1rem 2rem;
+        width: 100%;
+        justify-content: space-between;
+    }
+
+.landing-app .dropdown-menu {
+        position: static;
+        box-shadow: none;
+        margin: 0;
+        padding: 0;
+        background-color: var(--color-gray-light);
+        border-radius: 0;
+        max-height: 0;
+        overflow: hidden;
+    }
+
+.landing-app .dropdown-menu.active {
+        max-height: 500px;
+        padding: 0.5rem 0;
+    }
+
+.landing-app .dropdown-link {
+        padding: 0.75rem 3rem;
+    }
+
+.landing-app .has-dropdown .nav-link {
+        cursor: pointer;
+    }
+
+.landing-app .has-dropdown {
+        cursor: pointer;
+    }
+}
+

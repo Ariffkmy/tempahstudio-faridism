@@ -8,7 +8,7 @@ import { StudioProvider } from "@/contexts/StudioContext";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
-import Index from "./pages/Index";
+import LandingLayout from "./landing/LandingLayout";
 import Studios from "./pages/Studios";
 import StudioSlots from "./pages/StudioSlots";
 import Book from "./pages/Book";
@@ -33,12 +33,6 @@ import PackagePayment from "./pages/PackagePayment";
 import Onboarding from "./pages/Onboarding";
 import CompleteRegistration from "./pages/CompleteRegistration";
 import NotFound from "./pages/NotFound";
-import GettingStarted from "./pages/GettingStarted";
-import UseCases from "./pages/UseCases";
-import Pricing from "./pages/Pricing";
-import FAQ from "./pages/FAQ";
-import Blog from "./pages/Blog";
-import ContactSupport from "./pages/ContactSupport";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import MetaTagsManager from "./components/MetaTagsManager";
@@ -58,8 +52,14 @@ const App = () => (
             <MetaTagsManager />
             <SidebarProvider>
               <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<Index />} />
+                {/* Landing Page Routes (Self-contained in LandingLayout) */}
+                <Route path="/" element={<LandingLayout />} />
+                <Route path="/about-us" element={<LandingLayout />} />
+                <Route path="/our-team" element={<LandingLayout />} />
+                <Route path="/packages" element={<LandingLayout />} />
+                <Route path="/packages/:packageType" element={<LandingLayout />} />
+                <Route path="/contact-us" element={<LandingLayout />} />
+
                 <Route path="/studios" element={<Studios />} />
                 <Route path="/studios/:studioId/slots" element={<StudioSlots />} />
                 <Route path="/book" element={<Book />} />
@@ -68,18 +68,9 @@ const App = () => (
                 <Route path="/brand/:studioId" element={<BrandBooking />} />
                 <Route path="/booking/confirmation" element={<BookingConfirmation />} />
 
-                {/* Landing Page Routes */}
-                <Route path="/getting-started" element={<GettingStarted />} />
-                <Route path="/use-cases" element={<UseCases />} />
-                <Route path="/pricing" element={<Pricing />} />
-                <Route path="/faq" element={<FAQ />} />
-                <Route path="/blog" element={<Blog />} />
-                <Route path="/contact-support" element={<ContactSupport />} />
+                {/* Legacy Landing Page Routes */}
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/terms-of-service" element={<TermsOfService />} />
-
-                {/* Studio slug-based booking route (e.g., /my-studio-name) */}
-                <Route path="/:studioSlug" element={<BrandBooking />} />
 
                 {/* Admin Auth Routes (Public) */}
                 <Route path="/admin/login" element={<AdminLogin />} />
@@ -178,7 +169,10 @@ const App = () => (
                   }
                 />
 
-                {/* 404 */}
+                {/* Studio slug-based booking route (e.g., /my-studio-name) - Must be second to last */}
+                <Route path="/:studioSlug" element={<BrandBooking />} />
+
+                {/* 404 - Must be last */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </SidebarProvider>

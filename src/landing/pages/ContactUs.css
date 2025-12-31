@@ -1,0 +1,186 @@
+.landing-app .contact-us {
+    /* No padding - hero starts at top with header overlay */
+}
+
+.landing-app .contact-content {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: var(--spacing-xl);
+    margin-top: var(--spacing-lg);
+}
+
+.landing-app .contact-info h2,
+.landing-app .contact-form-wrapper h2 {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-md);
+    color: var(--color-black);
+}
+
+.landing-app .contact-intro {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: var(--color-text);
+    margin-bottom: var(--spacing-lg);
+}
+
+.landing-app .info-items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.landing-app .info-item {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background: var(--color-gray-light);
+    border-radius: var(--radius-sm);
+    transition: var(--transition-normal);
+}
+
+.landing-app .info-item:hover {
+    background: var(--color-primary);
+    transform: translateX(8px);
+}
+
+.landing-app .info-icon {
+    flex-shrink: 0;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-white);
+    border-radius: var(--radius-sm);
+    color: var(--color-primary);
+}
+
+.landing-app .info-item:hover .info-icon {
+    background: var(--color-black);
+    color: var(--color-primary);
+}
+
+.landing-app .info-item h4 {
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+    color: var(--color-black);
+}
+
+.landing-app .info-item p {
+    color: var(--color-text);
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.landing-app .social-section {
+    margin-top: var(--spacing-lg);
+}
+
+.landing-app .social-section h4 {
+    font-size: 1.2rem;
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-black);
+}
+
+.landing-app .social-section .social-links {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.landing-app .social-section .social-link {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-gray-light);
+    border-radius: var(--radius-sm);
+    color: var(--color-black);
+    transition: var(--transition-normal);
+}
+
+.landing-app .social-section .social-link:hover {
+    background-color: var(--color-primary);
+    transform: translateY(-4px);
+}
+
+.landing-app .contact-form-wrapper {
+    background: var(--color-gray-light);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-md);
+}
+
+.landing-app .contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.landing-app .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.landing-app .form-group label {
+    font-weight: 600;
+    color: var(--color-black);
+    font-size: 0.95rem;
+}
+
+.landing-app .form-group input,
+.landing-app .form-group select,
+.landing-app .form-group textarea {
+    padding: 0.875rem;
+    border: 2px solid transparent;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    background: var(--color-white);
+    transition: var(--transition-fast);
+}
+
+.landing-app .form-group input:focus,
+.landing-app .form-group select:focus,
+.landing-app .form-group textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.landing-app .form-group textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.landing-app .contact-form .btn {
+    margin-top: var(--spacing-sm);
+    width: 100%;
+    justify-content: center;
+}
+
+@media (max-width: 968px) {
+.landing-app .contact-content {
+        grid-template-columns: 1fr;
+    }
+
+.landing-app .contact-info {
+        order: 2;
+    }
+
+.landing-app .contact-form-wrapper {
+        order: 1;
+    }
+}
+
+@media (max-width: 768px) {
+.landing-app .info-item {
+        flex-direction: column;
+        text-align: center;
+    }
+
+.landing-app .social-section .social-links {
+        justify-content: center;
+    }
+}
+

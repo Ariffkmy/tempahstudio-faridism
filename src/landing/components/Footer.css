@@ -1,0 +1,104 @@
+.landing-app .footer {
+    background-color: var(--color-black);
+    color: var(--color-white);
+    padding: var(--spacing-xl) 0 var(--spacing-md);
+}
+
+.landing-app .footer-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.landing-app .footer-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.landing-app .footer-title {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-sm);
+    letter-spacing: 2px;
+}
+
+.landing-app .footer-heading {
+    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    color: var(--color-white);
+    margin-bottom: var(--spacing-sm);
+}
+
+.landing-app .footer-text {
+    color: #cccccc;
+    line-height: 1.8;
+    font-size: 0.95rem;
+}
+
+.landing-app .footer-links {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.landing-app .footer-links a {
+    color: #cccccc;
+    transition: var(--transition-fast);
+    font-size: 0.95rem;
+}
+
+.landing-app .footer-links a:hover {
+    color: var(--color-primary);
+    padding-left: 5px;
+}
+
+.landing-app .social-links {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-xs);
+}
+
+.landing-app .social-link {
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 195, 0, 0.1);
+    border-radius: var(--radius-sm);
+    color: var(--color-primary);
+    transition: var(--transition-normal);
+}
+
+.landing-app .social-link:hover {
+    background-color: var(--color-primary);
+    color: var(--color-black);
+    transform: translateY(-4px);
+}
+
+.landing-app .footer-bottom {
+    padding-top: var(--spacing-md);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+.landing-app .copyright {
+    color: #999999;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+.landing-app .footer-content {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+    }
+
+.landing-app .footer {
+        padding: var(--spacing-lg) 0 var(--spacing-md);
+    }
+}
+

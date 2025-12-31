@@ -1,0 +1,168 @@
+.landing-app .packages-page {
+    /* No padding - hero starts at top with header overlay */
+}
+
+.landing-app .packages-intro {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto var(--spacing-xl);
+}
+
+.landing-app .packages-intro h2 {
+    font-size: 2.5rem;
+    margin-bottom: var(--spacing-md);
+    color: var(--color-black);
+}
+
+.landing-app .packages-intro p {
+    font-size: 1.2rem;
+    line-height: 1.8;
+    color: var(--color-text);
+}
+
+.landing-app .packages-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+}
+
+.landing-app .package-card-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.landing-app .package-card {
+    background: var(--color-white);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-normal);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.landing-app .package-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-lg);
+}
+
+.landing-app .package-image-wrapper {
+    position: relative;
+    width: 100%;
+    height: 250px;
+    overflow: hidden;
+}
+
+.landing-app .package-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: var(--transition-slow);
+}
+
+.landing-app .package-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: var(--transition-normal);
+}
+
+.landing-app .package-card:hover .package-overlay {
+    opacity: 1;
+}
+
+.landing-app .package-card:hover .package-image {
+    transform: scale(1.1);
+}
+
+.landing-app .view-package {
+    color: var(--color-primary);
+    font-size: 1.2rem;
+    font-weight: 600;
+    font-family: var(--font-heading);
+}
+
+.landing-app .package-content {
+    padding: var(--spacing-md);
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.landing-app .package-title {
+    font-size: 1.8rem;
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-black);
+}
+
+.landing-app .package-description {
+    color: var(--color-text);
+    line-height: 1.6;
+    margin-bottom: var(--spacing-md);
+    flex-grow: 1;
+}
+
+.landing-app .package-price {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding-top: var(--spacing-sm);
+    border-top: 2px solid var(--color-gray-light);
+}
+
+.landing-app .price-label {
+    font-size: 0.85rem;
+    color: var(--color-text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.landing-app .price-value {
+    font-size: 1.5rem;
+    font-family: var(--font-heading);
+    color: var(--color-primary);
+}
+
+.landing-app .cta-content {
+    text-align: center;
+    padding: var(--spacing-lg) 0;
+}
+
+.landing-app .cta-content h2 {
+    font-size: 2.5rem;
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-black);
+}
+
+.landing-app .cta-content p {
+    font-size: 1.2rem;
+    margin-bottom: var(--spacing-lg);
+    color: var(--color-text);
+}
+
+.landing-app .cta-buttons {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+.landing-app .packages-grid {
+        grid-template-columns: 1fr;
+    }
+
+.landing-app .package-image-wrapper {
+        height: 200px;
+    }
+}
+

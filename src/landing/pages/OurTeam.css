@@ -1,0 +1,130 @@
+.landing-app .our-team {
+    /* No padding - hero starts at top with header overlay */
+}
+
+.landing-app .team-intro {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto var(--spacing-xl);
+}
+
+.landing-app .team-intro h2 {
+    font-size: 2.5rem;
+    margin-bottom: var(--spacing-md);
+    color: var(--color-black);
+}
+
+.landing-app .team-intro p {
+    font-size: 1.2rem;
+    line-height: 1.8;
+    color: var(--color-text);
+}
+
+.landing-app .team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+}
+
+.landing-app .team-card {
+    background: var(--color-white);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-normal);
+}
+
+.landing-app .team-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-lg);
+}
+
+.landing-app .team-image-wrapper {
+    position: relative;
+    width: 100%;
+    height: 350px;
+    overflow: hidden;
+}
+
+.landing-app .team-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: var(--transition-slow);
+}
+
+.landing-app .team-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+    opacity: 0;
+    transition: var(--transition-normal);
+}
+
+.landing-app .team-card:hover .team-overlay {
+    opacity: 1;
+}
+
+.landing-app .team-card:hover .team-image {
+    transform: scale(1.1);
+}
+
+.landing-app .team-bio {
+    color: var(--color-white);
+    text-align: center;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.landing-app .team-info {
+    padding: var(--spacing-md);
+    text-align: center;
+}
+
+.landing-app .team-name {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--color-black);
+}
+
+.landing-app .team-role {
+    color: var(--color-primary);
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.landing-app .join-team {
+    text-align: center;
+    padding: var(--spacing-lg) 0;
+}
+
+.landing-app .join-team h2 {
+    font-size: 2.5rem;
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-black);
+}
+
+.landing-app .join-team p {
+    font-size: 1.2rem;
+    margin-bottom: var(--spacing-lg);
+    color: var(--color-text);
+}
+
+@media (max-width: 768px) {
+.landing-app .team-grid {
+        grid-template-columns: 1fr;
+    }
+
+.landing-app .team-image-wrapper {
+        height: 300px;
+    }
+}
+

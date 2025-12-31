@@ -1,0 +1,353 @@
+.landing-app .home {
+    /* No padding - hero starts at top with header overlay */
+}
+
+/* Hero Section with Carousel */
+.landing-app .hero {
+    position: relative;
+    height: 100vh;
+    min-height: 600px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.landing-app .hero-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transition: opacity 2s ease-in-out;
+    z-index: 0;
+}
+
+.landing-app .hero-background.active {
+    opacity: 1;
+}
+
+.landing-app .hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.35));
+    z-index: 1;
+}
+
+.landing-app .hero-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    color: var(--color-white);
+    max-width: 900px;
+    padding: 0 var(--spacing-md);
+}
+
+.landing-app .hero-title {
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    margin-bottom: var(--spacing-md);
+    color: var(--color-white);
+    animation-delay: 0.2s;
+}
+
+.landing-app .hero-subtitle {
+    font-size: clamp(1.1rem, 2vw, 1.5rem);
+    margin-bottom: var(--spacing-lg);
+    font-weight: 300;
+    animation-delay: 0.4s;
+}
+
+.landing-app .hero .btn {
+    animation-delay: 0.6s;
+}
+
+/* Section Titles */
+.landing-app .section-title {
+    text-align: center;
+    font-size: clamp(2rem, 4vw, 3rem);
+    margin-bottom: var(--spacing-sm);
+}
+
+.landing-app .section-subtitle {
+    text-align: center;
+    font-size: clamp(1rem, 2vw, 1.3rem);
+    color: var(--color-text-light);
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Services Grid */
+.landing-app .services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+}
+
+.landing-app .service-card {
+    position: relative;
+    height: 350px;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.landing-app .service-image-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.landing-app .service-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: var(--transition-slow);
+}
+
+.landing-app .service-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: var(--spacing-md);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+    color: var(--color-white);
+    transition: var(--transition-normal);
+}
+
+.landing-app .service-title {
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-xs);
+    color: var(--color-white);
+}
+
+.landing-app .service-link-text {
+    font-size: 0.9rem;
+    color: var(--color-primary);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: var(--transition-normal);
+}
+
+.landing-app .service-card:hover .service-image {
+    transform: scale(1.1);
+}
+
+.landing-app .service-card:hover .service-link-text {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.landing-app .browse-all {
+    background-color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.landing-app .browse-content {
+    text-align: center;
+    color: var(--color-black);
+}
+
+.landing-app .browse-content h3 {
+    font-size: 1.8rem;
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-black);
+}
+
+.landing-app .browse-content svg {
+    transition: var(--transition-normal);
+}
+
+.landing-app .browse-all:hover .browse-content svg {
+    transform: translateX(10px);
+}
+
+/* USP Grid - 2x2 Layout */
+.landing-app .usp-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.landing-app .usp-card {
+    background: var(--color-white);
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    transition: var(--transition-normal);
+}
+
+.landing-app .usp-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-lg);
+}
+
+.landing-app .quote-mark {
+    width: 50px;
+    height: auto;
+    opacity: 0.3;
+    margin-bottom: var(--spacing-sm);
+    display: block;
+}
+
+.landing-app .usp-title {
+    font-size: 1.3rem;
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-black);
+}
+
+.landing-app .usp-text {
+    color: var(--color-text);
+    line-height: 1.7;
+}
+
+/* Process Grid */
+.landing-app .process-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+}
+
+.landing-app .process-step {
+    text-align: center;
+    position: relative;
+    padding: var(--spacing-md);
+}
+
+.landing-app .step-number {
+    font-size: 8rem;
+    font-family: var(--font-heading);
+    color: var(--color-primary);
+    opacity: 0.2;
+    line-height: 1;
+    margin-bottom: -2rem;
+}
+
+.landing-app .step-title {
+    font-size: 1.8rem;
+    margin-bottom: var(--spacing-sm);
+    position: relative;
+    z-index: 1;
+}
+
+.landing-app .step-text {
+    color: var(--color-text);
+    line-height: 1.7;
+    position: relative;
+    z-index: 1;
+}
+
+/* Reviews Section */
+.landing-app .reviews-intro {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto var(--spacing-lg);
+    font-size: 1.1rem;
+    line-height: 1.8;
+}
+
+.landing-app .reviews-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.landing-app .review-card {
+    background: var(--color-white);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition-normal);
+}
+
+.landing-app .review-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+}
+
+.landing-app .review-text {
+    font-style: italic;
+    color: var(--color-text);
+    margin-bottom: var(--spacing-sm);
+    line-height: 1.7;
+}
+
+.landing-app .review-author {
+    color: var(--color-text-light);
+    font-size: 0.9rem;
+}
+
+.landing-app .review-links {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: var(--spacing-lg);
+}
+
+/* CTA Section */
+.landing-app .cta-section {
+    text-align: center;
+    padding: var(--spacing-xl) 0;
+}
+
+.landing-app .cta-buttons {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: var(--spacing-lg);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+.landing-app .hero {
+        height: 70vh;
+        min-height: 500px;
+    }
+
+.landing-app .services-grid,
+.landing-app .usp-grid,
+.landing-app .process-grid,
+.landing-app .reviews-grid {
+        grid-template-columns: 1fr;
+    }
+
+.landing-app .service-card {
+        height: 300px;
+    }
+
+.landing-app .quote-mark {
+        width: 40px;
+    }
+
+.landing-app .step-number {
+        font-size: 5rem;
+    }
+
+.landing-app .cta-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+
+.landing-app .cta-buttons .btn {
+        width: 100%;
+        max-width: 300px;
+    }
+}
+

@@ -1,0 +1,107 @@
+.landing-app .package-page {
+    /* No padding - hero starts at top with header overlay */
+}
+
+.landing-app .package-hero {
+    position: relative;
+    height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-size: cover;
+    background-position: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.landing-app .package-intro {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto var(--spacing-xl);
+}
+
+.landing-app .package-intro h2 {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-md);
+    color: var(--color-black);
+}
+
+.landing-app .package-intro p {
+    font-size: 1.2rem;
+    line-height: 1.8;
+    color: var(--color-text);
+}
+
+.landing-app .packages-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+}
+
+.landing-app .package-card {
+    background: var(--color-white);
+    border: 2px solid var(--color-gray-light);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    text-align: center;
+    transition: var(--transition-normal);
+    display: flex;
+    flex-direction: column;
+}
+
+.landing-app .package-card:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-lg);
+}
+
+.landing-app .package-name {
+    font-size: 1.8rem;
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-black);
+}
+
+.landing-app .package-price {
+    font-size: 2.5rem;
+    font-family: var(--font-heading);
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.landing-app .package-features {
+    list-style: none;
+    text-align: left;
+    margin-bottom: var(--spacing-lg);
+    flex-grow: 1;
+}
+
+.landing-app .package-features li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+    font-size: 1rem;
+    color: var(--color-text);
+    line-height: 1.6;
+}
+
+.landing-app .package-features svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.landing-app .package-card .btn {
+    width: 100%;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+.landing-app .package-hero {
+        height: 300px;
+    }
+
+.landing-app .packages-grid {
+        grid-template-columns: 1fr;
+    }
+}
+

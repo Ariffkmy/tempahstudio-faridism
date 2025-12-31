@@ -397,7 +397,7 @@ const AdminTaskTracker = () => {
         <header className="sticky top-0 z-50 bg-background border-b border-border">
           <div className="flex items-center justify-between px-4 py-3">
             <Link to="/admin" className="flex items-center gap-2">
-              <img src="/tempahstudiologo.png" alt="Tempah Studio Logo" style={{ width: '32px', height: '19px' }} />
+              <img src="/image.png" alt="Tempah Studio Logo" style={{ height: '24px', width: 'auto' }} />
               <span className="font-semibold text-sm">Raya Studio</span>
             </Link>
           </div>

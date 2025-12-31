@@ -39,7 +39,7 @@ export function generatePackageReceiptPDF(details: PackageReceiptDetails): void 
 
     // Load and add logo
     const logo = new Image();
-    logo.src = '/tempahstudiologo.png';
+    logo.src = '/image.png';
 
     logo.onload = () => {
         // Add logo (centered, 40mm wide)

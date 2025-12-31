@@ -115,7 +115,7 @@ export function AdminSidebar() {
       <div className="p-6 border-b border-border">
         {!isCollapsed && (
           <Link to="/admin" className="flex items-center gap-2 mb-3">
-            <img src="/tempahstudiologo.png" alt="Tempah Studio Logo" style={{ width: '48px', height: '28px' }} />
+            <img src="/image.png" alt="Tempah Studio Logo" style={{ height: '36px', width: 'auto' }} />
             <div>
               <span className="font-semibold">Raya Studio</span>
               <p className="text-xs text-muted-foreground">Portal Admin</p>

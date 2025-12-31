@@ -424,7 +424,7 @@ const NewBooking = () => {
         <div className="container max-w-4xl mx-auto px-4">
           <div className="mb-8 scroll-animate delay-100">
             <div className="text-center mb-6">
-              <img src="/tempahstudiologo.png" alt="Tempah Studio Logo" className="mx-auto h-16 w-auto mb-2" />
+              <img src="/image.png" alt="Tempah Studio Logo" className="mx-auto h-16 w-auto mb-2" />
               <p className="text-sm text-muted-foreground">Studio Fotografi Profesional</p>
               <h2 className="text-xl font-bold">{studio.name}</h2>
               {studio.location && (

@@ -2,14 +2,14 @@ import { Link } from 'react-router-dom';
 
 export function Footer() {
   return (
-    <footer className="bg-[#0F977C] text-white">
+    <footer className="bg-[#FFC300] text-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
         {/* Main Footer Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
           {/* Brand Section */}
           <div className="space-y-4">
             <h3 className="text-xl font-bold">Tempah Studio</h3>
-            <p className="text-gray-300 text-sm leading-relaxed">
+            <p className="text-gray-700 text-sm leading-relaxed">
               Sistem pengurusan tempahan studio yang mudah dan pantas untuk pemilik studio raya di Malaysia.
               Uruskan tempahan, pembayaran dan pelanggan dengan lebih efisien.
             </p>
@@ -22,7 +22,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/getting-started"
-                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                  className="text-gray-700 hover:text-white transition-colors text-sm"
                 >
                   Bermula
                 </Link>
@@ -30,7 +30,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/use-cases"
-                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                  className="text-gray-700 hover:text-white transition-colors text-sm"
                 >
                   Kegunaan
                 </Link>
@@ -38,7 +38,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/pricing"
-                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                  className="text-gray-700 hover:text-white transition-colors text-sm"
                 >
                   Harga
                 </Link>
@@ -46,7 +46,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/faq"
-                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                  className="text-gray-700 hover:text-white transition-colors text-sm"
                 >
                   FAQ
                 </Link>
@@ -61,7 +61,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/blog"
-                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                  className="text-gray-700 hover:text-white transition-colors text-sm"
                 >
                   Blog
                 </Link>
@@ -69,7 +69,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/contact-support"
-                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                  className="text-gray-700 hover:text-white transition-colors text-sm"
                 >
                   Sokongan Pelanggan
                 </Link>
@@ -84,7 +84,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/privacy-policy"
-                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                  className="text-gray-700 hover:text-white transition-colors text-sm"
                 >
                   Dasar Privasi
                 </Link>
@@ -92,7 +92,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/terms-of-service"
-                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                  className="text-gray-700 hover:text-white transition-colors text-sm"
                 >
                   Terma Perkhidmatan
                 </Link>
@@ -107,7 +107,7 @@ export function Footer() {
             Tempah Studio adalah sistem pengurusan tempahan studio yang direka untuk memudahkan pemilik studio raya di Malaysia.
             Platform ini tidak berafiliasi dengan, disahkan oleh, atau ditaja oleh WhatsApp atau Meta Platforms, Inc.
             Baca lebih lanjut dalam{' '}
-            <Link to="/terms-of-service" className="underline hover:text-white">
+            <Link to="/terms-of-service" className="underline hover:text-gray-900">
               Terma & Syarat
             </Link>
             .

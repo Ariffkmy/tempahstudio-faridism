@@ -63,7 +63,7 @@ const VerifyEmail = () => {
         <div className={`text-center ${isMobile ? 'mb-6' : 'mb-8'}`}>
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
             <img
-              src="/tempahstudiologo.png"
+              src="/image.png"
               alt="Raya Studio Logo"
               style={{ width: isMobile ? '65px' : '77px', height: isMobile ? '37px' : '44px' }}
             />

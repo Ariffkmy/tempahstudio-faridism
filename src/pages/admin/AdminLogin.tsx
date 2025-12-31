@@ -148,22 +148,33 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
-      <div className="w-full max-w-sm">
+    <div
+      className="min-h-screen flex items-center justify-center px-4 relative"
+      style={{
+        backgroundImage: 'url(/sample/image2.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Glassmorphism overlay on background */}
+      <div className="absolute inset-0 backdrop-blur-md bg-white/20"></div>
+
+      <div className="w-full max-w-sm relative z-10">
         {/* Logo & Header */}
         <div className={`text-center ${isMobile ? 'mb-6' : 'mb-8'}`}>
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
             <img
-              src="/tempahstudiologo.png"
-              alt="Raya Studio Logo"
-              style={{ width: isMobile ? '65px' : '77px', height: isMobile ? '37px' : '44px' }}
+              src="/image.png"
+              alt="Faridism Production Logo"
+              style={{ height: isMobile ? '40px' : '50px', width: 'auto' }}
             />
           </Link>
-          <h1 className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>Selamat Datang</h1>
-          <p className="text-muted-foreground text-sm">Log masuk untuk mengurus studio raya anda</p>
+          <h1 className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'} text-white drop-shadow-lg`}>Selamat Datang</h1>
+          <p className="text-white/90 text-sm drop-shadow-md">Log masuk untuk mengurus studio raya anda</p>
         </div>
 
-        <Card>
+        <Card className="bg-white shadow-2xl">
           <CardHeader>
             <CardTitle>{showResetForm ? 'Lupa Kata Laluan' : 'Log Masuk'}</CardTitle>
             <CardDescription>
@@ -273,8 +284,8 @@ const AdminLogin = () => {
         </Card>
 
         {/* Back to Home */}
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          <Link to="/" className="hover:text-foreground transition-colors">
+        <p className="text-center text-sm text-white/90 mt-6 drop-shadow-md">
+          <Link to="/" className="hover:text-white transition-colors underline">
             ← Kembali ke laman utama
           </Link>
         </p>

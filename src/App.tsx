@@ -68,6 +68,7 @@ const App = () => (
                 <Route path="/book/:studioId" element={<BrandBooking />} />
                 <Route path="/brand/:studioId" element={<BrandBooking />} />
                 <Route path="/wedding-booking" element={<WeddingBooking />} />
+                <Route path="/booking" element={<BrandBooking />} />
                 <Route path="/booking/confirmation" element={<BookingConfirmation />} />
 
                 {/* Legacy Landing Page Routes */}

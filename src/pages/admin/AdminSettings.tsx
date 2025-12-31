@@ -439,33 +439,11 @@ const AdminSettings = () => {
     loadSettings();
   }, [toast, effectiveStudioId]);
 
-  // Dedicated effect to calculate booking link exactly like AdminBookings
+  // Use /booking as requested by the user
   useEffect(() => {
-    const fetchBookingLink = async () => {
-      if (!effectiveStudioId) return;
-
-      try {
-        const { data: studioData } = await supabase
-          .from('studios')
-          .select('slug')
-          .eq('id', effectiveStudioId)
-          .single();
-
-        const baseUrl = window.location.origin;
-        const link = studioData?.slug
-          ? `${baseUrl}/${studioData.slug}`
-          : `${baseUrl}/book/${effectiveStudioId}`;
-
-        // setFinalBookingLink(link);
-      } catch (e) {
-        console.error('Error fetching slug for link:', e);
-        // Fallback
-        // setFinalBookingLink(`${window.location.origin}/book/${effectiveStudioId}`);
-      }
-    };
-
-    fetchBookingLink();
-  }, [effectiveStudioId]);
+    const baseUrl = window.location.origin;
+    setBookingLink(`${baseUrl}/booking`);
+  }, []);
 
   // Load unavailable dates on mount
   useEffect(() => {
@@ -536,14 +514,7 @@ const AdminSettings = () => {
     }
   }, [effectiveStudioId, fetchPortfolioPhotos, toast]);
 
-  // Generate booking link for this studio
-  useEffect(() => {
-    if (effectiveStudioId) {
-      const baseUrl = window.location.origin;
-      const studioBookingLink = `${baseUrl}/book/${effectiveStudioId}`;
-      setBookingLink(studioBookingLink);
-    }
-  }, [effectiveStudioId]);
+  // Simplified booking link effect removed as it is handled above
 
   // Load studio users
   const loadStudioUsers = async () => {

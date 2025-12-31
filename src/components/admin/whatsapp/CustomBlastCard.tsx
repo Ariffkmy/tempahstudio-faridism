@@ -126,7 +126,8 @@ export function CustomBlastCard({ studioId, isConnected, recipients, setRecipien
 
                 if (settings && settings.studioName) {
                     // Pre-fill message template with actual values
-                    const bookingUrl = settings.bookingLink || 'https://your-booking-link.com';
+                    const baseUrl = window.location.origin;
+                    const bookingUrl = `${baseUrl}/booking`;
                     const defaultMessage = `Assalammualaikum! ${settings.studioName} kini sudah menerima tempahan studio raya untuk 2026. Klik link untuk membuat tempahan!\n\n${bookingUrl}`;
                     console.log('✅ Pre-filling message:', defaultMessage);
                     setMessage(defaultMessage);

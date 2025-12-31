@@ -194,42 +194,15 @@ const AdminBookings = () => {
         setEditors([]);
       }
 
-      // Fetch studio slug for cleaner booking link
+      // Use /booking as requested by the user
       const baseUrl = window.location.origin;
-      let studioBookingLink = `${baseUrl}/book/${effectiveStudioId}`; // Default fallback
-
-      try {
-        const { data: studioData, error: slugError } = await supabase
-          .from('studios')
-          .select('slug')
-          .eq('id', effectiveStudioId)
-          .single();
-
-        if (slugError) {
-          console.error('Error fetching studio slug:', slugError);
-        }
-
-        // Generate booking link for this studio - use slug if available
-        if (studioData?.slug) {
-          studioBookingLink = `${baseUrl}/${studioData.slug}`;
-          console.log('Using slug-based booking link:', studioBookingLink);
-        } else {
-          console.log('Using ID-based booking link:', studioBookingLink);
-        }
-      } catch (slugFetchError) {
-        console.error('Exception fetching studio slug:', slugFetchError);
-      }
-
+      const studioBookingLink = `${baseUrl}/booking`;
       setBookingLink(studioBookingLink);
       console.log('Booking link set to:', studioBookingLink);
     } catch (error) {
       console.error('Error fetching data:', error);
-
-      // Even if bookings fetch fails, still try to set the booking link
       const baseUrl = window.location.origin;
-      const fallbackLink = `${baseUrl}/book/${effectiveStudioId}`;
-      setBookingLink(fallbackLink);
-      console.log('Fallback booking link set to:', fallbackLink);
+      setBookingLink(`${baseUrl}/booking`);
     } finally {
       setIsLoading(false);
     }

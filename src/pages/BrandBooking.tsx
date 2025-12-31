@@ -171,18 +171,11 @@ const BrandBooking = () => {
   // Load studio data, layouts and customizations
   useEffect(() => {
     const loadStudioData = async () => {
-      if (!studioId && !studioSlug) {
-        toast({
-          title: "Error",
-          description: "Studio tidak dijumpai",
-          variant: "destructive",
-        });
-        navigate('/');
-        return;
-      }
+      // If no ID or slug provided (e.g., /booking), we'll try to identify the studio automatically
+      const isBookingPath = !studioId && !studioSlug;
 
       try {
-        // Load studio information - by ID or by slug
+        // Load studio information - by ID, by slug, or default to first if on /booking path
         let query = supabase
           .from('studios')
           .select('*')
@@ -192,6 +185,18 @@ const BrandBooking = () => {
           query = query.eq('id', studioId);
         } else if (studioSlug) {
           query = query.eq('slug', studioSlug);
+        } else if (isBookingPath) {
+          // If on /booking path, we take the first active studio as default
+          // In a single-studio setup like Faridism, this will load the correct studio
+          query = query.limit(1);
+        } else {
+          toast({
+            title: "Error",
+            description: "Studio tidak dijumpai",
+            variant: "destructive",
+          });
+          navigate('/');
+          return;
         }
 
         const { data: studioData, error: studioError } = await query.single();

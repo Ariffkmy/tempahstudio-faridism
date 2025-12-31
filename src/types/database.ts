@@ -222,7 +222,8 @@ export interface Booking {
   customer_id: string;
   company_id: string;
   studio_id: string;
-  layout_id: string;
+  layout_id?: string | null;
+  booking_type?: 'studio' | 'wedding';
   date: string;
   start_time: string;
   end_time: string;
@@ -254,11 +255,10 @@ export type BookingInsert = Omit<Booking, 'id' | 'created_at' | 'updated_at' | '
 
 export type BookingUpdate = Partial<Omit<BookingInsert, 'customer_id' | 'company_id' | 'studio_id' | 'layout_id'>>;
 
-// Booking with related data (for display)
 export interface BookingWithDetails extends Booking {
   customer: Customer;
   studio: Studio;
-  studio_layout: StudioLayout;
+  studio_layout?: StudioLayout | null;
 }
 
 // =============================================

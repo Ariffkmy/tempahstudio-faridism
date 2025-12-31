@@ -361,7 +361,15 @@ const PackagePage = () => {
                                         </li>
                                     ))}
                                 </ul>
-                                <Link to="/contact-us" className="btn btn-primary">Book Now</Link>
+                                <Link
+                                    to={packageType === 'wedding-reception'
+                                        ? `/wedding-booking?name=${encodeURIComponent(pkg.name)}&price=${encodeURIComponent(pkg.price.replace(/[^0-9.]/g, ''))}`
+                                        : "/contact-us"
+                                    }
+                                    className="btn btn-primary"
+                                >
+                                    Book Now
+                                </Link>
                             </div>
                         ))}
                     </div>

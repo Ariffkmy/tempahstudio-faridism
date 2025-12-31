@@ -50,6 +50,7 @@ interface CustomerBooking {
     latest_balance_due: number;
     latest_payment_type: string | null;
     latest_number_of_pax: number | null;
+    latest_booking_type: 'studio' | 'wedding' | null; // NEW: Differentiate booking types
 }
 
 interface BookingDetail {
@@ -64,6 +65,7 @@ interface BookingDetail {
     notes: string | null;
     receipt_url: string | null;
     payment_proof_url: string | null;
+    booking_type: 'studio' | 'wedding' | null; // NEW
 }
 
 export default function AdminCustomers() {
@@ -81,6 +83,7 @@ export default function AdminCustomers() {
     const [dateFilter, setDateFilter] = useState('');
     const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
     const [verificationFilter, setVerificationFilter] = useState('all');
+    const [bookingTypeFilter, setBookingTypeFilter] = useState('all'); // NEW: For studio vs wedding
     const [isLoading, setIsLoading] = useState(true);
     const [selectedCustomer, setSelectedCustomer] = useState<CustomerBooking | null>(null);
     const [customerBookings, setCustomerBookings] = useState<BookingDetail[]>([]);
@@ -156,14 +159,17 @@ export default function AdminCustomers() {
                 const matchesVerification = verificationFilter === 'all' ||
                     customer.latest_payment_verification === verificationFilter;
 
+                const matchesBookingType = bookingTypeFilter === 'all' ||
+                    customer.latest_booking_type === bookingTypeFilter;
+
                 return matchesSearch && matchesName && matchesEmail && matchesMinSpent &&
                     matchesMaxSpent && matchesStatus && matchesDate && matchesPaymentMethod &&
-                    matchesVerification;
+                    matchesVerification && matchesBookingType;
             });
             setFilteredCustomers(filtered);
         }
     }, [searchQuery, nameFilter, emailFilter, minSpentFilter, maxSpentFilter, statusFilter,
-        dateFilter, paymentMethodFilter, verificationFilter, customers]);
+        dateFilter, paymentMethodFilter, verificationFilter, bookingTypeFilter, customers]);
 
     const fetchCustomers = useCallback(async () => {
         if (!studio) return;
@@ -184,6 +190,7 @@ export default function AdminCustomers() {
           status,
           payment_method,
           payment_verification,
+          booking_type,
           customer:customers (
             id,
             name,
@@ -220,6 +227,7 @@ export default function AdminCustomers() {
                         existing.latest_balance_due = Number(booking.balance_due) || 0;
                         existing.latest_payment_type = booking.payment_type || null;
                         existing.latest_number_of_pax = booking.number_of_pax || null;
+                        existing.latest_booking_type = booking.booking_type || 'studio';
                     }
                 } else {
                     customerMap.set(customerId, {
@@ -238,6 +246,7 @@ export default function AdminCustomers() {
                         latest_balance_due: Number(booking.balance_due) || 0,
                         latest_payment_type: booking.payment_type || null,
                         latest_number_of_pax: booking.number_of_pax || null,
+                        latest_booking_type: booking.booking_type || 'studio',
                     });
                 }
             });
@@ -319,7 +328,8 @@ export default function AdminCustomers() {
                     notes,
                     payment_method,
                     receipt_url,
-                    payment_proof_url
+                    payment_proof_url,
+                    booking_type
                 `)
                 .eq('studio_id', studio.id)
                 .eq('customer_id', customerId)
@@ -537,6 +547,7 @@ export default function AdminCustomers() {
         setDateFilter('');
         setPaymentMethodFilter('all');
         setVerificationFilter('all');
+        setBookingTypeFilter('all');
     };
 
     const hasActiveFilters = nameFilter || emailFilter || minSpentFilter || maxSpentFilter ||
@@ -638,6 +649,7 @@ export default function AdminCustomers() {
                                                         <TableHead>Status Terkini</TableHead>
                                                         <TableHead>Tempahan Terakhir</TableHead>
                                                         <TableHead>Kaedah Bayaran</TableHead>
+                                                        <TableHead>Jenis Tempahan</TableHead>
                                                         <TableHead>Pengesahan Pembayaran</TableHead>
                                                         <TableHead className="w-[70px]"></TableHead>
                                                     </TableRow>
@@ -725,6 +737,18 @@ export default function AdminCustomers() {
                                                             </Select>
                                                         </TableHead>
                                                         <TableHead className="h-12">
+                                                            <Select value={bookingTypeFilter} onValueChange={setBookingTypeFilter}>
+                                                                <SelectTrigger className="h-8 text-xs">
+                                                                    <SelectValue placeholder="Semua" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="all">Semua Jenis</SelectItem>
+                                                                    <SelectItem value="studio">Studio Raya</SelectItem>
+                                                                    <SelectItem value="wedding">Wedding Reception</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </TableHead>
+                                                        <TableHead className="h-12">
                                                             <Select value={verificationFilter} onValueChange={setVerificationFilter}>
                                                                 <SelectTrigger className="h-8 text-xs">
                                                                     <SelectValue placeholder="Semua" />
@@ -805,6 +829,17 @@ export default function AdminCustomers() {
                                                             </TableCell>
                                                             <TableCell>
                                                                 {getPaymentMethodBadge(customer.latest_payment_method)}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {customer.latest_booking_type === 'wedding' ? (
+                                                                    <Badge variant="outline" className="border-primary text-primary">
+                                                                        Wedding
+                                                                    </Badge>
+                                                                ) : (
+                                                                    <Badge variant="secondary">
+                                                                        Studio
+                                                                    </Badge>
+                                                                )}
                                                             </TableCell>
                                                             <TableCell>
                                                                 <Select
@@ -902,8 +937,13 @@ export default function AdminCustomers() {
                                         <div className="flex items-center justify-between mb-4 pb-3 border-b">
                                             <div>
                                                 <p className="font-semibold text-lg">{booking.reference}</p>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {format(new Date(booking.date), 'dd/MM/yyyy')} • {booking.start_time} - {booking.end_time} • RM {booking.total_price.toFixed(2)}
+                                                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                                                    {format(new Date(booking.date), 'dd/MM/yyyy')} • {booking.booking_type === 'wedding' ? 'Full Day' : `${booking.start_time} - ${booking.end_time}`} • RM {booking.total_price.toFixed(2)}
+                                                    {booking.booking_type === 'wedding' ? (
+                                                        <Badge variant="outline" className="ml-1 border-primary text-primary text-[10px] h-4">Wedding</Badge>
+                                                    ) : (
+                                                        <Badge variant="secondary" className="ml-1 text-[10px] h-4">Studio</Badge>
+                                                    )}
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-2">
@@ -947,6 +987,13 @@ export default function AdminCustomers() {
                                                 </Button>
                                             </div>
                                         </div>
+
+                                        {booking.notes && (
+                                            <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+                                                <p className="text-xs font-semibold uppercase text-muted-foreground mb-1">Nota / Perincian Tempahan:</p>
+                                                <p className="text-sm whitespace-pre-wrap">{booking.notes}</p>
+                                            </div>
+                                        )}
 
                                         {(booking.receipt_url || booking.payment_proof_url) ? (
                                             <div className="space-y-4">

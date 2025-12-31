@@ -381,7 +381,7 @@ export interface CreateBookingData {
 
   // Booking details
   studioId: string;
-  layoutId: string;
+  layoutId?: string;
   date: string;
   startTime: string;
   endTime: string;
@@ -391,6 +391,7 @@ export interface CreateBookingData {
   paymentType?: string;
   numberOfPax?: number;
   status?: string;
+  bookingType?: 'studio' | 'wedding'; // NEW: Differentiate booking types
 
   // Optional
   notes?: string;
@@ -408,6 +409,11 @@ export async function createPublicBooking(bookingData: CreateBookingData): Promi
   console.log('Booking data:', bookingData);
 
   try {
+    // Basic validation based on booking type
+    if (bookingData.bookingType !== 'wedding' && !bookingData.layoutId) {
+      return { success: false, error: 'Sila pilih layout studio' };
+    }
+
     // First, get studio and company info
     const { data: studio, error: studioError } = await supabase
       .from('studios')
@@ -451,8 +457,9 @@ export async function createPublicBooking(bookingData: CreateBookingData): Promi
     }
 
     // Generate booking reference using the database function
+    const prefix = bookingData.bookingType === 'wedding' ? 'WED' : 'RAYA';
     const { data: referenceData, error: referenceError } = await supabase
-      .rpc('generate_booking_reference');
+      .rpc('generate_booking_reference', { p_prefix: prefix });
 
     if (referenceError || !referenceData) {
       console.error('Error generating booking reference:', referenceError);
@@ -482,6 +489,7 @@ export async function createPublicBooking(bookingData: CreateBookingData): Promi
         payment_method: bookingData.paymentMethod || null,
         receipt_url: bookingData.receiptUrl || null,
         payment_proof_url: bookingData.paymentProofUrl || null,
+        booking_type: bookingData.bookingType || 'studio', // NEW: Store the booking type
       })
       .select(`
         *,

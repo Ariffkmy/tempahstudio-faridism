@@ -14,6 +14,7 @@ import StudioSlots from "./pages/StudioSlots";
 import Book from "./pages/Book";
 import NewBooking from "./pages/NewBooking";
 import BrandBooking from "./pages/BrandBooking";
+import WeddingBooking from "./pages/WeddingBooking";
 import BookingConfirmation from "./pages/BookingConfirmation";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminResetPassword from "./pages/admin/AdminResetPassword";
@@ -66,6 +67,7 @@ const App = () => (
                 {/* All booking routes now use BrandBooking with conditional customizations */}
                 <Route path="/book/:studioId" element={<BrandBooking />} />
                 <Route path="/brand/:studioId" element={<BrandBooking />} />
+                <Route path="/wedding-booking" element={<WeddingBooking />} />
                 <Route path="/booking/confirmation" element={<BookingConfirmation />} />
 
                 {/* Legacy Landing Page Routes */}
